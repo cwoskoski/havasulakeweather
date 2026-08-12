@@ -603,13 +603,19 @@
   var standalone=(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
   var dismissed=false;try{dismissed=localStorage.getItem("havasu_install_dismiss")==="1";}catch(e){}
   function remember(){try{localStorage.setItem("havasu_install_dismiss","1");}catch(e){}}
+  function track(name,params){if(typeof window.gtag==="function"){window.gtag("event",name,params||{});}}
+  function installed(){try{return localStorage.getItem("havasu_pwa_installed")==="1";}catch(e){return false;}}
+  function markInstalled(method){try{localStorage.setItem("havasu_pwa_installed","1");}catch(e){}track("pwa_install",{method:method});}
+  /* Already running as an installed app and not yet logged — counts the install
+     once, and is the only way to observe an iOS "Add to Home Screen". */
+  if(standalone&&!installed()){markInstalled("standalone_detected");}
 
   /* Android / desktop: the real install prompt */
   var banner=document.getElementById("installBanner"),deferred=null;
-  window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;if(!dismissed&&!standalone&&!isIos){banner.hidden=false;}});
-  document.getElementById("installBtn").addEventListener("click",function(){if(deferred){deferred.prompt();deferred=null;banner.hidden=true;}});
+  window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;track("pwa_install_available",{});if(!dismissed&&!standalone&&!isIos){banner.hidden=false;}});
+  document.getElementById("installBtn").addEventListener("click",function(){if(deferred){deferred.prompt();var ch=deferred.userChoice;deferred=null;banner.hidden=true;if(ch&&ch.then){ch.then(function(r){track("pwa_prompt_response",{outcome:(r&&r.outcome)||"unknown"});});}}});
   document.getElementById("installX").addEventListener("click",function(){banner.hidden=true;remember();});
-  window.addEventListener("appinstalled",function(){banner.hidden=true;var c=document.getElementById("iosCallout");if(c)c.hidden=true;remember();});
+  window.addEventListener("appinstalled",function(){banner.hidden=true;var c=document.getElementById("iosCallout");if(c)c.hidden=true;remember();if(!installed()){markInstalled("browser_prompt");}});
 
   /* iOS: a dedicated callout — Safari gets the Share hint + arrow; other iOS browsers get "open in Safari" */
   if(isIos&&!standalone&&!dismissed){
