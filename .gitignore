@@ -1,0 +1,28 @@
+# Data — the SQLite DB is data, not source. Litestream backs it up, never git.
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Secrets / environment
+.env
+.env.*
+secrets/
+*.local
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime / logs
+*.log
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# JetBrains IDE
+.idea/
