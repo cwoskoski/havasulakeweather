@@ -259,6 +259,52 @@
     .rain{grid-template-columns:auto 1fr auto;}
     .rain-facts{grid-column:1 / -1;grid-template-columns:repeat(4,1fr);}
   }
+
+  /* ---- weather alerts (heat kept calm, flood/warnings loud) ---- */
+  .alerts{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+  .alerts:empty{display:none;}
+  .alert{display:flex;align-items:flex-start;gap:11px;border-radius:var(--radius-sm);padding:12px 14px;border:1px solid var(--glass-brd);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--glass-shadow);}
+  .alert-ico{font-size:1.3rem;line-height:1.2;flex:none;}
+  .alert-body{flex:1;min-width:0;}
+  .alert-event{font-weight:800;font-size:.98rem;}
+  .alert-head{font-size:.84rem;font-weight:600;color:var(--ink-soft);line-height:1.35;margin-top:2px;}
+  .alert-x{flex:none;border:0;background:transparent;color:var(--ink-faint);font-size:1.25rem;line-height:1;cursor:pointer;padding:0 2px;}
+  .alert-critical{background:linear-gradient(150deg,rgba(232,69,31,.94),rgba(196,38,18,.9));color:#fff;border-color:rgba(255,255,255,.35);}
+  .alert-critical .alert-event{letter-spacing:.01em;}
+  .alert-critical .alert-head{color:rgba(255,255,255,.92);}
+  .alert-critical .alert-x{color:rgba(255,255,255,.85);}
+  .alert-warning{background:linear-gradient(150deg,rgba(255,150,60,.92),rgba(255,120,40,.84));color:#3a1a08;border-color:rgba(255,255,255,.42);}
+  .alert-warning .alert-head{color:rgba(58,26,8,.75);}
+  .alert-info{background:var(--glass-bg);}
+  .alert-info.is-heat{background:linear-gradient(150deg,rgba(255,188,110,.42),rgba(255,222,150,.3));}
+
+  /* ---- forecast strip (NWS) ---- */
+  .forecast{margin-top:14px;padding:16px 16px 14px;}
+  .fc-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+  .fc-head h2{margin:0;font-size:1.05rem;font-weight:800;}
+  .fc-src{font-size:.7rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
+  .fc-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:linear-gradient(150deg,rgba(15,127,143,.18),rgba(15,127,143,.08));border:1px solid rgba(15,127,143,.32);color:var(--teal-deep);font-weight:800;font-size:.85rem;padding:6px 12px;border-radius:999px;}
+  .fc-chip[hidden]{display:none;}
+  .fc-today{margin-top:10px;font-size:.9rem;font-weight:650;color:var(--ink-soft);line-height:1.4;}
+  .fc-today b{color:var(--ink);font-weight:800;}
+  .fc-hours{display:flex;gap:6px;margin-top:12px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .fc-hours::-webkit-scrollbar{display:none;}
+  .fc-hour{flex:none;width:54px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:14px;background:var(--glass-bg-2);border:1px solid var(--glass-brd);}
+  .fc-hour .h{font-size:.7rem;font-weight:700;color:var(--ink-faint);}
+  .fc-hour .t{font-size:1rem;font-weight:800;font-variant-numeric:tabular-nums;}
+  .fc-hour .p{font-size:.7rem;font-weight:800;color:var(--teal);}
+  .fc-hour .p.dim{color:var(--ink-faint);font-weight:600;}
+
+  /* ---- station check (our station vs a nearby PWS) ---- */
+  .compare{margin-top:14px;padding:16px;}
+  .cmp-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px;}
+  .cmp-head h2{margin:0;font-size:1.05rem;font-weight:800;}
+  .cmp-src{font-size:.7rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
+  .cmp-row{display:grid;grid-template-columns:1.2fr 1fr 1fr .8fr;gap:6px;align-items:center;padding:7px 2px;border-top:1px solid rgba(43,24,16,.1);font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums;}
+  .cmp-row.cmp-hdr{border-top:0;color:var(--ink-faint);font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;font-weight:800;}
+  .cmp-row .k{color:var(--ink-soft);}
+  .cmp-row .d{color:var(--teal-deep);font-weight:800;}
+  .cmp-note{margin-top:10px;font-size:.82rem;font-weight:650;color:var(--coral-deep);background:rgba(232,69,31,.08);border-radius:12px;padding:8px 11px;line-height:1.4;}
 </style>
 </head>
 <body>
@@ -284,6 +330,9 @@
       </div>
       <div class="freshness" id="fresh"><span class="live-dot" aria-hidden="true"></span><span id="freshText">Connecting&hellip;</span></div>
     </header>
+
+    <!-- WEATHER ALERTS (NWS) -->
+    <div id="alerts" class="alerts" aria-live="polite"></div>
 
     <div class="glass install" id="installBanner" hidden>
       <svg class="ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v6M9 10h6"/></svg>
@@ -342,6 +391,17 @@
       </div>
     </section>
 
+    <!-- FORECAST (NWS) -->
+    <section class="glass forecast" id="forecast" aria-labelledby="fc-h" hidden>
+      <div class="fc-head">
+        <h2 id="fc-h">Forecast</h2>
+        <span class="fc-src" id="fcSrc">via NWS</span>
+      </div>
+      <div class="fc-chip" id="fcRain" hidden></div>
+      <div class="fc-today" id="fcToday"></div>
+      <div class="fc-hours" id="fcHours" aria-label="Next hours"></div>
+    </section>
+
     <!-- TILES -->
     <section class="tiles" aria-labelledby="tiles-h">
       <h2 class="sr-only" id="tiles-h">Current conditions detail</h2>
@@ -393,6 +453,16 @@
         <path id="chartLine" fill="none" stroke="url(#tempLine)" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" d=""/>
         <g id="chartLabels" fill="rgba(43,24,16,0.55)" font-size="11" font-weight="700" font-family="sans-serif"></g>
       </svg>
+    </section>
+
+    <!-- STATION CHECK (compare vs a nearby PWS) -->
+    <section class="glass compare" id="compare" aria-labelledby="cmp-h" hidden>
+      <div class="cmp-head">
+        <h2 id="cmp-h">Station check</h2>
+        <span class="cmp-src" id="cmpSrc"></span>
+      </div>
+      <div class="cmp-grid" id="cmpGrid"></div>
+      <div class="cmp-notes" id="cmpNotes"></div>
     </section>
 
     <!-- ABOUT (static, indexable) -->
@@ -587,10 +657,94 @@
   overlay.addEventListener("click",function(e){if(e.target===overlay)closeD();});
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!overlay.hidden)closeD();});
 
+  /* ---------- forecast, alerts, station-check (mock-aware) ----------
+     Real endpoints by default. ?demo=1 fills everything with mock fixtures;
+     ?mockAlerts=flood / ?mockForecast=rain / ?mockCompare=drift target one. */
+  var Q=new URLSearchParams(location.search), DEMO=Q.get("demo");
+  function mockQ(feature,demoVal){var v=Q.get("mock"+feature);if(!v&&DEMO)v=demoVal;return v?("?mock="+encodeURIComponent(v)):"";}
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function clock(iso){try{return new Date(iso).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});}catch(e){return "";}}
+  function hourLbl(iso){try{return new Date(iso).toLocaleTimeString([],{hour:"numeric"});}catch(e){return "";}}
+
+  /* -- alerts -- */
+  var alertGone={}; // session-only dismissals
+  function heatTone(a){return a.severity==="Extreme"?"warning":"info";} // keep routine heat calm
+  function alertTone(a){return a.category==="heat"?heatTone(a):(a.tone||"info");}
+  function alertIcon(a){return {flood:"🌊",heat:"🌡️",wind:"💨",thunderstorm:"⛈️",fire:"🔥",cold:"❄️"}[a.category]||"⚠️";}
+  async function loadAlerts(){
+    try{var r=await fetch(API+"/api/alerts"+mockQ("Alerts","multi"),{cache:"no-store"});var d=await r.json();renderAlerts((d&&d.alerts)||[]);}catch(e){}
+  }
+  function renderAlerts(list){
+    var box=$("alerts");if(!box)return;box.innerHTML="";
+    list.filter(function(a){return !alertGone[a.id];}).forEach(function(a){
+      var el=document.createElement("div");
+      el.className="alert alert-"+alertTone(a)+(a.category==="heat"?" is-heat":"");
+      el.innerHTML='<span class="alert-ico" aria-hidden="true">'+alertIcon(a)+'</span>'+
+        '<div class="alert-body"><div class="alert-event">'+esc(a.event)+'</div>'+
+        '<div class="alert-head">'+esc(a.headline||"")+'</div></div>'+
+        '<button class="alert-x" type="button" aria-label="Dismiss">&times;</button>';
+      el.querySelector(".alert-x").addEventListener("click",function(){alertGone[a.id]=1;el.remove();});
+      box.appendChild(el);
+    });
+  }
+
+  /* -- forecast -- */
+  async function loadForecast(){
+    try{var r=await fetch(API+"/api/forecast"+mockQ("Forecast",""),{cache:"no-store"});renderForecast(await r.json());}catch(e){}
+  }
+  function renderForecast(d){
+    var sec=$("forecast");if(!sec||!d)return;
+    var hours=d.hourly||[],daily=d.daily||[];
+    if(!hours.length&&!daily.length){sec.hidden=true;return;}
+    sec.hidden=false;
+    var chip=$("fcRain"),rs=d.rainSoon||{};
+    if(rs.likely){chip.hidden=false;chip.textContent="🌧 Rain likely "+(rs.at?("around "+clock(rs.at)):"soon")+(rs.maxProbNext12h?(" · "+rs.maxProbNext12h+"%"):"");}
+    else{chip.hidden=true;}
+    var d0=daily[0];
+    $("fcToday").innerHTML=d0?('<b>'+esc(d0.name)+':</b> '+esc(d0.shortForecast||"")+(d0.tempF!=null?(' · '+(d0.isDaytime?"High ":"Low ")+Math.round(d0.tempF)+"°"):"")):"";
+    var h=$("fcHours");h.innerHTML="";
+    hours.forEach(function(x){
+      var cell=document.createElement("div");cell.className="fc-hour";
+      var pp=(x.precipProb!=null&&x.precipProb>0)?('<span class="p">'+x.precipProb+'%</span>'):'<span class="p dim">·</span>';
+      cell.innerHTML='<span class="h">'+esc(hourLbl(x.time))+'</span><span class="t">'+(x.tempF!=null?Math.round(x.tempF)+"°":"--")+'</span>'+pp;
+      h.appendChild(cell);
+    });
+    $("fcSrc").textContent=d.source==="mock"?"demo data":"via NWS";
+  }
+
+  /* -- station check (compare) -- */
+  function fnum(v,suf,dec){return v==null?"--":(dec?v.toFixed(dec):Math.round(v))+suf;}
+  function fdelta(v,dec){if(v==null)return "—";var n=dec?v.toFixed(dec):Math.round(v);return (v>0?"+":"")+n;}
+  async function loadCompare(){
+    try{var r=await fetch(API+"/api/compare"+mockQ("Compare","drift"),{cache:"no-store"});renderCompare(await r.json());}catch(e){}
+  }
+  function renderCompare(d){
+    var sec=$("compare");if(!sec||!d)return;
+    var mine=d.stations&&d.stations.mine,near=d.stations&&d.stations.nearby;
+    if(d.configured===false||!mine||!near){sec.hidden=true;return;} // hidden until WU key is set
+    sec.hidden=false;
+    $("cmpSrc").textContent=d.source==="mock"?"demo data":"vs "+(near.id||"nearby");
+    var rows=[
+      ["Temp",fnum(mine.tempF,"°"),fnum(near.tempF,"°"),fdelta(d.deltas.tempF)+"°"],
+      ["Wind",fnum(mine.windMph,""),fnum(near.windMph,""),fdelta(d.deltas.windMph)],
+      ["Humidity",fnum(mine.humidity,"%"),fnum(near.humidity,"%"),fdelta(d.deltas.humidity)],
+      ["Pressure",fnum(mine.pressureInHg,"",2),fnum(near.pressureInHg,"",2),fdelta(d.deltas.pressureInHg,2)],
+    ];
+    var html='<div class="cmp-row cmp-hdr"><span></span><span>Mine</span><span>'+esc(near.id||"Nearby")+'</span><span>&Delta;</span></div>';
+    rows.forEach(function(r){html+='<div class="cmp-row"><span class="k">'+r[0]+'</span><span>'+r[1]+'</span><span>'+r[2]+'</span><span class="d">'+r[3]+'</span></div>';});
+    $("cmpGrid").innerHTML=html;
+    var notes=d.notes||[];
+    $("cmpNotes").innerHTML=notes.map(function(n){return '<div class="cmp-note">'+esc(n)+'</div>';}).join("");
+  }
+
   /* ---------- go ---------- */
   loadCurrent();loadHistory(24);
+  loadAlerts();loadForecast();loadCompare();
   setInterval(loadCurrent,60000);
   setInterval(function(){loadHistory(rangeHours);},300000);
+  setInterval(loadAlerts,300000);
+  setInterval(loadForecast,900000);
+  setInterval(loadCompare,300000);
 })();
 </script>
 <script>
