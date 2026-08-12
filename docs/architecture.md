@@ -25,7 +25,7 @@ the edge is encrypted.
 ## High-level shape
 
 ```
-Ambient console ──HTTP :80──▶ CloudFront ──HTTPS──▶ Lambda (Node 20) ──▶ DynamoDB
+Ambient console ──HTTP :80──▶ CloudFront ──HTTPS──▶ Lambda (Node 24) ──▶ DynamoDB
                               accepts HTTP,          parse query,        one table,
                               CachingDisabled,       MAC allowlist,      idempotent
                               forward query strings  dedupe              writes
@@ -86,7 +86,7 @@ the table. Keep AmbientWeather.net + Wunderground uploads on as a free backup.
 
 - **IaC: AWS SAM** (`template.yaml`). CloudFront is added as a raw CloudFormation
   resource (SAM is a CloudFormation superset).
-- **Runtime: Node.js 20.**
+- **Runtime: Node.js 24.**
 - **Region: us-west-2.** Deploys pinned to the personal `havasu` profile via
   `samconfig.toml` so they can never target a work account.
 

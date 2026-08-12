@@ -1,6 +1,6 @@
 # ingest
 
-Lambda source (Node.js 20) that receives the weather console's HTTP posts and
+Lambda source (Node.js 24) that receives the weather console's HTTP posts and
 stores them. Deployed via the SAM stack (`../template.yaml`) behind CloudFront,
 which accepts the console's plaintext HTTP on port 80 and forwards to the Lambda
 over HTTPS.
@@ -12,8 +12,7 @@ CloudWatch, so we can read one real payload, finalize the schema, and settle the
 Ambient-vs-Wunderground format question with actual data. Storage (DynamoDB) +
 dedupe come next.
 
-> `src/server.js` is the original local HTTP listener from the Pi plan; it gets
-> converted into the Lambda handler in Phase 0.
+`src/handler.js` is the Lambda entry point (Function URL event → log → HTTP 200).
 
 ## Console upload settings (Ambient "Customized")
 
@@ -24,4 +23,4 @@ dedupe come next.
 
 ## Local test
 
-`sam local invoke` with a sample event (added in Phase 1).
+    sam local invoke IngestFunction -e events/console-get.json --profile havasu

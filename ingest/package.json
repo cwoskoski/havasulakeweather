@@ -2,13 +2,10 @@
   "name": "havasu-weather-ingest",
   "version": "0.1.0",
   "private": true,
-  "description": "Receives Ambient Weather station HTTP posts and stores them in SQLite",
+  "description": "Ambient Weather station ingest Lambda (Function URL behind CloudFront)",
   "type": "module",
-  "main": "src/server.js",
+  "main": "src/handler.js",
   "engines": {
-    "node": ">=20"
-  },
-  "scripts": {
-    "start": "node src/server.js"
+    "node": ">=22"
   }
 }

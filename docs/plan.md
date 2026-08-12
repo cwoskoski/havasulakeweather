@@ -1,7 +1,8 @@
 # Build Plan
 
-Serverless AWS backend for the Havasu Lake weather station. See
-[architecture.md](architecture.md) for the design and the reasoning behind it.
+Serverless AWS backend for the Havasu Lake weather station. The application design
+(*what* we're building) is in [product-spec.md](product-spec.md); the system design and
+rationale in [architecture.md](architecture.md). This file is the *build sequence*.
 
 ## Decisions
 
@@ -11,7 +12,7 @@ Defaults below are **proposed** — change any before we start Phase 0.
 |-----------------|------------------------------------------------------------------------|
 | Platform        | AWS, serverless (SAM)                                                   |
 | Region          | `us-west-2`                                                            |
-| Runtime         | Node.js 20                                                              |
+| Runtime         | Node.js 24                                                              |
 | Auth / profile  | IAM Identity Center → profile `havasu` (account `648581682379`) — **done** |
 | Domain          | Start on free `*.cloudfront.net`; add a custom domain in Phase 3       |
 | Retention       | Keep everything, no TTL; optional S3/Athena archive later              |
@@ -22,14 +23,16 @@ Defaults below are **proposed** — change any before we start Phase 0.
 ## Phase 0 — Foundations
 
 - [x] Personal `havasu` SSO profile + verified caller identity
-- [ ] AWS Budgets alarm ($5/mo) → email
+- [ ] Register `havasulakeweather.com` (Route 53) — needs registrant contact info
+- [ ] AWS Budgets alarm → email (low threshold + forecasted-to-exceed). Free tier is
+      the target; the alarm is the safety net.
 - [ ] SAM scaffold: `template.yaml` + `samconfig.toml` (pinned to `havasu`, us-west-2)
 - [ ] Retire Pi-era bits: `deploy/` (systemd/Litestream) removed; `ingest/src/server.js`
       converted to the Lambda handler
 
 ## Phase 1 — Ingest, logger-first
 
-- [ ] Node 20 **logger** Lambda + Function URL + CloudFront
+- [ ] Node 24 **logger** Lambda + Function URL + CloudFront
       (viewer allows HTTP:80, `CachingDisabled`, forwards all query strings)
 - [ ] `sam deploy` → grab the `*.cloudfront.net` URL
 - [ ] Configure the console's "Customized" upload (Ambient format) → CloudFront URL, port 80
@@ -45,10 +48,16 @@ Defaults below are **proposed** — change any before we start Phase 0.
 
 ## Phase 3 — Public page (later)
 
+See [product-spec.md](product-spec.md) for the full design.
+
 - [ ] S3 + CloudFront static page; JSON API Lambda (`/api/current`, `/api/history`)
-- [ ] Edge cache 30–60s; uPlot charts; mobile-first
-- [ ] Custom domain + ACM cert (**us-east-1** for CloudFront); "not an official
-      observation" disclaimer
+- [ ] Current conditions: wind + temp hero, outdoor tiles, freshness/stale state
+- [ ] Live updates: poll edge-cached `/api/current`, repaint only changed values
+- [ ] History charts (uPlot): 24h / 7d; mobile-first, responsive to desktop
+- [ ] History backfill from the AmbientWeather.net API (seed so charts aren't empty)
+- [ ] Donation: dismissible splash + button, hosted payment link, `localStorage` "donated" flag
+- [ ] Custom domain `havasulakeweather.com` + ACM cert (**us-east-1** for CloudFront);
+      "not an official observation" disclaimer
 
 ## Cost
 

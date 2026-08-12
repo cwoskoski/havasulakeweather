@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Havasu Lake Weather — ingest (Phase 1: logger).
+  Ambient console --HTTP:80--> CloudFront --HTTPS--> Lambda (Node 20).
+
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Timeout: 10
+    MemorySize: 128
+    Architectures:
+      - arm64
+
+Resources:
+  IngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: havasu-weather-ingest
+      Description: Logs incoming weather-console posts (Phase 1 logger)
+      CodeUri: ingest/
+      Handler: src/handler.handler
+      FunctionUrlConfig:
+        AuthType: NONE # Phase 1 only; locked to CloudFront (OAC/IAM) in Phase 2.
+      LoggingConfig:
+        LogFormat: JSON
+
+  # Explicit log group so retention is bounded (Lambda's default is "never expire").
+  IngestLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${IngestFunction}"
+      RetentionInDays: 14
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Havasu weather ingest — accepts the console's plaintext HTTP
+        PriceClass: PriceClass_100 # cheapest edge footprint (NA + EU)
+        HttpVersion: http2
+        Origins:
+          - Id: LambdaOrigin
+            # Function URL is https://<id>.lambda-url.<region>.on.aws/ — take the host.
+            DomainName: !Select [2, !Split ["/", !GetAtt IngestFunctionUrl.FunctionUrl]]
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols:
+                - TLSv1.2
+        DefaultCacheBehavior:
+          TargetOriginId: LambdaOrigin
+          # allow-all = serve HTTP on port 80 (the whole point — the console can't do TLS).
+          ViewerProtocolPolicy: allow-all
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+          CachedMethods: [GET, HEAD]
+          # Managed "CachingDisabled" — never cache weather writes.
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+          # Managed "AllViewerExceptHostHeader" — forward all query strings, but NOT
+          # the Host header (required for a Lambda Function URL origin).
+          OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+
+Outputs:
+  IngestUrl:
+    Description: Point the weather console's Customized upload here (HTTP, port 80)
+    Value: !Sub "http://${Distribution.DomainName}/"
+  CloudFrontDomain:
+    Value: !GetAtt Distribution.DomainName
+  FunctionUrl:
+    Description: Direct Lambda URL (bypasses CloudFront; HTTPS only)
+    Value: !GetAtt IngestFunctionUrl.FunctionUrl

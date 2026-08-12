@@ -1,0 +1,38 @@
+{
+  "version": "2.0",
+  "routeKey": "$default",
+  "rawPath": "/",
+  "rawQueryString": "PASSKEY=AA:BB:CC:DD:EE:FF&stationtype=AMBWeatherV4.3.4&dateutc=2026-08-11+20:00:00&tempf=108.1&humidity=15&windspeedmph=11.2&windgustmph=19.4&maxdailygust=24.1&winddir=225&baromrelin=29.85&baromabsin=27.98&uv=9&solarradiation=890.2&rainratein=0.000&eventrainin=0.000&hourlyrainin=0.000&dailyrainin=0.000&weeklyrainin=0.000&monthlyrainin=0.311&totalrainin=13.402&tempinf=76.1&humidityin=44&battout=1&battrain=1",
+  "headers": {
+    "host": "example.cloudfront.net",
+    "user-agent": "Ambient Weather Station"
+  },
+  "queryStringParameters": {
+    "PASSKEY": "AA:BB:CC:DD:EE:FF",
+    "stationtype": "AMBWeatherV4.3.4",
+    "dateutc": "2026-08-11 20:00:00",
+    "tempf": "108.1",
+    "humidity": "15",
+    "windspeedmph": "11.2",
+    "windgustmph": "19.4",
+    "maxdailygust": "24.1",
+    "winddir": "225",
+    "baromrelin": "29.85",
+    "uv": "9",
+    "solarradiation": "890.2",
+    "rainratein": "0.000",
+    "eventrainin": "0.000",
+    "dailyrainin": "0.000",
+    "monthlyrainin": "0.311",
+    "totalrainin": "13.402"
+  },
+  "requestContext": {
+    "http": {
+      "method": "GET",
+      "path": "/",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "203.0.113.9"
+    }
+  },
+  "isBase64Encoded": false
+}

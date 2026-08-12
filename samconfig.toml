@@ -1,0 +1,25 @@
+version = 0.1
+
+# Pinned to the personal account so a deploy can never target a CVT work account.
+
+[default.global.parameters]
+stack_name = "havasu-weather-ingest"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+stack_name = "havasu-weather-ingest"
+region = "us-west-2"
+profile = "havasu"
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+disable_rollback = false
+
+[default.local_invoke.parameters]
+profile = "havasu"

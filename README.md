@@ -16,7 +16,7 @@ Runs for roughly **$0–2/month**. No home server — it's fully serverless on A
 
 | Path                            | What lives here                                                   |
 |---------------------------------|-------------------------------------------------------------------|
-| `ingest/`                       | Lambda source (Node 20): parses the console's HTTP posts → DynamoDB |
+| `ingest/`                       | Lambda source (Node 24): parses the console's HTTP posts → DynamoDB |
 | `web/`                          | Public page + JSON API (Phase 3)                                   |
 | `docs/architecture.md`          | The design and the decisions behind it                            |
 | `docs/plan.md`                  | Phased build plan + decisions log                                 |
@@ -26,6 +26,6 @@ Runs for roughly **$0–2/month**. No home server — it's fully serverless on A
 
 - **Account:** personal `648581682379` · **Region:** `us-west-2`
 - **Profile:** `havasu` (IAM Identity Center SSO) — `aws sso login --profile havasu`
-- **IaC:** AWS SAM · **Runtime:** Node.js 20
+- **IaC:** AWS SAM · **Runtime:** Node.js 24
 
 Start with [docs/plan.md](docs/plan.md).
