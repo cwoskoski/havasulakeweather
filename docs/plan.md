@@ -52,20 +52,25 @@ Defaults below are **proposed** — change any before we start Phase 0.
 - [ ] Lock the Function URL to CloudFront (OAC), reserved concurrency — hardening pass.
 - [x] Keep AmbientWeather.net upload on as a backup path (still enabled).
 
-## Phase 3 — Public page (later)
+## Phase 3 — Public page — **LIVE at havasulakeweather.com**
 
-See [product-spec.md](product-spec.md) for the full design.
+Built on mock #6 (Lake Lifestyle). See [product-spec.md](product-spec.md).
 
-- [x] JSON read API (`/api/current`, `/api/history`) — deployed & verified (Function URL;
-      to be fronted by CloudFront + edge-cached when the page ships)
-- [ ] S3 + CloudFront static page (needs the chosen mock)
-- [ ] Current conditions: wind + temp hero, outdoor tiles, freshness/stale state
-- [ ] Live updates: poll edge-cached `/api/current`, repaint only changed values
-- [ ] History charts (uPlot): 24h / 7d; mobile-first, responsive to desktop
-- [ ] History backfill from the AmbientWeather.net API (seed so charts aren't empty)
-- [ ] Donation: dismissible splash + button, hosted payment link, `localStorage` "donated" flag
-- [ ] Custom domain `havasulakeweather.com` + ACM cert (**us-east-1** for CloudFront);
-      "not an official observation" disclaimer
+- [x] JSON read API (`/api/current`, `/api/history`) — edge-cached via CloudFront `/api/*`
+- [x] S3 (private, OAC) + CloudFront + TLS on `havasulakeweather.com` + `www`; `/api/*` → read Lambda
+- [x] Current conditions: wind + temp hero, outdoor tiles, freshness/stale state
+- [x] Live updates: poll `/api/current` every 60s, flash only changed values
+- [x] History chart (inline SVG): 24h / 7d toggle; mobile-first, responsive to desktop
+- [x] Donation: Venmo + Cash App (no email/Zelle), suggested amounts, QR codes, `localStorage` flag
+- [x] **Installable PWA**: manifest + service worker + icons + install banner (Android prompt / iOS Share hint)
+- [x] "not an official observation" disclaimer
+
+## Remaining polish (optional)
+
+- [ ] Lock the **ingest** Function URL to CloudFront-only (OAC) — the Phase 2 hardening
+- [ ] History backfill from the AmbientWeather.net API (needs AWN app/API keys)
+- [ ] Optional UX: auto-open donation splash on first visit; "update available" refresh toast
+- [ ] Scrub the removed P2P screenshots from git history before any public GitHub push
 
 ## Cost
 
