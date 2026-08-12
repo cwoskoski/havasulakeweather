@@ -36,8 +36,12 @@ Defaults below are **proposed** — change any before we start Phase 0.
       (viewer allows HTTP:80, `CachingDisabled`, forwards all query strings)
 - [x] `sam deploy` → **http://dzn7sq96yz34g.cloudfront.net/** (verified end-to-end:
       curl on port 80 → CloudFront → Lambda → logged in CloudWatch)
-- [ ] Configure the console's "Customized" upload (Ambient format) → CloudFront URL, port 80
-- [ ] Capture one real payload in CloudWatch → finalize the field list + note the MAC
+- [x] Configure the console's "Customized" upload (Ambient format) → CloudFront URL, port 80.
+      Gotchas: the Server field wants a **bare hostname** (no `http://`); the Path must end
+      with `?` (`/data/report/?`) or the params get jammed into the path instead of the query.
+- [x] Capture a real payload → **Ambient format confirmed**; 23 outdoor fields; station key
+      `00A418…B2DC4`; posting every 60s. **No `rainratein`** — so "raining now" must key off
+      the rain counters (`eventrainin`/`hourlyrainin`/`dailyrainin`) incrementing.
 
 ## Phase 2 — Storage + hardening
 
