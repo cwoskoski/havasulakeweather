@@ -573,15 +573,17 @@
   function toast(m){var t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2200);}
   function supported(){try{return localStorage.getItem(KEY)==="1";}catch(e){return false;}}
   function mark(){try{localStorage.setItem(KEY,"1");}catch(e){}}
-  function openD(){overlay.hidden=false;document.body.style.overflow="hidden";$("x").focus();}
+  function track(name,params){if(typeof window.gtag==="function"){window.gtag("event",name,params||{});}}
+  function openD(source){overlay.hidden=false;document.body.style.overflow="hidden";$("x").focus();track("donate_open",{source:source||"unknown"});}
   function closeD(){overlay.hidden=true;document.body.style.overflow="";}
   function updateCash(){$("cash").href=amount?("https://cash.app/$cdubwos/"+amount):"https://cash.app/$cdubwos";}
   document.querySelectorAll("#amts button").forEach(function(b){b.addEventListener("click",function(){document.querySelectorAll("#amts button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");amount=b.dataset.amt?Number(b.dataset.amt):null;updateCash();});});
-  $("venmo").addEventListener("click",mark);$("cash").addEventListener("click",mark);
+  $("venmo").addEventListener("click",function(){mark();track("donate_click",{method:"venmo",value:amount||0,currency:"USD"});});
+  $("cash").addEventListener("click",function(){mark();track("donate_click",{method:"cash_app",value:amount||0,currency:"USD"});});
   $("scanToggle").addEventListener("click",function(){var q=$("qrs");q.classList.toggle("show");this.textContent=q.classList.contains("show")?"Hide QR codes":"Prefer to scan? Show QR codes";});
   $("later").addEventListener("click",closeD);$("x").addEventListener("click",closeD);
-  $("already").addEventListener("click",function(){mark();closeD();toast("Thanks — you’re all set 💛");});
-  $("openDonate").addEventListener("click",openD);$("fab").addEventListener("click",openD);
+  $("already").addEventListener("click",function(){mark();track("donate_self_reported",{});closeD();toast("Thanks — you’re all set 💛");});
+  $("openDonate").addEventListener("click",function(){openD("hero_button");});$("fab").addEventListener("click",function(){openD("fab");});
   overlay.addEventListener("click",function(e){if(e.target===overlay)closeD();});
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!overlay.hidden)closeD();});
 
