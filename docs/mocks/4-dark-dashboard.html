@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0A0B0E">
+<title>Havasu Lake, CA — Live Weather</title>
+<style>
+  /* ============================================================
+     Havasu Lake Weather — Mock 4: "Observatory"
+     Modern analytics dashboard, dark theme.
+     Single accent (teal) for UI chrome; warm hue reserved for
+     temperature/heat; green for the live "Dry" rain status.
+     All CSS + JS inline. No external resources.
+     ============================================================ */
+
+  :root {
+    /* Surfaces */
+    --bg:        #0A0B0E;
+    --bg-soft:   #0D0F13;
+    --card:      #131519;
+    --card-2:    #171A20;
+    --card-hi:   #1B1F26;
+
+    /* Hairlines */
+    --line:        rgba(255,255,255,.07);
+    --line-strong: rgba(255,255,255,.13);
+
+    /* Type */
+    --text:    #EDEFF2;
+    --muted:   #9BA2AE;
+    --muted-2: #6B717C;
+
+    /* Accents (disciplined palette) */
+    --accent:      #2DD4BF;   /* teal — system / interactive */
+    --accent-ink:  #0A0B0E;
+    --accent-dim:  rgba(45,212,191,.14);
+    --accent-glow: rgba(45,212,191,.28);
+
+    --green:  #3ED598;   /* live "dry" / ok */
+    --amber:  #F5B740;
+    --orange: #FB923C;
+    --red:    #F26D6D;
+    --violet: #B48CF2;
+
+    --heat:   #FB923C;   /* temperature line */
+
+    /* Metrics */
+    --radius:   14px;
+    --radius-sm: 9px;
+    --pad:      20px;
+    --gap:      16px;
+    --maxw:     1140px;
+
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", "Menlo", "Cascadia Mono",
+            "Roboto Mono", "Consolas", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+            Arial, "Apple Color Emoji", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    color: var(--text);
+    background:
+      radial-gradient(1200px 520px at 50% -8%, rgba(45,212,191,.07), transparent 62%),
+      radial-gradient(900px 500px at 90% 0%, rgba(180,140,242,.05), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.45;
+    letter-spacing: .002em;
+  }
+
+  /* Faint technical grid backdrop */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,.022) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,.022) 1px, transparent 1px);
+    background-size: 34px 34px;
+    -webkit-mask: radial-gradient(120% 78% at 50% 0%, #000 26%, transparent 100%);
+            mask: radial-gradient(120% 78% at 50% 0%, #000 26%, transparent 100%);
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 18px 16px 40px;
+  }
+
+  /* Numeric readouts */
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1, "cv01" 1; }
+
+  .label {
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    background: linear-gradient(180deg, rgba(23,26,32,.9), rgba(19,21,25,.72));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 30px -18px rgba(0,0,0,.8);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand .pin {
+    display: grid; place-items: center;
+    width: 38px; height: 38px;
+    border-radius: 11px;
+    background: radial-gradient(120% 120% at 30% 20%, rgba(45,212,191,.22), rgba(45,212,191,.06));
+    border: 1px solid rgba(45,212,191,.28);
+    color: var(--accent);
+    flex: none;
+  }
+  .brand-txt { min-width: 0; }
+  .brand-name {
+    font-size: 15px; font-weight: 660; letter-spacing: -.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .brand-sub {
+    font-size: 11px; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--muted-2); font-weight: 600;
+  }
+
+  .status { display: flex; align-items: center; gap: 12px; }
+  .live {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 11px; font-weight: 700; letter-spacing: .14em;
+    color: var(--green);
+    padding: 5px 9px 5px 8px;
+    border: 1px solid rgba(62,213,152,.28);
+    border-radius: 999px;
+    background: rgba(62,213,152,.08);
+  }
+  .live .beat {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 0 rgba(62,213,152,.6);
+    animation: beat 2.4s ease-out infinite;
+  }
+  @keyframes beat {
+    0%   { box-shadow: 0 0 0 0 rgba(62,213,152,.55); }
+    60%  { box-shadow: 0 0 0 7px rgba(62,213,152,0); }
+    100% { box-shadow: 0 0 0 0 rgba(62,213,152,0); }
+  }
+  .fresh {
+    font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .fresh.ping { animation: freshping 1.1s ease-out; }
+  @keyframes freshping {
+    0% { color: var(--accent); }
+    100% { color: var(--muted); }
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    font-family: inherit; font-size: 13px; font-weight: 640;
+    letter-spacing: .01em;
+    padding: 9px 15px; border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    background: var(--card-2); color: var(--text);
+    cursor: pointer; white-space: nowrap;
+    transition: transform .12s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .btn:hover { background: var(--card-hi); border-color: rgba(255,255,255,.2); }
+  .btn:active { transform: translateY(1px); }
+  .btn-accent {
+    color: var(--accent-ink);
+    background: linear-gradient(180deg, #43e6d2, var(--accent));
+    border-color: transparent;
+    box-shadow: 0 6px 18px -8px var(--accent-glow), 0 1px 0 rgba(255,255,255,.25) inset;
+  }
+  .btn-accent:hover {
+    background: linear-gradient(180deg, #52ecd9, #33d9c5);
+    box-shadow: 0 10px 24px -8px var(--accent-glow), 0 1px 0 rgba(255,255,255,.3) inset;
+  }
+  .btn-ghost { background: transparent; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  /* ---------- Grid / cards ---------- */
+  .grid { display: grid; gap: var(--gap); }
+  .hero  { grid-template-columns: 1fr; }
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .stack { margin-top: var(--gap); }
+
+  .card {
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.018), rgba(255,255,255,0)) ,
+      var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--pad);
+    box-shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px -30px rgba(0,0,0,.9);
+    transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  }
+  .card.hoverable:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 24px 46px -30px rgba(0,0,0,1);
+  }
+
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 14px;
+  }
+
+  .tag {
+    font-size: 10.5px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); padding: 3px 8px; border-radius: 999px;
+    border: 1px solid var(--line); background: rgba(255,255,255,.02);
+  }
+
+  /* ---------- Hero readings ---------- */
+  .hero-card { padding: 22px 22px 20px; }
+  .reading { display: flex; align-items: baseline; gap: 6px; }
+  .big {
+    font-size: clamp(56px, 15vw, 92px);
+    font-weight: 660; line-height: .9; letter-spacing: -.035em;
+    transition: opacity .5s ease;
+  }
+  .big.repaint { animation: repaint 1.2s ease-out; }
+  @keyframes repaint { 0% { opacity: .5; } 100% { opacity: 1; } }
+  .unit { font-size: clamp(20px, 4vw, 26px); font-weight: 600; color: var(--muted); }
+  .sub { margin-top: 10px; color: var(--muted); font-size: 14px; }
+  .sub b { color: var(--text); font-weight: 640; }
+
+  .metricchip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 640; letter-spacing: .06em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px;
+  }
+  .chip-heat  { color: #ffcf9e; background: rgba(251,146,60,.13); border: 1px solid rgba(251,146,60,.3); }
+
+  /* Temperature heat scale */
+  .heatscale { margin-top: 16px; }
+  .heatscale .track {
+    height: 6px; border-radius: 999px; overflow: hidden;
+    background:
+      linear-gradient(90deg, #2DD4BF 0%, #7cd67a 26%, #F5B740 52%, #FB923C 74%, #F26D6D 100%);
+    opacity: .9;
+    position: relative;
+  }
+  .heatscale .knob {
+    position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff; border: 2px solid var(--card);
+    box-shadow: 0 0 0 2px rgba(255,255,255,.15), 0 2px 6px rgba(0,0,0,.6);
+  }
+  .scalelabels {
+    display: flex; justify-content: space-between;
+    margin-top: 7px; font-size: 10.5px; color: var(--muted-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Wind card */
+  .wind-body { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .compass { flex: none; color: var(--accent); }
+  .windmeta { display: flex; gap: 18px; margin-top: 14px; flex-wrap: wrap; }
+  .windmeta .kv .k { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-2); }
+  .windmeta .kv .v { font-size: 16px; font-weight: 640; font-variant-numeric: tabular-nums; }
+  .windmeta .kv .v em { font-style: normal; color: var(--muted); font-size: 12px; font-weight: 500; }
+
+  /* ---------- Rain (headline: is it raining now) ---------- */
+  .rain-card {
+    display: grid; gap: 18px;
+    grid-template-columns: 1fr;
+    background:
+      radial-gradient(520px 200px at 0% 0%, rgba(62,213,152,.09), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,.018), rgba(255,255,255,0)),
+      var(--card);
+  }
+  .rain-lead { display: flex; align-items: center; gap: 16px; }
+  .rain-orb {
+    flex: none; width: 54px; height: 54px; border-radius: 15px;
+    display: grid; place-items: center;
+    color: var(--green);
+    background: radial-gradient(120% 120% at 30% 20%, rgba(62,213,152,.24), rgba(62,213,152,.05));
+    border: 1px solid rgba(62,213,152,.3);
+  }
+  .rain-word {
+    font-size: 34px; font-weight: 680; letter-spacing: -.02em; line-height: 1;
+    color: var(--green);
+  }
+  .rain-note { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .rain-note b { color: var(--text); font-weight: 640; }
+  .rain-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .rstat {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px 12px 11px;
+  }
+  .rstat .k { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-2); }
+  .rstat .v { font-size: 20px; font-weight: 660; font-variant-numeric: tabular-nums; margin-top: 3px; }
+  .rstat .v em { font-style: normal; color: var(--muted); font-size: 12px; font-weight: 500; }
+
+  /* ---------- Tiles ---------- */
+  .tile { padding: 16px 16px 15px; display: flex; flex-direction: column; }
+  .tile .reading { margin-top: 2px; }
+  .big2 { font-size: clamp(30px, 8vw, 40px); font-weight: 650; letter-spacing: -.025em; line-height: 1; }
+  .unit2 { font-size: 16px; font-weight: 600; color: var(--muted); }
+  .sub2 { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+
+  .chip {
+    font-size: 10.5px; font-weight: 680; letter-spacing: .07em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; align-self: center;
+  }
+  .chip-vhigh { color: #ffb59a; background: rgba(242,109,109,.14); border: 1px solid rgba(242,109,109,.32); }
+
+  .trend { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 640; }
+  .trend-down { color: var(--amber); }
+  .trend-up   { color: var(--green); }
+
+  /* UV segmented bar */
+  .uvbar { display: flex; gap: 3px; margin-top: 14px; align-items: flex-end; height: 26px; }
+  .uvseg { flex: 1; border-radius: 3px; background: rgba(255,255,255,.06); height: 12px; transition: height .2s ease; }
+
+  /* Sparkline */
+  .spark { margin-top: auto; padding-top: 12px; }
+  .spark svg { display: block; width: 100%; height: 34px; }
+
+  /* 24h range */
+  .rangevals { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 2px; }
+  .rangevals .rv { display: flex; align-items: baseline; gap: 6px; }
+  .rangevals .rv .n { font-size: 30px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .rangevals .rv .t { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-2); }
+  .rangebar { margin-top: 16px; }
+  .rangebar .track {
+    position: relative; height: 8px; border-radius: 999px;
+    background: linear-gradient(90deg, rgba(45,212,191,.5), rgba(245,183,64,.55) 55%, rgba(242,109,109,.7));
+    opacity: .85;
+  }
+  .rangebar .now {
+    position: absolute; top: 50%; width: 3px; height: 18px; border-radius: 2px;
+    transform: translate(-50%, -50%);
+    background: #fff; box-shadow: 0 0 0 3px rgba(10,11,14,.85), 0 0 10px rgba(255,255,255,.35);
+  }
+  .rangebar .nowlab {
+    position: absolute; top: -22px; transform: translateX(-50%);
+    font-size: 10.5px; color: var(--text); font-variant-numeric: tabular-nums;
+    background: var(--card-hi); border: 1px solid var(--line-strong);
+    padding: 1px 6px; border-radius: 6px; white-space: nowrap;
+  }
+  .rangeticks { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10.5px; color: var(--muted-2); }
+
+  /* ---------- History chart ---------- */
+  .chart-card .card-head { margin-bottom: 6px; }
+  .chart-legend { display: flex; gap: 14px; align-items: center; }
+  .lg { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .lg .sw { width: 18px; height: 3px; border-radius: 2px; background: var(--heat); display: inline-block; }
+  .lg .sw.hi { background: var(--red); }
+  .lg .sw.lo { background: var(--accent); }
+  .chartwrap { width: 100%; margin-top: 4px; }
+  .chartwrap svg { display: block; width: 100%; height: auto; }
+
+  .segbtns { display: inline-flex; padding: 3px; gap: 3px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 10px; }
+  .segbtns button {
+    font-family: inherit; font-size: 11.5px; font-weight: 640; letter-spacing: .04em;
+    color: var(--muted); background: transparent; border: 0; padding: 6px 12px; border-radius: 7px; cursor: pointer;
+  }
+  .segbtns button[aria-pressed="true"] { color: var(--text); background: var(--card-hi); box-shadow: 0 1px 0 rgba(255,255,255,.05) inset; }
+
+  /* ---------- Footer ---------- */
+  footer.foot {
+    margin-top: 26px; padding: 18px 20px;
+    border: 1px dashed var(--line-strong); border-radius: var(--radius);
+    color: var(--muted); font-size: 12.5px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: rgba(255,255,255,.012);
+  }
+  footer.foot .badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: var(--muted); font-weight: 600; letter-spacing: .04em;
+  }
+  footer.foot .dot-sep { width: 4px; height: 4px; border-radius: 50%; background: var(--muted-2); }
+
+  /* ---------- Donation modal ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 50;
+    display: grid; place-items: center; padding: 20px;
+    background: rgba(6,7,9,.72);
+    backdrop-filter: blur(6px);
+    animation: fade .28s ease both;
+  }
+  .overlay.hidden { display: none; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    position: relative;
+    width: 100%; max-width: 420px;
+    background:
+      radial-gradient(360px 160px at 20% 0%, rgba(45,212,191,.14), transparent 60%),
+      linear-gradient(180deg, var(--card-2), var(--card));
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    padding: 26px 24px 22px;
+    box-shadow: 0 30px 80px -24px rgba(0,0,0,.9);
+    animation: pop .3s cubic-bezier(.2,.8,.24,1) both;
+  }
+  @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+  .modal .x {
+    position: absolute; top: 12px; right: 12px;
+    width: 32px; height: 32px; display: grid; place-items: center;
+    border-radius: 8px; border: 1px solid var(--line);
+    background: rgba(255,255,255,.03); color: var(--muted); cursor: pointer;
+  }
+  .modal .x:hover { color: var(--text); background: var(--card-hi); }
+  .modal .heart {
+    width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center;
+    color: var(--accent);
+    background: radial-gradient(120% 120% at 30% 20%, rgba(45,212,191,.24), rgba(45,212,191,.06));
+    border: 1px solid rgba(45,212,191,.3);
+    margin-bottom: 14px;
+  }
+  .modal h2 { margin: 0 0 8px; font-size: 20px; font-weight: 680; letter-spacing: -.01em; }
+  .modal p { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+  .modal .actions { display: flex; gap: 10px; }
+  .modal .actions .btn { flex: 1; text-align: center; padding: 11px 14px; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (min-width: 680px) {
+    .hero { grid-template-columns: 1fr 1fr; }
+    .rain-card { grid-template-columns: 1.1fr 1.4fr; align-items: center; }
+  }
+  @media (min-width: 960px) {
+    .wrap { padding: 22px 22px 48px; }
+    .tiles { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- ============ TOP BAR ============ -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="pin" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 21s7-6.16 7-11a7 7 0 1 0-14 0c0 4.84 7 11 7 11Z"/>
+            <circle cx="12" cy="10" r="2.4"/>
+          </svg>
+        </span>
+        <div class="brand-txt">
+          <div class="brand-name">Havasu Lake, CA</div>
+          <div class="brand-sub">WS-2902D · Outdoor</div>
+        </div>
+      </div>
+      <div class="status">
+        <span class="live" title="Station reporting"><span class="beat" aria-hidden="true"></span>LIVE</span>
+        <span class="fresh num" id="fresh">Updated 12s ago</span>
+        <button class="btn btn-accent" id="donateBtn" type="button">Donate</button>
+      </div>
+    </header>
+
+    <!-- ============ HERO: Temp + Wind (co-headliners) ============ -->
+    <section class="grid hero" aria-label="Current headline conditions">
+
+      <!-- Temperature -->
+      <article class="card hero-card hoverable temp">
+        <div class="card-head">
+          <span class="label">Temperature</span>
+          <span class="metricchip chip-heat">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v10.5"/><circle cx="12" cy="17" r="3.4"/><path d="M9 8h6"/></svg>
+            Extreme heat
+          </span>
+        </div>
+        <div class="reading num">
+          <span class="big repaint" id="tempVal">108</span><span class="unit">°F</span>
+        </div>
+        <div class="sub">Feels like <b class="num">105°F</b> · heat index</div>
+
+        <div class="heatscale" aria-hidden="true">
+          <div class="track"><span class="knob" style="left:88%"></span></div>
+          <div class="scalelabels num"><span>60°</span><span>75°</span><span>90°</span><span>105°</span><span>120°</span></div>
+        </div>
+      </article>
+
+      <!-- Wind -->
+      <article class="card hero-card hoverable wind">
+        <div class="card-head">
+          <span class="label">Wind</span>
+          <span class="tag num">SW · 225°</span>
+        </div>
+        <div class="wind-body">
+          <div>
+            <div class="reading num">
+              <span class="big" id="windVal">11</span><span class="unit">mph</span>
+            </div>
+          </div>
+          <div class="compass" aria-hidden="true">
+            <svg width="96" height="96" viewBox="0 0 96 96">
+              <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1.5"/>
+              <circle cx="48" cy="48" r="31" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/>
+              <!-- cardinal ticks -->
+              <g stroke="rgba(255,255,255,.28)" stroke-width="2" stroke-linecap="round">
+                <line x1="48" y1="10" x2="48" y2="18"/>
+                <line x1="86" y1="48" x2="78" y2="48"/>
+                <line x1="48" y1="86" x2="48" y2="78"/>
+                <line x1="10" y1="48" x2="18" y2="48"/>
+              </g>
+              <text x="48" y="9" text-anchor="middle" font-family="var(--sans)" font-size="9" font-weight="700" fill="#9BA2AE" dominant-baseline="hanging">N</text>
+              <!-- needle: wind FROM SW (225°) → blows toward NE (rotate 45°) -->
+              <g transform="rotate(45 48 48)">
+                <path d="M48 16 L56 54 L48 46 L40 54 Z" fill="#2DD4BF"/>
+                <path d="M48 80 L52 54 L48 58 L44 54 Z" fill="rgba(255,255,255,.22)"/>
+              </g>
+              <circle cx="48" cy="48" r="4" fill="#131519" stroke="#2DD4BF" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+        <div class="windmeta">
+          <div class="kv"><div class="k">Gust</div><div class="v num" id="gustVal">19 <em>mph</em></div></div>
+          <div class="kv"><div class="k">Direction</div><div class="v">SW <em class="num">225°</em></div></div>
+          <div class="kv"><div class="k">Sustained</div><div class="v num">11 <em>mph</em></div></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============ RAIN: is it raining right now? ============ -->
+    <section class="grid stack" aria-label="Rain status">
+      <article class="card rain-card hoverable">
+        <div class="rain-lead">
+          <span class="rain-orb" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 12a4 4 0 0 0-1-7.87A5.5 5.5 0 0 0 8.6 6.2 4.2 4.2 0 0 0 5 14h13"/>
+              <path d="M9 19l-1 2M14 19l-1 2M19 19l-1 2"/>
+            </svg>
+          </span>
+          <div>
+            <div class="label">Rain right now</div>
+            <div class="rain-word">Dry</div>
+            <div class="rain-note">Last rain <b>3 days ago</b></div>
+          </div>
+        </div>
+        <div class="rain-stats">
+          <div class="rstat"><div class="k">Rate</div><div class="v num">0.00 <em>in/hr</em></div></div>
+          <div class="rstat"><div class="k">Today</div><div class="v num">0.00 <em>in</em></div></div>
+          <div class="rstat"><div class="k">This month</div><div class="v num">0.31 <em>in</em></div></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============ TILES ============ -->
+    <section class="grid tiles stack" aria-label="Detailed metrics">
+
+      <!-- UV -->
+      <article class="card tile hoverable">
+        <div class="card-head"><span class="label">UV Index</span></div>
+        <div class="reading num">
+          <span class="big2">9</span>
+          <span class="chip chip-vhigh">Very High</span>
+        </div>
+        <div class="uvbar" id="uvbar" role="img" aria-label="UV index 9 of 11, very high"></div>
+        <div class="sub2">Solar <b class="num" style="color:var(--text);font-weight:640">890 W/m²</b></div>
+      </article>
+
+      <!-- Humidity -->
+      <article class="card tile hoverable">
+        <div class="card-head"><span class="label">Humidity</span></div>
+        <div class="reading num"><span class="big2">15</span><span class="unit2">%</span></div>
+        <div class="sub2">Dew point <b class="num" style="color:var(--text);font-weight:640">47°F</b></div>
+        <div class="spark" id="sparkHum" aria-hidden="true"></div>
+      </article>
+
+      <!-- Pressure -->
+      <article class="card tile hoverable">
+        <div class="card-head">
+          <span class="label">Pressure</span>
+          <span class="trend trend-down">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            Falling
+          </span>
+        </div>
+        <div class="reading num"><span class="big2">29.85</span><span class="unit2">inHg</span></div>
+        <div class="sub2">Down 0.08 in past 3h</div>
+        <div class="spark" id="sparkPres" aria-hidden="true"></div>
+      </article>
+
+      <!-- 24h Range -->
+      <article class="card tile hoverable">
+        <div class="card-head"><span class="label">24h Range</span></div>
+        <div class="rangevals">
+          <div class="rv"><span class="n" style="color:var(--red)">112°</span><span class="t">High</span></div>
+          <div class="rv"><span class="n" style="color:var(--accent)">84°</span><span class="t">Low</span></div>
+        </div>
+        <div class="rangebar">
+          <div class="track">
+            <span class="nowlab num">Now 108°</span>
+            <span class="now" style="left:86%"></span>
+          </div>
+        </div>
+        <div class="rangeticks num"><span>84°</span><span>112°</span></div>
+      </article>
+    </section>
+
+    <!-- ============ HISTORY CHART ============ -->
+    <section class="grid stack" aria-label="24 hour temperature history">
+      <article class="card chart-card hoverable">
+        <div class="card-head">
+          <div>
+            <span class="label">Temperature · Last 24h</span>
+          </div>
+          <div class="segbtns" role="group" aria-label="History range">
+            <button type="button" aria-pressed="true">24h</button>
+            <button type="button" aria-pressed="false" disabled title="Coming soon">7d</button>
+          </div>
+        </div>
+        <div class="chart-legend" style="margin-bottom:6px">
+          <span class="lg"><span class="sw"></span>Temperature</span>
+          <span class="lg"><span class="sw hi"></span>Daily high 112°</span>
+          <span class="lg"><span class="sw lo"></span>Daily low 84°</span>
+        </div>
+        <div class="chartwrap" id="chart" role="img"
+             aria-label="Line chart of hourly outdoor temperature over 24 hours. Low 84 degrees around 3 AM, peak 112 degrees in early afternoon, cooling to 88 degrees by late evening.">
+        </div>
+      </article>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="foot">
+      <span class="badge">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        Personal WS-2902D weather station — not an official observation.
+      </span>
+      <span class="dot-sep" aria-hidden="true"></span>
+      <span>Sensor sited outdoors at Havasu Lake, CA · imperial units</span>
+    </footer>
+  </div>
+
+  <!-- ============ DONATION SPLASH ============ -->
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+    <div class="modal">
+      <button class="x" id="modalClose" type="button" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <div class="heart" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 6.6a5 5 0 0 0-7.1 0L12 8.3l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 22l8.8-8.3a5 5 0 0 0 0-7.1Z"/></svg>
+      </div>
+      <h2 id="modalTitle">Keep the station live</h2>
+      <p id="modalBody">This is a free, ad-free service run by a neighbor. A small donation covers the hosting and keeps Havasu Lake's live conditions online for everyone.</p>
+      <div class="actions">
+        <button class="btn btn-ghost" id="maybeLater" type="button">Maybe later</button>
+        <button class="btn btn-accent" id="donateModal" type="button">Donate</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- 24h temperature chart ---------- */
+  var temps = [86,85,84,84,85,87,90,94,98,102,105,108,110,112,112,111,109,106,103,100,96,93,90,88];
+
+  function buildChart() {
+    var W = 760, H = 260, padL = 42, padR = 16, padT = 22, padB = 30;
+    var pw = W - padL - padR, ph = H - padT - padB;
+    var yMin = 80, yMax = 116;
+    var n = temps.length;
+    var X = function (i) { return padL + (i / (n - 1)) * pw; };
+    var Y = function (v) { return padT + (1 - (v - yMin) / (yMax - yMin)) * ph; };
+
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">';
+
+    svg += '<defs>' +
+      '<linearGradient id="area" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#FB923C" stop-opacity="0.28"/>' +
+        '<stop offset="55%" stop-color="#FB923C" stop-opacity="0.08"/>' +
+        '<stop offset="100%" stop-color="#FB923C" stop-opacity="0"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="line" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#F26D6D"/>' +
+        '<stop offset="55%" stop-color="#FB923C"/>' +
+        '<stop offset="100%" stop-color="#F5B740"/>' +
+      '</linearGradient>' +
+      '</defs>';
+
+    // horizontal grid + y labels
+    var yticks = [80, 90, 100, 110];
+    for (var g = 0; g < yticks.length; g++) {
+      var yy = Y(yticks[g]);
+      svg += '<line x1="' + padL + '" y1="' + yy.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + yy.toFixed(1) +
+             '" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';
+      svg += '<text x="' + (padL - 8) + '" y="' + (yy + 3).toFixed(1) + '" text-anchor="end" ' +
+             'font-family="ui-monospace, monospace" font-size="10" fill="#6B717C">' + yticks[g] + '&#176;</text>';
+    }
+
+    // vertical grid + x labels (clock)
+    var xlabels = [{i:0,t:"12A"},{i:6,t:"6A"},{i:12,t:"12P"},{i:18,t:"6P"},{i:23,t:"11P"}];
+    for (var v = 0; v < xlabels.length; v++) {
+      var xx = X(xlabels[v].i);
+      svg += '<line x1="' + xx.toFixed(1) + '" y1="' + padT + '" x2="' + xx.toFixed(1) + '" y2="' + (H - padB) +
+             '" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
+      svg += '<text x="' + xx.toFixed(1) + '" y="' + (H - padB + 18) + '" text-anchor="middle" ' +
+             'font-family="ui-monospace, monospace" font-size="10" fill="#6B717C">' + xlabels[v].t + '</text>';
+    }
+
+    // paths
+    var d = "";
+    for (var i = 0; i < n; i++) { d += (i === 0 ? "M" : "L") + X(i).toFixed(1) + " " + Y(temps[i]).toFixed(1); }
+    var area = d + " L" + X(n - 1).toFixed(1) + " " + (H - padB) + " L" + X(0).toFixed(1) + " " + (H - padB) + " Z";
+
+    svg += '<path d="' + area + '" fill="url(#area)"/>';
+    svg += '<path d="' + d + '" fill="none" stroke="url(#line)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+
+    // high / low markers
+    var maxV = Math.max.apply(null, temps), minV = Math.min.apply(null, temps);
+    var maxI = temps.indexOf(maxV), minI = temps.indexOf(minV);
+
+    function marker(i, val, color, above) {
+      var cx = X(i), cy = Y(val);
+      var s = '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="4.5" fill="' + color + '" stroke="#0A0B0E" stroke-width="2"/>';
+      var ly = above ? cy - 12 : cy + 20;
+      s += '<text x="' + cx.toFixed(1) + '" y="' + ly.toFixed(1) + '" text-anchor="middle" ' +
+           'font-family="ui-monospace, monospace" font-size="11" font-weight="700" fill="' + color + '">' + val + '&#176;</text>';
+      return s;
+    }
+    svg += marker(maxI, maxV, "#F26D6D", true);
+    svg += marker(minI, minV, "#2DD4BF", false);
+
+    svg += '</svg>';
+    document.getElementById("chart").innerHTML = svg;
+  }
+
+  /* ---------- Sparklines ---------- */
+  function sparkline(el, data, color) {
+    if (!el) return;
+    var W = 160, H = 34, pad = 2;
+    var min = Math.min.apply(null, data), max = Math.max.apply(null, data);
+    var span = (max - min) || 1;
+    var n = data.length;
+    var pts = [];
+    for (var i = 0; i < n; i++) {
+      var x = (i / (n - 1)) * W;
+      var y = H - pad - ((data[i] - min) / span) * (H - pad * 2);
+      pts.push([x, y]);
+    }
+    var d = "";
+    for (var j = 0; j < pts.length; j++) { d += (j === 0 ? "M" : "L") + pts[j][0].toFixed(1) + " " + pts[j][1].toFixed(1); }
+    var area = d + " L" + W + " " + H + " L0 " + H + " Z";
+    var gid = "sg" + Math.random().toString(36).slice(2, 7);
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.22"/>' +
+        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+      '</linearGradient></defs>' +
+      '<path d="' + area + '" fill="url(#' + gid + ')"/>' +
+      '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<circle cx="' + pts[n - 1][0].toFixed(1) + '" cy="' + pts[n - 1][1].toFixed(1) + '" r="2.4" fill="' + color + '"/>' +
+      '</svg>';
+    el.innerHTML = svg;
+  }
+
+  /* ---------- UV segmented bar ---------- */
+  function buildUV() {
+    var el = document.getElementById("uvbar");
+    if (!el) return;
+    var current = 9;
+    function col(i) {
+      if (i <= 2) return "#3ED598";
+      if (i <= 5) return "#F5B740";
+      if (i <= 7) return "#FB923C";
+      if (i <= 10) return "#F26D6D";
+      return "#B48CF2";
+    }
+    var html = "";
+    for (var i = 1; i <= 11; i++) {
+      var active = i <= current;
+      var h = active ? (i === current ? 26 : 16) : 10;
+      var bg = active ? col(i) : "rgba(255,255,255,0.06)";
+      html += '<span class="uvseg" style="height:' + h + 'px;background:' + bg + '"></span>';
+    }
+    el.innerHTML = html;
+  }
+
+  /* ---------- Freshness ticker + subtle live repaint ---------- */
+  function freshness() {
+    var el = document.getElementById("fresh");
+    var temp = document.getElementById("tempVal");
+    var gust = document.getElementById("gustVal");
+    var s = 12;
+    setInterval(function () {
+      s += 1;
+      if (s >= 34) { // simulate a fresh poll
+        s = 2;
+        if (!reduce) {
+          el.classList.remove("ping"); void el.offsetWidth; el.classList.add("ping");
+          if (temp) { temp.classList.remove("repaint"); void temp.offsetWidth; temp.classList.add("repaint"); }
+        }
+      }
+      el.textContent = "Updated " + s + "s ago";
+    }, 1000);
+
+    // occasional subtle gust flicker
+    if (!reduce && gust) {
+      setInterval(function () {
+        gust.style.transition = "color .25s ease";
+        gust.style.color = "#2DD4BF";
+        setTimeout(function () { gust.style.color = ""; }, 260);
+      }, 8000);
+    }
+  }
+
+  /* ---------- Donation modal ---------- */
+  function modal() {
+    var overlay = document.getElementById("overlay");
+    var opener = document.getElementById("donateBtn");
+    var lastFocus = null;
+
+    function open() {
+      lastFocus = document.activeElement;
+      overlay.classList.remove("hidden");
+      var c = document.getElementById("modalClose");
+      if (c) c.focus();
+    }
+    function close() {
+      overlay.classList.add("hidden");
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    document.getElementById("modalClose").addEventListener("click", close);
+    document.getElementById("maybeLater").addEventListener("click", close);
+    document.getElementById("donateModal").addEventListener("click", close);
+    opener.addEventListener("click", open);
+    overlay.addEventListener("mousedown", function (e) { if (e.target === overlay) close(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !overlay.classList.contains("hidden")) close();
+    });
+    // focus the close button on initial (auto-shown) splash
+    var c0 = document.getElementById("modalClose");
+    if (c0) c0.focus();
+  }
+
+  /* ---------- init ---------- */
+  buildChart();
+  buildUV();
+  sparkline(document.getElementById("sparkHum"), [24,22,21,20,18,17,16,15,15], "#2DD4BF");
+  sparkline(document.getElementById("sparkPres"), [29.98,29.97,29.95,29.93,29.9,29.88,29.86,29.85], "#F5B740");
+  freshness();
+  modal();
+})();
+</script>
+</body>
+</html>
