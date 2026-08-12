@@ -1,11 +1,15 @@
 {
   "name": "havasu-weather-ingest",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Ambient Weather station ingest Lambda (Function URL behind CloudFront)",
+  "description": "Ambient Weather station ingest Lambda (CloudFront -> DynamoDB)",
   "type": "module",
   "main": "src/handler.js",
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3",
+    "@aws-sdk/lib-dynamodb": "^3"
   }
 }

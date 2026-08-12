@@ -58,12 +58,23 @@ the table. Keep AmbientWeather.net + Wunderground uploads on as a free backup.
 
 ## Storage & retention
 
-- **DynamoDB on-demand.** Trivial workload; no server, no idle cost.
-- **Idempotency:** conditional put on (MAC, `dateutc`) so retries don't duplicate.
-- **Two timestamps:** store the console's `dateutc` *and* the server receive time —
-  console clocks drift, and receive time can't be reconstructed later.
-- **Retention:** keep everything (no TTL). Optional nightly roll to S3/Parquet +
-  Athena later for multi-year SQL. Storage cost is rounding-error.
+- **DynamoDB, single table, on-demand.** No server, no idle cost. Storage is free
+  under 25 GB (~50 years at ~0.5 GB/year).
+- **Key design (scales for years):** time-series item is `pk = OBS#<stationKey>#YYYY-MM`,
+  `sk = <dateutc ISO>`. Month buckets keep any one partition small, and typical reads
+  (current / 24h / 7d) hit a single partition. Each item carries `rainingNow` +
+  `lastRainAt`, so "current conditions" is just the newest item — no separate pointer.
+- **Watermark pattern (cheap writes):** the console posts every ~60s, so the Lambda
+  stays warm and holds the last reading in memory. Steady state is **one DynamoDB write
+  per reading** — no read on the hot path; only a cold start does a seed query.
+- **Idempotency:** conditional put (`attribute_not_exists(pk)`) on the composite key, so
+  retries never duplicate.
+- **Two timestamps:** the console's `dateutc` *and* the server `receivedAt`.
+- **Rain-now:** the WS-2902D sends no rain *rate*, so "raining now / last rain" is derived
+  from the monotonic `totalrainin` counter incrementing between readings.
+- **Indoor dropped:** `tempinf`/`humidityin` are not stored.
+- **Retention:** keep everything (no TTL). If it ever grows large (years out), roll old
+  months to S3/Parquet + Athena. On-demand, no PITR → ~$0.15/month.
 
 ## Security
 

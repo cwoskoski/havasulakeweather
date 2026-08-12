@@ -45,11 +45,12 @@ Defaults below are **proposed** — change any before we start Phase 0.
 
 ## Phase 2 — Storage + hardening
 
-- [ ] DynamoDB table (`PK = MAC#YYYY-MM-DD`, `SK = dateutc`, on-demand)
-- [ ] Lambda: parse→map, MAC allowlist, idempotent conditional put, store `dateutc`
-      + receive time, log unknown keys
-- [ ] Lock the Function URL to CloudFront (OAC), reserved concurrency, secret path
-- [ ] Keep AmbientWeather.net + Wunderground uploads on as a backup path
+- [x] DynamoDB table `havasu-weather` (on-demand). Time-series `pk = OBS#<key>#YYYY-MM`,
+      `sk = dateutc`; each item carries `rainingNow`/`lastRainAt`.
+- [x] Lambda storage: **watermark pattern** (1 write/reading, in-memory rain state),
+      station-key allowlist, idempotent put, drop indoor, rain-now from `totalrainin`.
+- [ ] Lock the Function URL to CloudFront (OAC), reserved concurrency — hardening pass.
+- [x] Keep AmbientWeather.net upload on as a backup path (still enabled).
 
 ## Phase 3 — Public page (later)
 

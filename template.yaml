@@ -1,8 +1,17 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Havasu Lake Weather — ingest (Phase 1: logger).
-  Ambient console --HTTP:80--> CloudFront --HTTPS--> Lambda (Node 20).
+  Havasu Lake Weather — ingest (Phase 2: storage).
+  Ambient console --HTTP:80--> CloudFront --HTTPS--> Lambda (Node 24) --> DynamoDB.
+
+Parameters:
+  AllowedStationKeys:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: >
+      Comma-separated station PASSKEYs allowed to store data. Empty = accept all
+      (passed at deploy via --parameter-overrides so the key isn't committed).
 
 Globals:
   Function:
@@ -13,19 +22,44 @@ Globals:
       - arm64
 
 Resources:
+  # Single table. On-demand billing; storage is free under 25 GB (~50 years here).
+  # Time-series items:  pk = OBS#<stationKey>#YYYY-MM, sk = <dateutc ISO>
+  # Latest pointer:     pk = STATION#<stationKey>,     sk = LATEST
+  WeatherTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: havasu-weather
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+
   IngestFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: havasu-weather-ingest
-      Description: Logs incoming weather-console posts (Phase 1 logger)
+      Description: Receives Ambient console posts; stores outdoor readings in DynamoDB
       CodeUri: ingest/
       Handler: src/handler.handler
       FunctionUrlConfig:
-        AuthType: NONE # Phase 1 only; locked to CloudFront (OAC/IAM) in Phase 2.
+        AuthType: NONE # Phase 2; lock to CloudFront (OAC/IAM) in the hardening pass.
       LoggingConfig:
         LogFormat: JSON
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref WeatherTable
+          ALLOWED_STATION_KEYS: !Ref AllowedStationKeys
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WeatherTable
 
-  # Explicit log group so retention is bounded (Lambda's default is "never expire").
   IngestLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -38,11 +72,10 @@ Resources:
       DistributionConfig:
         Enabled: true
         Comment: Havasu weather ingest — accepts the console's plaintext HTTP
-        PriceClass: PriceClass_100 # cheapest edge footprint (NA + EU)
+        PriceClass: PriceClass_100
         HttpVersion: http2
         Origins:
           - Id: LambdaOrigin
-            # Function URL is https://<id>.lambda-url.<region>.on.aws/ — take the host.
             DomainName: !Select [2, !Split ["/", !GetAtt IngestFunctionUrl.FunctionUrl]]
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
@@ -50,14 +83,10 @@ Resources:
                 - TLSv1.2
         DefaultCacheBehavior:
           TargetOriginId: LambdaOrigin
-          # allow-all = serve HTTP on port 80 (the whole point — the console can't do TLS).
           ViewerProtocolPolicy: allow-all
           AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
           CachedMethods: [GET, HEAD]
-          # Managed "CachingDisabled" — never cache weather writes.
           CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
-          # Managed "AllViewerExceptHostHeader" — forward all query strings, but NOT
-          # the Host header (required for a Lambda Function URL origin).
           OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
 
 Outputs:
@@ -67,5 +96,6 @@ Outputs:
   CloudFrontDomain:
     Value: !GetAtt Distribution.DomainName
   FunctionUrl:
-    Description: Direct Lambda URL (bypasses CloudFront; HTTPS only)
     Value: !GetAtt IngestFunctionUrl.FunctionUrl
+  WeatherTableName:
+    Value: !Ref WeatherTable
