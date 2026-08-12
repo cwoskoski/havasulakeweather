@@ -56,7 +56,9 @@ Defaults below are **proposed** — change any before we start Phase 0.
 
 See [product-spec.md](product-spec.md) for the full design.
 
-- [ ] S3 + CloudFront static page; JSON API Lambda (`/api/current`, `/api/history`)
+- [x] JSON read API (`/api/current`, `/api/history`) — deployed & verified (Function URL;
+      to be fronted by CloudFront + edge-cached when the page ships)
+- [ ] S3 + CloudFront static page (needs the chosen mock)
 - [ ] Current conditions: wind + temp hero, outdoor tiles, freshness/stale state
 - [ ] Live updates: poll edge-cached `/api/current`, repaint only changed values
 - [ ] History charts (uPlot): 24h / 7d; mobile-first, responsive to desktop
