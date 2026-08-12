@@ -307,7 +307,8 @@
   .cmp-note{margin-top:10px;font-size:.82rem;font-weight:650;color:var(--coral-deep);background:rgba(232,69,31,.08);border-radius:12px;padding:8px 11px;line-height:1.4;}
 
   /* ---- lake & river (USGS + USBR) ---- */
-  .water{margin-top:14px;padding:16px;}
+  /* NOTE: class is .lakeriver, NOT .water — .water is the background scene's lake element. */
+  .lakeriver{margin-top:14px;padding:16px;}
   .wtr-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;}
   .wtr-head h2{margin:0;font-size:1.05rem;font-weight:800;}
   .wtr-src{font-size:.7rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
@@ -449,7 +450,7 @@
     </section>
 
     <!-- LAKE & RIVER (USGS + USBR) -->
-    <section class="glass water" id="water" aria-labelledby="wtr-h" hidden>
+    <section class="glass lakeriver" id="water" aria-labelledby="wtr-h" hidden>
       <div class="wtr-head">
         <h2 id="wtr-h">Lake &amp; river</h2>
         <span class="wtr-src" id="wtrSrc"></span>
@@ -777,6 +778,10 @@
     return '<div class="wtr-flow"><span class="fl-k">'+label+'</span><span class="fl-v">'+o.cfs.toLocaleString()+' <small>cfs</small>'+arrow+'</span></div>';
   }
   async function loadWater(){
+    // Preview-only for now: don't show the lake/river card to normal visitors
+    // until the feature is finished (RISE dam releases + final design). It only
+    // appears with ?demo=1 or ?mockWater=<scenario>. Flip this to always-on to launch.
+    if(!Q.get("mockWater") && !DEMO){ var s=$("water"); if(s) s.hidden=true; return; }
     try{var r=await fetch(API+"/api/water"+mockQ("Water","normal"),{cache:"no-store"});renderWater(await r.json());}catch(e){}
   }
   function renderWater(d){
