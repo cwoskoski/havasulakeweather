@@ -33,3 +33,6 @@ Thumbs.db
 # Playwright / local verification artifacts
 .playwright-mcp/
 verify-*.png
+
+# Personal contact details for domain registration — never commit
+domain-contact.json
