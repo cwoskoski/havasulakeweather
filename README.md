@@ -27,5 +27,6 @@ Runs for roughly **$0–2/month**. No home server — it's fully serverless on A
 - **Account:** personal `648581682379` · **Region:** `us-west-2`
 - **Profile:** `havasu` (IAM Identity Center SSO) — `aws sso login --profile havasu`
 - **IaC:** AWS SAM · **Runtime:** Node.js 24
+- **Ingest endpoint (Phase 1 logger):** `http://dzn7sq96yz34g.cloudfront.net/` — the console's Customized upload points here (HTTP, port 80, Ambient format)
 
 Start with [docs/plan.md](docs/plan.md).

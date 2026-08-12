@@ -24,17 +24,18 @@ Defaults below are **proposed** — change any before we start Phase 0.
 
 - [x] Personal `havasu` SSO profile + verified caller identity
 - [ ] Register `havasulakeweather.com` (Route 53) — needs registrant contact info
-- [ ] AWS Budgets alarm → email (low threshold + forecasted-to-exceed). Free tier is
-      the target; the alarm is the safety net.
-- [ ] SAM scaffold: `template.yaml` + `samconfig.toml` (pinned to `havasu`, us-west-2)
-- [ ] Retire Pi-era bits: `deploy/` (systemd/Litestream) removed; `ingest/src/server.js`
+- [x] AWS Budgets alarm → email (`havasu-weather-monthly`, $5/mo, alerts at $1 actual
+      + forecasted-to-exceed). Free tier is the target; the alarm is the safety net.
+- [x] SAM scaffold: `template.yaml` + `samconfig.toml` (pinned to `havasu`, us-west-2)
+- [x] Retire Pi-era bits: `deploy/` (systemd/Litestream) removed; `ingest/src/server.js`
       converted to the Lambda handler
 
 ## Phase 1 — Ingest, logger-first
 
-- [ ] Node 24 **logger** Lambda + Function URL + CloudFront
+- [x] Node 24 **logger** Lambda + Function URL + CloudFront
       (viewer allows HTTP:80, `CachingDisabled`, forwards all query strings)
-- [ ] `sam deploy` → grab the `*.cloudfront.net` URL
+- [x] `sam deploy` → **http://dzn7sq96yz34g.cloudfront.net/** (verified end-to-end:
+      curl on port 80 → CloudFront → Lambda → logged in CloudWatch)
 - [ ] Configure the console's "Customized" upload (Ambient format) → CloudFront URL, port 80
 - [ ] Capture one real payload in CloudWatch → finalize the field list + note the MAC
 
