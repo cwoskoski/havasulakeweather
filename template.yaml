@@ -82,6 +82,12 @@ Resources:
         Variables:
           TABLE_NAME: !Ref WeatherTable
           STATION_KEY: !Ref AllowedStationKeys
+          # National Weather Service (free, no key) — forecast + alerts.
+          # Grid/point resolved once from /points for Havasu Lake, CA.
+          NWS_USER_AGENT: "HavasuLakeWeather/1.0 (+https://havasulakeweather.com)"
+          NWS_POINT: "34.4822,-114.4138"
+          NWS_GRID: "VEF/138,20"
+          LOCATION_LABEL: "Havasu Lake, CA"
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref WeatherTable

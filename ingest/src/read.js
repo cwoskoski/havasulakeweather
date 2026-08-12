@@ -11,6 +11,7 @@
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { getAlerts, getForecast } from "./nws.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.TABLE_NAME;
@@ -138,7 +139,27 @@ export const handler = async (event) => {
       }, 120);
     }
 
-    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24"] }, 15);
+    // NWS forecast + alerts (free, no key). ?mock=<scenario> returns fixtures.
+    // Soft-fail on upstream errors so a flaky NWS never breaks the page.
+    if (path.endsWith("/api/alerts")) {
+      try {
+        return res(200, await getAlerts(qs.mock), qs.mock ? 20 : 300);
+      } catch (e) {
+        console.error(JSON.stringify({ msg: "alerts-upstream", error: String(e?.message || e) }));
+        return res(200, { source: "NWS", count: 0, alerts: [], error: "upstream" }, 30);
+      }
+    }
+
+    if (path.endsWith("/api/forecast")) {
+      try {
+        return res(200, await getForecast(qs.mock), qs.mock ? 20 : 900);
+      } catch (e) {
+        console.error(JSON.stringify({ msg: "forecast-upstream", error: String(e?.message || e) }));
+        return res(200, { source: "NWS", hourly: [], daily: [], rainSoon: { likely: false }, error: "upstream" }, 30);
+      }
+    }
+
+    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts"] }, 15);
   } catch (e) {
     console.error(JSON.stringify({ msg: "read-error", error: String(e?.message || e), path }));
     return res(500, { error: "internal" }, 5);
