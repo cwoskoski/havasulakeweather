@@ -29,7 +29,9 @@
   body{font-family:var(--font);color:var(--ink);min-height:100vh;background:#0e4a5e;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden;}
 
   /* ---- golden-hour scene ---- */
-  .scene{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+  /* height pinned to the large viewport (lvh) so the scene doesn't resize —
+     and the mountains don't jump — as the mobile URL bar shows/hides on scroll */
+  .scene{position:fixed;top:0;left:0;width:100%;height:100vh;height:100lvh;z-index:0;overflow:hidden;pointer-events:none;}
   .sky{position:absolute;inset:0 0 40% 0;background:linear-gradient(180deg,#4a2d73 0%,#7a3f83 13%,#b9557f 27%,#ef7b56 42%,#ff9e57 55%,#ffc36a 72%,#ffe39a 92%,#fff0c0 100%);}
   .sky::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 30% at 22% 34%,rgba(255,255,255,.20),transparent 70%),radial-gradient(48% 22% at 78% 24%,rgba(255,214,170,.28),transparent 70%),radial-gradient(70% 26% at 60% 46%,rgba(255,160,120,.22),transparent 72%);filter:blur(4px);}
   .sun{position:absolute;left:50%;top:46%;width:150px;height:150px;transform:translate(-40%,-50%);border-radius:50%;background:radial-gradient(circle at 50% 50%,#fffdf2 0%,#fff2c0 26%,#ffd970 52%,rgba(255,190,90,.65) 66%,rgba(255,150,80,.20) 78%,transparent 82%);box-shadow:0 0 90px 40px rgba(255,214,120,.55),0 0 200px 120px rgba(255,160,90,.30);}
@@ -75,7 +77,7 @@
   .head-sub{margin-top:5px;font-size:.92rem;font-weight:650;color:var(--ink-soft);}
   .head-sub b{color:var(--ink);font-weight:800;}
   .compass{width:58px;height:58px;flex:none;}
-  #windArrow{transition:transform .6s cubic-bezier(.2,.8,.2,1);transform-origin:30px 30px;}
+  #windArrow{transition:transform .6s cubic-bezier(.2,.8,.2,1);transform-box:view-box;transform-origin:30px 30px;}
 
   /* ---- rain ---- */
   .rain{padding:16px 18px;display:grid;grid-template-columns:auto 1fr;gap:14px 16px;align-items:center;background:linear-gradient(160deg,rgba(90,205,225,.30),rgba(255,255,255,.14)),var(--glass-bg-2);border:1px solid rgba(255,255,255,.55);}
@@ -375,7 +377,7 @@
       set("wind",Math.round(d.wind.speedMph));
       set("gust",Math.round(d.wind.gustMph)+" mph");
       set("windDir",(d.wind.compass||"—")+" ("+Math.round(d.wind.directionDeg)+"°)");
-      var arrow=$("windArrow");if(arrow&&d.wind.directionDeg!=null){arrow.setAttribute("transform","rotate("+d.wind.directionDeg+" 30 30)");}
+      var arrow=$("windArrow");if(arrow&&d.wind.directionDeg!=null){arrow.style.transform="rotate("+d.wind.directionDeg+"deg)";}
       set("humidity",d.humidity);
       set("dew",Math.round(d.dewPointF)+"°F");
       set("pressure",d.pressureInHg.toFixed(2));
