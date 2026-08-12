@@ -172,6 +172,20 @@
   .install .act button{font:inherit;font-family:var(--font);font-weight:800;cursor:pointer;border-radius:999px;}
   .install .add{background:linear-gradient(160deg,#ff7a45,#e8451f);color:#fff;border:0;padding:7px 15px;}
   .install .dismiss{background:transparent;border:0;color:var(--ink-soft);font-size:1.15rem;line-height:1;padding:2px 6px;}
+  /* iOS add-to-home-screen callout (Safari hint w/ arrow, or open-in-Safari) */
+  .ios-callout{position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:46;max-width:420px;margin:0 auto;background:rgba(255,250,245,.93);color:var(--ink);border:1px solid rgba(255,255,255,.7);border-radius:20px;padding:15px 40px 16px 18px;text-align:center;box-shadow:0 18px 50px -12px rgba(40,20,10,.5),inset 0 1px 0 var(--glass-hi);backdrop-filter:saturate(160%) blur(20px);-webkit-backdrop-filter:saturate(160%) blur(20px);animation:iosrise .3s ease both;}
+  .ios-callout[hidden]{display:none;}
+  @keyframes iosrise{from{transform:translateY(20px);opacity:0;}}
+  @media (prefers-reduced-motion:reduce){.ios-callout{animation:none;}}
+  .ios-x{position:absolute;top:8px;right:10px;width:28px;height:28px;border:0;background:transparent;color:var(--ink-soft);font-size:1.2rem;line-height:1;cursor:pointer;}
+  .ios-title{font-weight:800;font-size:1rem;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .ios-emoji{font-size:1.1rem;}
+  .ios-steps{font-size:.88rem;font-weight:600;color:var(--ink-soft);line-height:1.45;}
+  .ios-steps b{color:var(--ink);font-weight:800;}
+  .share-ico{width:17px;height:17px;vertical-align:-3px;color:#007aff;}
+  .ios-copy{margin-top:11px;background:linear-gradient(160deg,#ff7a45,#e8451f);color:#fff;border:0;border-radius:999px;padding:8px 18px;font:inherit;font-family:var(--font);font-weight:800;cursor:pointer;}
+  .ios-arrow{position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:13px solid rgba(255,250,245,.93);}
+  .ios-arrow[hidden]{display:none;}
 
   @media (min-width:620px){
     .page{padding:34px 22px 48px;}
@@ -356,6 +370,11 @@
       <p class="note">Suggested amounts are just that &mdash; give whatever feels right. Cash App pre-fills the amount; Venmo you enter in the app.</p>
     </div>
   </div>
+  <div class="ios-callout" id="iosCallout" hidden role="dialog" aria-label="Add to Home Screen">
+    <button class="ios-x" id="iosX" type="button" aria-label="Dismiss">&times;</button>
+    <div id="iosBody"></div>
+    <div class="ios-arrow" id="iosArrow" aria-hidden="true"></div>
+  </div>
   <div class="toast" id="toast"></div>
 
 <script>
@@ -496,28 +515,35 @@
 <script>
 /* PWA: service worker + install affordance */
 (function(){
-  if("serviceWorker" in navigator){
-    window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});
-  }
-  var banner=document.getElementById("installBanner"),deferred=null,dismissed=false;
-  try{dismissed=localStorage.getItem("havasu_install_dismiss")==="1";}catch(e){}
+  if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}
+  var ua=navigator.userAgent;
+  var isIos=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  var iosOther=isIos&&/crios|fxios|edgios|opios/i.test(ua); // Chrome/Firefox/Edge/Opera on iOS
   var standalone=(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
-  function hide(remember){banner.hidden=true;if(remember){try{localStorage.setItem("havasu_install_dismiss","1");}catch(e){}}}
-  window.addEventListener("beforeinstallprompt",function(e){
-    e.preventDefault();deferred=e;
-    if(!dismissed&&!standalone){banner.hidden=false;}
-  });
-  document.getElementById("installBtn").addEventListener("click",function(){
-    if(deferred){deferred.prompt();deferred=null;hide(false);}
-  });
-  document.getElementById("installX").addEventListener("click",function(){hide(true);});
-  window.addEventListener("appinstalled",function(){hide(true);});
-  /* iOS Safari has no install prompt — show the Share-sheet hint instead */
-  var isIos=/iphone|ipad|ipod/i.test(navigator.userAgent),isSafari=/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
-  if(isIos&&isSafari&&!standalone&&!dismissed){
-    document.getElementById("installText").innerHTML="Install: tap <b>Share</b>, then <b>Add to Home Screen</b>.";
-    document.getElementById("installBtn").hidden=true;
-    banner.hidden=false;
+  var dismissed=false;try{dismissed=localStorage.getItem("havasu_install_dismiss")==="1";}catch(e){}
+  function remember(){try{localStorage.setItem("havasu_install_dismiss","1");}catch(e){}}
+
+  /* Android / desktop: the real install prompt */
+  var banner=document.getElementById("installBanner"),deferred=null;
+  window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;if(!dismissed&&!standalone&&!isIos){banner.hidden=false;}});
+  document.getElementById("installBtn").addEventListener("click",function(){if(deferred){deferred.prompt();deferred=null;banner.hidden=true;}});
+  document.getElementById("installX").addEventListener("click",function(){banner.hidden=true;remember();});
+  window.addEventListener("appinstalled",function(){banner.hidden=true;var c=document.getElementById("iosCallout");if(c)c.hidden=true;remember();});
+
+  /* iOS: a dedicated callout — Safari gets the Share hint + arrow; other iOS browsers get "open in Safari" */
+  if(isIos&&!standalone&&!dismissed){
+    var callout=document.getElementById("iosCallout"),body=document.getElementById("iosBody"),arrow=document.getElementById("iosArrow");
+    var share='<svg class="share-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M8.5 6.5 12 3l3.5 3.5"/><path d="M7 11H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg>';
+    if(iosOther){
+      body.innerHTML='<div class="ios-title">Add the app to your Home Screen</div><div class="ios-steps">This only works from <b>Safari</b> on iPhone. Open <b>havasulakeweather.com</b> in Safari, then '+share+' Share &rarr; <b>Add to Home Screen</b>.</div><button class="ios-copy" id="iosCopy" type="button">Copy link</button>';
+      arrow.hidden=true;
+      document.getElementById("iosCopy").addEventListener("click",function(){var b=this;if(navigator.clipboard){navigator.clipboard.writeText("https://havasulakeweather.com/").catch(function(){});}b.textContent="Copied ✓";setTimeout(function(){b.textContent="Copy link";},1600);});
+    }else{
+      body.innerHTML='<div class="ios-title"><span class="ios-emoji">📲</span> Add to your Home Screen</div><div class="ios-steps">Tap '+share+' <b>Share</b> in the toolbar below, then <b>Add to Home Screen</b>.</div>';
+      arrow.hidden=false;
+    }
+    document.getElementById("iosX").addEventListener("click",function(){callout.hidden=true;remember();});
+    callout.hidden=false;
   }
 })();
 </script>
