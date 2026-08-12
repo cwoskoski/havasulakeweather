@@ -100,6 +100,10 @@ Resources:
           # Nearby-station comparison (Weather Underground PWS). Key empty until set.
           WU_API_KEY: !Ref WuApiKey
           WU_NEARBY_STATION: "KCAHAVAS2"
+          # Lake & river: USGS levels need no key; USBR RISE release item ids
+          # get pinned here at go-live (empty = flows read null / "—").
+          RISE_DAVIS_ID: ""
+          RISE_PARKER_ID: ""
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref WeatherTable

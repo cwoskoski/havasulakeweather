@@ -1,0 +1,228 @@
+<style>
+  .wrap{
+    --sand:#d7b487; --sand2:#c39a5f; --sand3:#9a7442;
+    --deep:#0b4a5e; --mid:#0f7f95; --turq:#2fb9c4; --turq2:#7fe6e2; --foam:#eafffe;
+    --in:#59e6ff; --out:#ff7a4d; --gold:#ffbf5c; --ink:#0a2b34;
+    --font:ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    background:#0a2b34; font-family:var(--font); color:#fff; overflow:hidden;
+  }
+  .stage{position:relative; flex:1; min-height:0;}
+  #c{position:absolute; inset:0; width:100%; height:100%; display:block;}
+
+  .lbl{position:absolute; left:50%; transform:translateX(-50%); z-index:3;
+    background:rgba(6,26,32,.62); backdrop-filter:blur(9px) saturate(150%); -webkit-backdrop-filter:blur(9px) saturate(150%);
+    border:1px solid rgba(255,255,255,.18); border-radius:16px; padding:10px 15px; text-align:center;
+    box-shadow:0 10px 30px -12px rgba(0,0,0,.6); min-width:170px;}
+  .lbl-top{top:14px; border-top:3px solid var(--in);}
+  .lbl-bot{bottom:14px; border-bottom:3px solid var(--out);}
+  .lbl .dam{font-weight:800; font-size:.95rem; letter-spacing:.01em;}
+  .lbl .dir{font-weight:700; font-size:.72rem; opacity:.85;}
+  .lbl-top .dir{color:var(--in);} .lbl-bot .dir{color:var(--out);}
+  .lbl .cfs{font-weight:800; font-size:1.5rem; font-variant-numeric:tabular-nums; line-height:1.1; margin-top:2px;}
+  .lbl .cfs span{font-size:.72rem; font-weight:700; opacity:.7;}
+  .lbl .sub{font-size:.68rem; font-weight:600; opacity:.62; margin-top:2px;}
+
+  .place{position:absolute; z-index:3; font-weight:800; font-size:.74rem; letter-spacing:.03em;
+    text-shadow:0 1px 6px rgba(0,0,0,.7); display:flex; align-items:center; gap:5px; opacity:.92;}
+  .place::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 3px rgba(255,191,92,.3);}
+  .place-w{left:12px; top:49%;}
+  .place-e{right:12px; top:41%; flex-direction:row-reverse;}
+  .place-up{left:50%; transform:translateX(-50%); top:96px; font-size:.68rem; opacity:.7;}
+
+  .net{position:absolute; left:12px; bottom:112px; z-index:3; background:rgba(6,26,32,.62);
+    border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:6px 12px; font-weight:800; font-size:.78rem;
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:flex; gap:7px; align-items:center;}
+  .net b{font-variant-numeric:tabular-nums;}
+  .net .dot{width:8px; height:8px; border-radius:50%;}
+
+  .controls{flex:none; background:#07222a; border-top:1px solid rgba(255,255,255,.08);
+    padding:12px 14px calc(12px + env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .controls .title{font-weight:800; font-size:.9rem; opacity:.9;}
+  .controls .title small{display:block; font-weight:600; font-size:.68rem; opacity:.55;}
+  .btns{display:flex; gap:8px;}
+  .btns button{font:inherit; font-family:var(--font); font-weight:800; font-size:.82rem; cursor:pointer;
+    color:#cfeef2; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 15px;
+    transition:all .18s ease;}
+  .btns button:hover{background:rgba(255,255,255,.12);}
+  .btns button.on{color:#062028; background:linear-gradient(160deg,var(--turq2),var(--turq)); border-color:transparent;}
+  @media (min-width:560px){ .lbl .cfs{font-size:1.7rem;} .place{font-size:.82rem;} }
+</style>
+
+<div class="wrap">
+  <div class="stage">
+    <canvas id="c"></canvas>
+    <div class="lbl lbl-top">
+      <div class="dam">Davis Dam <span class="dir">&darr; INFLOW</span></div>
+      <div class="cfs"><span id="inCfs">12,500</span> <span>cfs</span></div>
+      <div class="sub">from Lake Mohave &mdash; upstream</div>
+    </div>
+    <div class="place place-w">Havasu Lake, CA</div>
+    <div class="place place-e">Lake Havasu City, AZ</div>
+    <div class="net" id="net"><span class="dot"></span><span id="netTxt">—</span></div>
+    <div class="lbl lbl-bot">
+      <div class="dam">Parker Dam <span class="dir">&darr; OUTFLOW</span></div>
+      <div class="cfs"><span id="outCfs">9,200</span> <span>cfs</span></div>
+      <div class="sub">downstream to Parker</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="title">Lake Havasu &mdash; live flow <small>mock data &middot; scrub scenarios</small></div>
+    <div class="btns">
+      <button data-s="normal" class="on">Normal</button>
+      <button data-s="high">High release</button>
+      <button data-s="low">Low water</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var canvas=document.getElementById("c"), ctx=canvas.getContext("2d");
+  var W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
+  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var SCEN={
+    normal:{inflow:12500,outflow:9200},
+    high:{inflow:19500,outflow:16000},
+    low:{inflow:8000,outflow:7200},
+  };
+  var target=Object.assign({},SCEN.normal), cur=Object.assign({},SCEN.normal);
+
+  function resize(){
+    var r=canvas.getBoundingClientRect(); W=r.width; H=r.height;
+    canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    buildStatic();
+  }
+  window.addEventListener("resize",resize);
+
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function clamp(v,a,b){return v<a?a:v>b?b:v;}
+  function smooth(u){return u*u*(3-2*u);}
+
+  // channel geometry: t = 0 (top / Davis Dam) -> 1 (bottom / Parker Dam)
+  function centerX(t){ return W*(0.5 + 0.07*Math.sin(t*Math.PI*1.7-0.4)); }
+  function halfW(t){
+    var river=W*0.052, mouthT=W*0.11, mouthB=W*0.13, lake=W*0.33;
+    if(t<0.15) return lerp(river,mouthT,smooth(t/0.15));
+    if(t<0.80){ var u=(t-0.15)/0.65; return mouthT + (lake-mouthT)*Math.sin(u*Math.PI); }
+    return lerp(mouthB,river,smooth((t-0.80)/0.20));
+  }
+
+  // static base (desert + lake body) painted once per resize into an offscreen buffer
+  var base=document.createElement("canvas"), bctx=base.getContext("2d");
+  function buildStatic(){
+    base.width=canvas.width; base.height=canvas.height; bctx.setTransform(DPR,0,0,DPR,0,0);
+    // desert
+    var sand=bctx.createLinearGradient(0,0,W,H);
+    sand.addColorStop(0,"#d9b78a"); sand.addColorStop(.5,"#c69a5e"); sand.addColorStop(1,"#a87c46");
+    bctx.fillStyle=sand; bctx.fillRect(0,0,W,H);
+    // rocky ridges on the flanks
+    bctx.globalAlpha=.5;
+    for(var i=0;i<26;i++){
+      var side=i%2? 1:-1, t=i/26, cx=centerX(t)+side*(halfW(t)+ (18+ (i*13%60)));
+      bctx.fillStyle=i%3?"#9a7442":"#b98a52";
+      bctx.beginPath();
+      var yy=t*H, s=26+(i*17%40);
+      bctx.moveTo(cx,yy); bctx.lineTo(cx+side*s,yy-s*0.7); bctx.lineTo(cx+side*s*1.7,yy+s*0.4); bctx.closePath(); bctx.fill();
+    }
+    bctx.globalAlpha=1;
+    // lake water body
+    var steps=90, lft=[], rgt=[];
+    for(var k=0;k<=steps;k++){ var tt=k/steps, cxx=centerX(tt), hw=halfW(tt); lft.push([cxx-hw,tt*H]); rgt.push([cxx+hw,tt*H]); }
+    bctx.beginPath(); bctx.moveTo(lft[0][0],lft[0][1]);
+    for(var a=1;a<lft.length;a++) bctx.lineTo(lft[a][0],lft[a][1]);
+    for(var b=rgt.length-1;b>=0;b--) bctx.lineTo(rgt[b][0],rgt[b][1]);
+    bctx.closePath();
+    var wg=bctx.createLinearGradient(0,0,0,H);
+    wg.addColorStop(0,"#0f7f95"); wg.addColorStop(.35,"#1a97a6"); wg.addColorStop(.6,"#127f93"); wg.addColorStop(1,"#0b4a5e");
+    bctx.fillStyle=wg; bctx.fill();
+    // turquoise shallows near the shore (stroke inside)
+    bctx.save(); bctx.clip();
+    bctx.lineWidth=Math.max(10,W*0.05); bctx.strokeStyle="rgba(120,230,226,.32)";
+    bctx.beginPath(); bctx.moveTo(lft[0][0],lft[0][1]);
+    for(var c=1;c<lft.length;c++) bctx.lineTo(lft[c][0],lft[c][1]); bctx.stroke();
+    bctx.beginPath(); bctx.moveTo(rgt[0][0],rgt[0][1]);
+    for(var e=1;e<rgt.length;e++) bctx.lineTo(rgt[e][0],rgt[e][1]); bctx.stroke();
+    bctx.restore();
+  }
+
+  // particles
+  var parts=[], spawnAcc=0;
+  function seed(){ parts.length=0; for(var i=0;i<240;i++){ parts.push({t:Math.random(),off:(Math.random()*2-1)*0.72,len:8+Math.random()*16,a:0.5+Math.random()*0.5,w:0.8+Math.random()*1.6}); } }
+  function cfsAt(t){ return lerp(cur.inflow,cur.outflow,t); }
+  function speedAt(t){ // continuity: faster where the channel is narrow
+    var v=cfsAt(t)/(halfW(t)*2)*0.9; return clamp(v,26,220);
+  }
+  function spawn(){
+    var t=0, x=centerX(t)+(Math.random()*2-1)*halfW(t)*0.7;
+    parts.push({t:t,off:(Math.random()*2-1)*0.72,len:8+Math.random()*16,a:0.5+Math.random()*0.5,w:0.8+Math.random()*1.6});
+  }
+
+  var last=0;
+  function frame(ts){
+    if(!last) last=ts; var dt=Math.min((ts-last)/1000,0.05); last=ts;
+    // tween scenario
+    cur.inflow=lerp(cur.inflow,target.inflow,1-Math.pow(0.001,dt));
+    cur.outflow=lerp(cur.outflow,target.outflow,1-Math.pow(0.001,dt));
+
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(base,0,0,W,H);
+
+    // spawn ∝ inflow
+    var rate=(reduce?0.35:1)*(cur.inflow/900);
+    spawnAcc+=rate*dt*30;
+    while(spawnAcc>=1 && parts.length<520){ spawn(); spawnAcc-=1; }
+
+    // draw + advance
+    for(var i=parts.length-1;i>=0;i--){
+      var p=parts[i];
+      var v=speedAt(p.t)*(reduce?0.4:1);
+      p.t += (v/H)*dt;
+      if(p.t>=1){ parts.splice(i,1); continue; }
+      var cx=centerX(p.t), hw=halfW(p.t);
+      var x=cx+p.off*hw*0.94, y=p.t*H;
+      var y2=y-Math.min(p.len*(v/90),p.len);
+      var fade=p.t<0.06?p.t/0.06:(p.t>0.94?(1-p.t)/0.06:1);
+      var g=ctx.createLinearGradient(x,y,x,y2);
+      g.addColorStop(0,"rgba(234,255,254,"+(p.a*fade)+")");
+      g.addColorStop(1,"rgba(120,230,226,0)");
+      ctx.strokeStyle=g; ctx.lineWidth=p.w; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y2); ctx.stroke();
+    }
+
+    // Davis Dam wall (top) + Parker Dam wall (bottom)
+    dam(0.005,"#e9d9b8"); dam(0.995,"#e9d9b8");
+
+    requestAnimationFrame(frame);
+  }
+  function dam(t,col){
+    var cx=centerX(t), hw=halfW(t);
+    ctx.fillStyle=col; ctx.strokeStyle="rgba(0,0,0,.25)"; ctx.lineWidth=1;
+    ctx.fillRect(cx-hw-6, t*H-4, hw*2+12, 8);
+    ctx.strokeRect(cx-hw-6, t*H-4, hw*2+12, 8);
+  }
+
+  // UI
+  function fmt(n){return Math.round(n).toLocaleString();}
+  var inEl=document.getElementById("inCfs"), outEl=document.getElementById("outCfs"),
+      netTxt=document.getElementById("netTxt"), netDot=document.querySelector("#net .dot");
+  function tickUI(){
+    inEl.textContent=fmt(cur.inflow); outEl.textContent=fmt(cur.outflow);
+    var net=cur.inflow-cur.outflow;
+    netTxt.innerHTML=(net>=0?"Filling ":"Draining ")+"<b>"+(net>=0?"+":"")+fmt(net)+" cfs</b>";
+    netDot.style.background=net>=0?"#59e6ff":"#ff7a4d";
+    requestAnimationFrame(tickUI);
+  }
+
+  document.querySelectorAll(".btns button").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.querySelectorAll(".btns button").forEach(function(x){x.classList.remove("on");});
+      b.classList.add("on"); target=Object.assign({},SCEN[b.dataset.s]);
+    });
+  });
+
+  resize(); seed(); requestAnimationFrame(frame); requestAnimationFrame(tickUI);
+})();
+</script>

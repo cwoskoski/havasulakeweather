@@ -305,6 +305,27 @@
   .cmp-row .k{color:var(--ink-soft);}
   .cmp-row .d{color:var(--teal-deep);font-weight:800;}
   .cmp-note{margin-top:10px;font-size:.82rem;font-weight:650;color:var(--coral-deep);background:rgba(232,69,31,.08);border-radius:12px;padding:8px 11px;line-height:1.4;}
+
+  /* ---- lake & river (USGS + USBR) ---- */
+  .water{margin-top:14px;padding:16px;}
+  .wtr-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .wtr-head h2{margin:0;font-size:1.05rem;font-weight:800;}
+  .wtr-src{font-size:.7rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
+  .wtr-lake{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .wtr-lk-main{display:flex;align-items:center;gap:10px;}
+  .wtr-lk-name{font-weight:800;font-size:1rem;}
+  .wtr-lk-elev{font-weight:800;font-size:1.9rem;color:var(--teal-deep);font-variant-numeric:tabular-nums;}
+  .wtr-lk-elev small{font-size:.9rem;font-weight:700;color:var(--ink-soft);}
+  .wtr-pill{font-size:.7rem;font-weight:800;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;}
+  .wtr-full,.wtr-normal{background:rgba(15,127,143,.16);color:var(--teal-deep);}
+  .wtr-low{background:rgba(232,69,31,.14);color:var(--coral-deep);}
+  .wtr-unknown{background:var(--glass-bg-2);color:var(--ink-faint);}
+  .wtr-flows{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+  .wtr-flow{display:flex;flex-direction:column;gap:3px;padding:10px;border-radius:14px;background:var(--glass-bg-2);border:1px solid var(--glass-brd);}
+  .wtr-flow .fl-k{font-size:.68rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.02em;}
+  .wtr-flow .fl-v{font-size:1rem;font-weight:800;font-variant-numeric:tabular-nums;}
+  .wtr-flow .fl-v small{font-size:.7rem;font-weight:700;color:var(--ink-soft);}
+  .wtr-note{margin-top:10px;font-size:.82rem;font-weight:650;color:var(--coral-deep);background:rgba(232,69,31,.08);border-radius:12px;padding:8px 11px;line-height:1.4;}
 </style>
 </head>
 <body>
@@ -425,6 +446,17 @@
         <div class="tile-val"><span id="hi">--</span>&deg; <small>/ <span id="lo">--</span>&deg;F</small></div>
         <div class="tile-sub">High &middot; Low</div>
       </div>
+    </section>
+
+    <!-- LAKE & RIVER (USGS + USBR) -->
+    <section class="glass water" id="water" aria-labelledby="wtr-h" hidden>
+      <div class="wtr-head">
+        <h2 id="wtr-h">Lake &amp; river</h2>
+        <span class="wtr-src" id="wtrSrc"></span>
+      </div>
+      <div class="wtr-lake" id="wtrLake"></div>
+      <div class="wtr-flows" id="wtrFlows"></div>
+      <div class="wtr-notes" id="wtrNotes"></div>
     </section>
 
     <!-- CHART -->
@@ -737,14 +769,38 @@
     $("cmpNotes").innerHTML=notes.map(function(n){return '<div class="cmp-note">'+esc(n)+'</div>';}).join("");
   }
 
+  /* -- lake & river -- */
+  function wtrPill(s){var m={full:["Full pool","full"],normal:["Normal","normal"],low:["Low","low"]}[s]||["—","unknown"];return '<span class="wtr-pill wtr-'+m[1]+'">'+m[0]+'</span>';}
+  function wtrFlow(label,o){
+    if(!o||o.cfs==null)return '<div class="wtr-flow"><span class="fl-k">'+label+'</span><span class="fl-v">—</span></div>';
+    var arrow=o.trend==="rising"?" ▲":o.trend==="falling"?" ▼":"";
+    return '<div class="wtr-flow"><span class="fl-k">'+label+'</span><span class="fl-v">'+o.cfs.toLocaleString()+' <small>cfs</small>'+arrow+'</span></div>';
+  }
+  async function loadWater(){
+    try{var r=await fetch(API+"/api/water"+mockQ("Water","normal"),{cache:"no-store"});renderWater(await r.json());}catch(e){}
+  }
+  function renderWater(d){
+    var sec=$("water");if(!sec||!d)return;
+    var lake=d.lake;
+    if(!lake&&!d.upstream){sec.hidden=true;return;}
+    sec.hidden=false;
+    $("wtrSrc").textContent=d.source==="mock"?"demo data":"USGS · USBR";
+    $("wtrLake").innerHTML=lake?('<div class="wtr-lk-main"><span class="wtr-lk-name">'+esc(lake.name)+'</span>'+wtrPill(lake.status)+'</div><div class="wtr-lk-elev">'+(lake.elevationFt!=null?lake.elevationFt.toFixed(1):"--")+'<small> ft</small></div>'):"";
+    var flows=wtrFlow("Davis Dam in",d.inflow)+wtrFlow("Parker Dam out",d.outflow);
+    if(d.upstream)flows+='<div class="wtr-flow"><span class="fl-k">Lake Mohave</span><span class="fl-v">'+(d.upstream.elevationFt!=null?d.upstream.elevationFt.toFixed(1):"--")+' <small>ft</small></span></div>';
+    $("wtrFlows").innerHTML=flows;
+    $("wtrNotes").innerHTML=(d.notes||[]).map(function(n){return '<div class="wtr-note">'+esc(n)+'</div>';}).join("");
+  }
+
   /* ---------- go ---------- */
   loadCurrent();loadHistory(24);
-  loadAlerts();loadForecast();loadCompare();
+  loadAlerts();loadForecast();loadCompare();loadWater();
   setInterval(loadCurrent,60000);
   setInterval(function(){loadHistory(rangeHours);},300000);
   setInterval(loadAlerts,300000);
   setInterval(loadForecast,900000);
   setInterval(loadCompare,300000);
+  setInterval(loadWater,1800000);
 })();
 </script>
 <script>
