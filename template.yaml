@@ -66,6 +66,32 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${IngestFunction}"
       RetentionInDays: 14
 
+  # Read API (JSON for the public page). Separate function, read-only on the table.
+  ReadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: havasu-weather-read
+      Description: Read API — current conditions + history JSON
+      CodeUri: ingest/
+      Handler: src/read.handler
+      FunctionUrlConfig:
+        AuthType: NONE
+      LoggingConfig:
+        LogFormat: JSON
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref WeatherTable
+          STATION_KEY: !Ref AllowedStationKeys
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref WeatherTable
+
+  ReadLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ReadFunction}"
+      RetentionInDays: 14
+
   Distribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -99,3 +125,6 @@ Outputs:
     Value: !GetAtt IngestFunctionUrl.FunctionUrl
   WeatherTableName:
     Value: !Ref WeatherTable
+  ReadApiUrl:
+    Description: Read API base (append /api/current or /api/history?hours=24)
+    Value: !GetAtt ReadFunctionUrl.FunctionUrl
