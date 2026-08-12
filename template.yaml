@@ -114,6 +114,39 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${ReadFunction}"
       RetentionInDays: 14
 
+  # Scheduled pull of a nearby Weather Underground PWS (KCAHAVAS2) into the same
+  # table under pk = OBS#<stationId>#YYYY-MM. No-ops until WuApiKey is set.
+  PwsIngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: havasu-weather-pws-ingest
+      Description: Scheduled ingest of a nearby WU PWS for comparison history
+      CodeUri: ingest/
+      Handler: src/pws.handler
+      LoggingConfig:
+        LogFormat: JSON
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref WeatherTable
+          WU_API_KEY: !Ref WuApiKey
+          PWS_STATIONS: "KCAHAVAS2"
+      Events:
+        Tick:
+          Type: Schedule
+          Properties:
+            Schedule: "rate(15 minutes)"
+            Description: Pull nearby PWS current observation
+            Enabled: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WeatherTable
+
+  PwsIngestLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${PwsIngestFunction}"
+      RetentionInDays: 14
+
   Distribution:
     Type: AWS::CloudFront::Distribution
     Properties:
