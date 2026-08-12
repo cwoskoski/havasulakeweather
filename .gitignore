@@ -29,3 +29,7 @@ Thumbs.db
 
 # AWS SAM build artifacts
 .aws-sam/
+
+# Playwright / local verification artifacts
+.playwright-mcp/
+verify-*.png

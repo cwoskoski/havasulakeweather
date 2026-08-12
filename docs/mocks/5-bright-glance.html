@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#F5F1E8" />
+<meta name="description" content="Live outdoor conditions from a personal weather station in Havasu Lake, CA." />
+<title>Havasu Lake Weather — Live</title>
+<style>
+  /* ============================================================
+     BRIGHT GLANCE — accessibility-first desert-sun theme
+     Warm sand canvas · white cards · thick ink outlines +
+     hard offset shadows · huge tabular numerals · strong
+     semantic color coding (hot=red · wind=blue · dry=slate).
+     ============================================================ */
+
+  :root {
+    --bg:        #F4EFE4;   /* warm sand canvas */
+    --bg-glow:   #FBF7EE;
+    --card:      #FFFFFF;
+    --ink:       #14110E;   /* near-black warm */
+    --ink-soft:  #4C463C;
+    --ink-faint: #7A7264;
+    --edge:      #14110E;   /* thick outline color */
+
+    --hot:       #C21807;   /* temperature / heat */
+    --hot-tint:  #FCE4DF;
+    --hot-ink:   #7C1104;
+
+    --wind:      #0B5FBF;   /* wind / water */
+    --wind-tint: #DDEBFB;
+    --wind-ink:  #0A3E7D;
+
+    --slate:     #384049;   /* dry = neutral */
+    --slate-tint:#E7EAEC;
+
+    --uv:        #D2560A;   /* UV very high */
+    --uv-tint:   #FCE7D2;
+    --uv-ink:    #7E3204;
+
+    --aqua:      #0E7C86;   /* humidity / dew */
+    --aqua-tint: #D6EEF0;
+    --aqua-ink:  #0A4C52;
+
+    --plum:      #5B3B96;   /* pressure */
+    --plum-tint: #E9E2F5;
+    --plum-ink:  #3B2266;
+
+    --radius:    20px;
+    --gap:       clamp(14px, 3.5vw, 20px);
+    --pop:       5px 5px 0 var(--edge);
+    --pop-sm:    4px 4px 0 var(--edge);
+
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--ink);
+    background:
+      radial-gradient(120% 60% at 50% -10%, var(--bg-glow) 0%, var(--bg) 55%) fixed;
+    line-height: 1.25;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    padding: max(env(safe-area-inset-top), 10px)
+             max(env(safe-area-inset-right), 12px)
+             calc(40px + env(safe-area-inset-bottom))
+             max(env(safe-area-inset-left), 12px);
+  }
+
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  /* numbers everywhere line up + read big */
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+  /* ---------- Header ---------- */
+  header.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 4px 18px;
+  }
+  .brand { min-width: 0; }
+  .brand h1 {
+    margin: 0;
+    font-size: clamp(1.25rem, 5.4vw, 1.7rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    line-height: 1.05;
+  }
+  .pin { flex: none; color: var(--hot); }
+  .freshness {
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+  .live-dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #1FA45B;
+    box-shadow: 0 0 0 0 rgba(31,164,91, .6);
+    animation: pulse 2.2s ease-out infinite;
+    flex: none;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(31,164,91,.55); }
+    70%  { box-shadow: 0 0 0 9px rgba(31,164,91,0); }
+    100% { box-shadow: 0 0 0 0 rgba(31,164,91,0); }
+  }
+
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    border: 3px solid var(--edge);
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 20px;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: var(--pop-sm);
+    transition: transform .08s ease, box-shadow .08s ease, background .12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:hover { background: #FFF6EC; }
+  .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--edge); }
+  .btn--donate { background: var(--hot); color: #fff; }
+  .btn--donate:hover { background: #A81406; }
+  .btn--primary { background: var(--wind); color: #fff; }
+  .btn--primary:hover { background: #094e9d; }
+  .btn--donate-sm { flex: none; padding: 0 16px; }
+
+  :focus-visible {
+    outline: 4px solid #1058C2;
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  /* ---------- Generic card ---------- */
+  .card {
+    background: var(--card);
+    border: 3px solid var(--edge);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+  }
+
+  /* ---------- Hero (co-headliners) ---------- */
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--gap);
+  }
+  @media (min-width: 560px) {
+    .hero-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    border: 3px solid var(--edge);
+    border-radius: var(--radius);
+    box-shadow: var(--pop);
+    color: #fff;
+    padding: 18px 20px 20px;
+    min-height: 190px;
+    display: flex;
+    flex-direction: column;
+  }
+  .hero--temp { background: var(--hot); }
+  .hero--wind { background: var(--wind); }
+
+  .hero__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.98rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: .95;
+  }
+  .hero__value {
+    font-weight: 900;
+    letter-spacing: -0.045em;
+    line-height: 0.86;
+    margin-top: auto;
+    padding-top: 10px;
+    font-size: clamp(4.6rem, 21vw, 7.2rem);
+    display: flex;
+    align-items: flex-start;
+  }
+  .hero__value .unit {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+    font-weight: 800;
+    letter-spacing: 0;
+    margin-top: .55em;
+    margin-left: 4px;
+    opacity: .92;
+  }
+  .hero__sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.20);
+    border: 2px solid rgba(255,255,255,0.55);
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: 0.98rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  /* compass badge inside wind hero */
+  .compass {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 76px;
+    height: 76px;
+    opacity: .96;
+  }
+
+  /* flash accent for "just updated" repaint */
+  .flash { animation: flash 1.1s ease-out; }
+  @keyframes flash {
+    0%   { filter: brightness(1); }
+    18%  { filter: brightness(1.28); }
+    100% { filter: brightness(1); }
+  }
+
+  /* ---------- Rain status band (the #1 question) ---------- */
+  .rain {
+    margin-top: var(--gap);
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 18px;
+  }
+  .rain__badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: var(--slate-tint);
+    border: 3px solid var(--edge);
+    border-radius: 16px;
+    padding: 12px 22px;
+    min-width: 148px;
+  }
+  .rain__eyebrow {
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--slate);
+  }
+  .rain__status {
+    font-size: clamp(2.6rem, 11vw, 3.4rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: var(--slate);
+    line-height: 1;
+  }
+  .rain__facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 10px 8px;
+  }
+  .rain__fact .k {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .rain__fact .v {
+    font-size: 1.28rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    margin-top: 2px;
+  }
+  @media (max-width: 439px) {
+    .rain { grid-template-columns: 1fr; text-align: center; }
+    .rain__badge { min-width: 0; }
+    .rain__facts { text-align: left; }
+  }
+
+  /* ---------- Tiles ---------- */
+  .tiles {
+    margin-top: var(--gap);
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--gap);
+  }
+  @media (min-width: 560px) {
+    .tiles { grid-template-columns: repeat(4, 1fr); }
+  }
+  .tile {
+    position: relative;
+    padding: 16px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    min-height: 148px;
+    overflow: hidden;
+  }
+  .tile::before {  /* top accent bar */
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 7px;
+    background: var(--accent, var(--ink));
+  }
+  .tile__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.9rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    margin-top: 4px;
+  }
+  .tile__label svg { color: var(--accent, var(--ink)); flex: none; }
+  .tile__value {
+    margin-top: auto;
+    font-size: clamp(2.4rem, 11vw, 3rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+    color: var(--ink);
+  }
+  .tile__value .u {
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    color: var(--ink-soft);
+    margin-left: 3px;
+  }
+  .tile__sub { margin-top: 8px; font-size: 0.92rem; font-weight: 700; color: var(--ink-soft); }
+  .badge {
+    align-self: flex-start;
+    margin-top: 9px;
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: var(--badge-bg, var(--slate-tint));
+    color: var(--badge-ink, var(--ink));
+  }
+
+  /* high/low split tile */
+  .hl { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+  .hl__row { display: flex; align-items: baseline; gap: 8px; }
+  .hl__tag {
+    font-size: 0.78rem; font-weight: 900; letter-spacing: 0.06em;
+    text-transform: uppercase; width: 42px;
+  }
+  .hl__row.high .hl__tag { color: var(--hot); }
+  .hl__row.low  .hl__tag { color: var(--wind); }
+  .hl__n { font-size: 1.9rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+
+  /* ---------- History chart ---------- */
+  .chart-card { margin-top: var(--gap); padding: 16px 16px 12px; }
+  .chart-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; flex-wrap: wrap; margin-bottom: 6px;
+  }
+  .chart-head h2 {
+    margin: 0; font-size: 1.05rem; font-weight: 900; letter-spacing: -0.01em;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .chart-head .rng {
+    font-size: 0.86rem; font-weight: 800; color: var(--ink-faint);
+    letter-spacing: 0.02em;
+  }
+  .chart-card svg.chart { width: 100%; height: auto; display: block; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 6px 4px 2px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; font-size: 0.84rem; font-weight: 800; color: var(--ink-soft); }
+  .swatch { width: 16px; height: 6px; border-radius: 3px; display: inline-block; }
+
+  /* ---------- Footer ---------- */
+  footer.disclaimer {
+    margin-top: 26px;
+    padding: 14px 8px 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink-faint);
+    line-height: 1.5;
+  }
+  footer.disclaimer strong { color: var(--ink-soft); font-weight: 800; }
+
+  /* ---------- Donation modal ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,17,14,0.55);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 50;
+  }
+  .overlay[hidden] { display: none; }
+  .modal {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    background: var(--card);
+    border: 3px solid var(--edge);
+    border-radius: 24px;
+    box-shadow: 7px 7px 0 var(--edge);
+    padding: 26px 24px 22px;
+    animation: pop .22s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes pop {
+    from { transform: translateY(14px) scale(.96); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+  }
+  .modal__x {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 3px solid var(--edge);
+    background: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .modal__x:hover { background: #FFF0E3; }
+  .modal__heart {
+    width: 58px; height: 58px; border-radius: 16px;
+    background: var(--hot-tint);
+    border: 3px solid var(--edge);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--hot);
+    margin-bottom: 12px;
+  }
+  .modal h2 {
+    margin: 0 0 8px;
+    font-size: 1.42rem; font-weight: 900; letter-spacing: -0.02em;
+  }
+  .modal p {
+    margin: 0 0 18px;
+    font-size: 1rem; color: var(--ink-soft); font-weight: 500; line-height: 1.5;
+  }
+  .modal__actions { display: flex; flex-direction: column; gap: 10px; }
+  .modal__actions .btn { width: 100%; }
+
+  /* ---------- Motion / contrast prefs ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+  @media (prefers-contrast: more) {
+    :root { --ink-faint: #57503f; --ink-soft: #2c2820; }
+  }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="top">
+    <div class="brand">
+      <h1>
+        <svg class="pin" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M12 2c-4 0-7 3-7 7 0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>
+        </svg>
+        Havasu Lake, CA
+      </h1>
+      <div class="freshness">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span>Updated <span class="num" id="ago">12</span>s ago</span>
+      </div>
+    </div>
+    <button class="btn btn--donate btn--donate-sm" id="openDonate" aria-haspopup="dialog">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M12 21s-7.5-4.6-10-9.3C.4 8.3 2 5 5.2 5c1.9 0 3.2 1 3.8 2 .6-1 1.9-2 3.8-2C16 5 17.6 8.3 16 11.7 13.5 16.4 12 21 12 21z" transform="translate(1 0)"/>
+      </svg>
+      Donate
+    </button>
+  </header>
+
+  <!-- ===================== HERO ===================== -->
+  <section class="hero-grid" aria-label="Current headline conditions">
+
+    <!-- Temperature -->
+    <div class="hero hero--temp" id="tempHero">
+      <span class="hero__label">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/>
+          <circle cx="12" cy="17.5" r="1.7" fill="currentColor"/>
+        </svg>
+        Temperature
+      </span>
+      <div class="hero__value num" aria-label="108 degrees Fahrenheit">108<span class="unit">°F</span></div>
+      <div class="hero__sub">
+        <span class="chip">Feels like <span class="num">105°</span></span>
+      </div>
+    </div>
+
+    <!-- Wind -->
+    <div class="hero hero--wind" id="windHero">
+      <span class="hero__label">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M3 9h11a2.5 2.5 0 1 0-2.5-2.5M3 15h15a2.5 2.5 0 1 1-2.5 2.5"/>
+        </svg>
+        Wind
+      </span>
+
+      <!-- compass: arrow points to SW (source), 225 deg -->
+      <svg class="compass" viewBox="0 0 80 80" role="img" aria-label="Wind from the southwest, 225 degrees">
+        <circle cx="40" cy="40" r="33" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.65)" stroke-width="2.5"/>
+        <g fill="#fff" font-family="system-ui, sans-serif" font-weight="800" font-size="11" text-anchor="middle">
+          <text x="40" y="15.5">N</text>
+          <text x="68" y="44">E</text>
+          <text x="40" y="72">S</text>
+          <text x="12" y="44">W</text>
+        </g>
+        <!-- arrow from center toward SW (lower-left) -->
+        <g stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="#fff">
+          <line x1="53" y1="27" x2="27" y2="53"/>
+          <path d="M27 53 l11 -1 l-1 -10 z" stroke-width="2"/>
+        </g>
+      </svg>
+
+      <div class="hero__value num" aria-label="11 miles per hour">11<span class="unit">mph</span></div>
+      <div class="hero__sub">
+        <span class="chip">Gusts <span class="num">19</span></span>
+        <span class="chip">From SW · <span class="num">225°</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== RAIN STATUS ===================== -->
+  <section class="card rain" aria-label="Rain status">
+    <div class="rain__badge">
+      <span class="rain__eyebrow">Right now</span>
+      <span class="rain__status">Dry</span>
+    </div>
+    <div>
+      <p class="sr-only">It is not currently raining.</p>
+      <div class="rain__facts">
+        <div class="rain__fact">
+          <div class="k">Rate</div>
+          <div class="v num">0.00<span style="font-size:.72em"> in/hr</span></div>
+        </div>
+        <div class="rain__fact">
+          <div class="k">Today</div>
+          <div class="v num">0.00<span style="font-size:.72em"> in</span></div>
+        </div>
+        <div class="rain__fact">
+          <div class="k">Last rain</div>
+          <div class="v">3 days ago</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TILES ===================== -->
+  <section class="tiles" aria-label="Other conditions">
+
+    <!-- UV -->
+    <div class="card tile" style="--accent: var(--uv);">
+      <span class="tile__label">
+        <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.4" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>
+          </g>
+        </svg>
+        UV Index
+      </span>
+      <div class="tile__value num">9</div>
+      <span class="badge" style="--badge-bg: var(--uv-tint); --badge-ink: var(--uv-ink);">Very High</span>
+    </div>
+
+    <!-- Humidity / Dew -->
+    <div class="card tile" style="--accent: var(--aqua);">
+      <span class="tile__label">
+        <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M12 2.5S5 10 5 14.5a7 7 0 0 0 14 0C19 10 12 2.5 12 2.5z"/>
+        </svg>
+        Humidity
+      </span>
+      <div class="tile__value num">15<span class="u">%</span></div>
+      <div class="tile__sub">Dew point <span class="num">47°F</span></div>
+    </div>
+
+    <!-- Pressure -->
+    <div class="card tile" style="--accent: var(--plum);">
+      <span class="tile__label">
+        <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2.2" d="M12 20a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/>
+          <path fill="currentColor" d="M12 12l4-2.4-2.6 4z"/>
+          <circle cx="12" cy="12" r="1.7" fill="currentColor"/>
+        </svg>
+        Pressure
+      </span>
+      <div class="tile__value num">29.85<span class="u">inHg</span></div>
+      <span class="badge" style="--badge-bg: var(--plum-tint); --badge-ink: var(--plum-ink);">Falling &#9660;</span>
+    </div>
+
+    <!-- 24h High / Low -->
+    <div class="card tile" style="--accent: linear-gradient(90deg, var(--hot) 0 50%, var(--wind) 50% 100%);">
+      <span class="tile__label">
+        <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 15l5-6 4 4 7-8"/>
+        </svg>
+        24h Range
+      </span>
+      <div class="hl">
+        <div class="hl__row high">
+          <span class="hl__tag">High</span>
+          <span class="hl__n num">112°</span>
+        </div>
+        <div class="hl__row low">
+          <span class="hl__tag">Low</span>
+          <span class="hl__n num">84°</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== HISTORY CHART ===================== -->
+  <section class="card chart-card" aria-label="24-hour temperature history">
+    <div class="chart-head">
+      <h2>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="none" stroke="var(--hot)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M3 17l5-6 4 4 3-4 6-6"/>
+        </svg>
+        Temperature — last 24h
+      </h2>
+      <span class="rng">°F</span>
+    </div>
+
+    <svg class="chart" viewBox="0 0 720 260" role="img"
+         aria-label="Temperature over the last 24 hours: from 86 degrees, dropping to a low of 84, rising to a peak of 112 degrees, then easing to 88 degrees now.">
+      <defs>
+        <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#E0491A" stop-opacity="0.34"/>
+          <stop offset="1" stop-color="#E0491A" stop-opacity="0.03"/>
+        </linearGradient>
+      </defs>
+
+      <!-- gridlines + axis labels -->
+      <g stroke="#E6DFD1" stroke-width="1.5">
+        <line x1="40" y1="51.2"  x2="700" y2="51.2"/>
+        <line x1="40" y1="104.1" x2="700" y2="104.1"/>
+        <line x1="40" y1="157.1" x2="700" y2="157.1"/>
+        <line x1="40" y1="210"   x2="700" y2="210"/>
+      </g>
+      <g fill="#9A9080" font-family="system-ui, sans-serif" font-size="13" font-weight="700" text-anchor="end">
+        <text x="34" y="55">110</text>
+        <text x="34" y="108">100</text>
+        <text x="34" y="161">90</text>
+        <text x="34" y="214">80</text>
+      </g>
+      <g fill="#9A9080" font-family="system-ui, sans-serif" font-size="13" font-weight="700" text-anchor="middle">
+        <text x="40"  y="234">-24h</text>
+        <text x="207" y="234">-18h</text>
+        <text x="374" y="234">-12h</text>
+        <text x="541" y="234">-6h</text>
+        <text x="690" y="234">now</text>
+      </g>
+
+      <!-- area fill -->
+      <path fill="url(#fill)" d="M40,178.2 L67.8,183.5 L95.7,188.8 L123.5,188.8 L151.3,183.5 L179.1,172.9 L207,157.1 L234.8,135.9 L262.6,114.7 L290.4,93.5 L318.3,77.6 L346.1,61.8 L373.9,51.2 L401.7,40.6 L429.6,40.6 L457.4,45.9 L485.2,56.5 L513,72.4 L540.9,88.2 L568.7,104.1 L596.5,125.3 L624.3,141.2 L652.2,157.1 L680,167.6 L680,210 L40,210 Z"/>
+
+      <!-- temperature line -->
+      <path fill="none" stroke="#D2360F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
+            d="M40,178.2 L67.8,183.5 L95.7,188.8 L123.5,188.8 L151.3,183.5 L179.1,172.9 L207,157.1 L234.8,135.9 L262.6,114.7 L290.4,93.5 L318.3,77.6 L346.1,61.8 L373.9,51.2 L401.7,40.6 L429.6,40.6 L457.4,45.9 L485.2,56.5 L513,72.4 L540.9,88.2 L568.7,104.1 L596.5,125.3 L624.3,141.2 L652.2,157.1 L680,167.6"/>
+
+      <!-- peak (high) marker -->
+      <g>
+        <circle cx="415.6" cy="40.6" r="6" fill="#C21807" stroke="#fff" stroke-width="2.5"/>
+        <rect x="380" y="14" width="72" height="22" rx="8" fill="#C21807"/>
+        <text x="416" y="30" fill="#fff" font-family="system-ui, sans-serif" font-size="13" font-weight="900" text-anchor="middle">112°</text>
+      </g>
+      <!-- low marker -->
+      <g>
+        <circle cx="109.6" cy="188.8" r="5.5" fill="#0B5FBF" stroke="#fff" stroke-width="2.5"/>
+        <rect x="76" y="192" width="66" height="22" rx="8" fill="#0B5FBF"/>
+        <text x="109" y="208" fill="#fff" font-family="system-ui, sans-serif" font-size="13" font-weight="900" text-anchor="middle">84°</text>
+      </g>
+    </svg>
+
+    <div class="legend" aria-hidden="true">
+      <span><span class="swatch" style="background:#D2360F"></span> Temperature</span>
+      <span><span class="swatch" style="background:#C21807"></span> 24h High 112°</span>
+      <span><span class="swatch" style="background:#0B5FBF"></span> 24h Low 84°</span>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="disclaimer">
+    <strong>Personal WS-2902D weather station</strong> — not an official observation.<br />
+    Outdoor readings from Havasu Lake, CA.
+  </footer>
+
+</div>
+
+<!-- ===================== DONATION MODAL ===================== -->
+<div class="overlay" id="donateOverlay" role="dialog" aria-modal="true" aria-labelledby="donateTitle" aria-describedby="donateBody">
+  <div class="modal">
+    <button class="modal__x" id="closeDonate" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
+      </svg>
+    </button>
+    <div class="modal__heart" aria-hidden="true">
+      <svg width="30" height="30" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12 21s-7.5-4.6-10-9.3C.4 8.3 2 5 5.2 5c1.9 0 3.2 1 3.8 2 .6-1 1.9-2 3.8-2C16 5 17.6 8.3 16 11.7 13.5 16.4 12 21 12 21z" transform="translate(1 0)"/>
+      </svg>
+    </div>
+    <h2 id="donateTitle">Keep the station live</h2>
+    <p id="donateBody">This is a free, ad-free service run by a neighbor. A small donation covers the hosting and sensor costs that keep Havasu Lake's weather online 24/7.</p>
+    <div class="modal__actions">
+      <button class="btn btn--primary" id="donateNow">Donate</button>
+      <button class="btn" id="maybeLater">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---- freshness ticker + subtle "just refreshed" pulse ---- */
+  var agoEl   = document.getElementById("ago");
+  var reduce  = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var flashTargets = ["tempHero", "windHero"].map(function (id) {
+    return document.getElementById(id);
+  });
+  var secs = 12;
+
+  function repaintPulse() {
+    if (reduce) return;
+    flashTargets.forEach(function (el) {
+      if (!el) return;
+      el.classList.remove("flash");
+      /* reflow so the animation can retrigger */
+      void el.offsetWidth;
+      el.classList.add("flash");
+    });
+  }
+
+  setInterval(function () {
+    secs += 1;
+    /* simulate a fresh poll roughly every ~40s (mock only) */
+    if (secs >= 42) {
+      secs = 2;
+      repaintPulse();
+    }
+    if (agoEl) agoEl.textContent = String(secs);
+  }, 1000);
+
+  /* ---- donation modal ---- */
+  var overlay   = document.getElementById("donateOverlay");
+  var openBtn   = document.getElementById("openDonate");
+  var closeBtn  = document.getElementById("closeDonate");
+  var laterBtn  = document.getElementById("maybeLater");
+  var donateBtn = document.getElementById("donateNow");
+  var lastFocus = null;
+
+  function openModal() {
+    lastFocus = document.activeElement;
+    overlay.hidden = false;
+    closeBtn.focus();
+    document.addEventListener("keydown", onKey);
+  }
+  function closeModal() {
+    overlay.hidden = true;
+    document.removeEventListener("keydown", onKey);
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  function onKey(e) {
+    if (e.key === "Escape") closeModal();
+    /* minimal focus trap */
+    if (e.key === "Tab") {
+      var f = overlay.querySelectorAll("button");
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  openBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  laterBtn.addEventListener("click", closeModal);
+  donateBtn.addEventListener("click", function () {
+    /* mock: real build opens a hosted payment link */
+    closeModal();
+  });
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) closeModal();
+  });
+
+  /* show splash on load */
+  openModal();
+})();
+</script>
+</body>
+</html>

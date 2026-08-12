@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Havasu Lake Weather — Design Mocks</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1.25rem 4rem;
+    font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0f1720; color: #e7edf3;
+  }
+  header { max-width: 1100px; margin: 0 auto 2rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .35rem; }
+  p.lede { margin: 0; color: #9fb0c0; max-width: 60ch; }
+  .grid {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+  .card {
+    background: #17222e; border: 1px solid #24323f; border-radius: 14px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .preview { position: relative; height: 300px; overflow: hidden; background: #0b1118; border-bottom: 1px solid #24323f; }
+  /* Render the mock at phone size, scaled to fit the card. */
+  .preview iframe {
+    width: 390px; height: 780px; border: 0;
+    transform: scale(.77); transform-origin: top left;
+    pointer-events: none;
+  }
+  .preview a.hit { position: absolute; inset: 0; }
+  .meta { padding: .9rem 1rem 1.1rem; }
+  .meta h2 { font-size: 1.05rem; margin: 0 0 .3rem; }
+  .meta .num { color: #5fd0c4; font-variant-numeric: tabular-nums; }
+  .meta p { margin: 0 0 .7rem; color: #9fb0c0; font-size: .9rem; }
+  .meta a.open { color: #5fd0c4; text-decoration: none; font-weight: 600; font-size: .9rem; }
+  .meta a.open:hover { text-decoration: underline; }
+  footer { max-width: 1100px; margin: 2.5rem auto 0; color: #6f8296; font-size: .85rem; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Havasu Lake Weather — Design Mocks</h1>
+    <p class="lede">Six directions for the public page, same data, different looks. Click any preview to open it full-screen, then resize your window to see mobile vs. desktop. All are self-contained static HTML.</p>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <div class="preview"><iframe src="./1-marine-bridge.html" title="Marine Bridge preview" loading="lazy"></iframe><a class="hit" href="./1-marine-bridge.html"></a></div>
+      <div class="meta"><h2><span class="num">1.</span> Marine Bridge</h2><p>Nautical dark navy + teal, with a boat-instrument compass dial as the wind hero. Feels like marine electronics.</p><a class="open" href="./1-marine-bridge.html">Open full page ↗</a></div>
+    </div>
+    <div class="card">
+      <div class="preview"><iframe src="./2-desert-minimal.html" title="Desert Minimal preview" loading="lazy"></iframe><a class="hit" href="./2-desert-minimal.html"></a></div>
+      <div class="meta"><h2><span class="num">2.</span> Desert Minimal</h2><p>Warm sand→coral→dusk gradient with an enormous elegant temperature numeral. Calm, premium, editorial.</p><a class="open" href="./2-desert-minimal.html">Open full page ↗</a></div>
+    </div>
+    <div class="card">
+      <div class="preview"><iframe src="./3-retro-lcd.html" title="Retro LCD preview" loading="lazy"></iframe><a class="hit" href="./3-retro-lcd.html"></a></div>
+      <div class="meta"><h2><span class="num">3.</span> Retro LCD Console</h2><p>Skeuomorphic weather-station base unit — amber seven-segment digits on a faux-plastic bezel. Nostalgic and tactile.</p><a class="open" href="./3-retro-lcd.html">Open full page ↗</a></div>
+    </div>
+    <div class="card">
+      <div class="preview"><iframe src="./4-dark-dashboard.html" title="Dark Dashboard preview" loading="lazy"></iframe><a class="hit" href="./4-dark-dashboard.html"></a></div>
+      <div class="meta"><h2><span class="num">4.</span> Dark Dashboard</h2><p>Near-black analytics grid with sparklines and a 24h/7d chart toggle. Technical and data-forward.</p><a class="open" href="./4-dark-dashboard.html">Open full page ↗</a></div>
+    </div>
+    <div class="card">
+      <div class="preview"><iframe src="./5-bright-glance.html" title="Bright Glance preview" loading="lazy"></iframe><a class="hit" href="./5-bright-glance.html"></a></div>
+      <div class="meta"><h2><span class="num">5.</span> Bright Glance</h2><p>High-contrast, big bold numbers, strong color coding. Built to be read at a glance in blazing desert sun.</p><a class="open" href="./5-bright-glance.html">Open full page ↗</a></div>
+    </div>
+    <div class="card">
+      <div class="preview"><iframe src="./6-lake-lifestyle.html" title="Lake Lifestyle preview" loading="lazy"></iframe><a class="hit" href="./6-lake-lifestyle.html"></a></div>
+      <div class="meta"><h2><span class="num">6.</span> Lake Lifestyle</h2><p>Pure-CSS golden-hour lake scene with a frosted glassmorphism conditions card. Warm and inviting.</p><a class="open" href="./6-lake-lifestyle.html">Open full page ↗</a></div>
+    </div>
+  </div>
+
+  <footer>Tip: serve locally with <code>python3 -m http.server --directory docs/mocks</code> then open <code>http://localhost:8000/</code>, or just open each file directly. All rain tiles lead with a live “Raining now / Dry” status per the spec.</footer>
+</body>
+</html>
