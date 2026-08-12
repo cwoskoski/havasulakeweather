@@ -561,7 +561,9 @@
 
 <script>
 (function(){
-  var API=(location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:")
+  // Same-origin by default (prod CloudFront /api/*, and the local dev server on localhost).
+  // Only a file:// open (no server) falls back to the deployed Lambda URL.
+  var API=(location.protocol==="file:")
     ? "https://ptbiuyiuoswsxhylotz4jrufjy0abmgd.lambda-url.us-west-2.on.aws" : "";
   var $=function(id){return document.getElementById(id);};
   function set(id,val){var el=$(id);if(!el)return;var s=String(val);if(el.textContent!==s){el.textContent=s;el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash");}}
