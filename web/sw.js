@@ -1,5 +1,5 @@
 /* Havasu Lake Weather — service worker (installability + offline shell) */
-const CACHE = "havasu-wx-v4";
+const CACHE = "havasu-wx-v5";
 const SHELL = [
   "/", "/index.html", "/manifest.json",
   "/assets/icon-192.png", "/assets/icon-512.png", "/assets/icon-180.png",
