@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Havasu Lake, CA — Marine Bridge</title>
+<style>
+  /* ============================================================
+     MARINE / BOAT-INSTRUMENT BRIDGE
+     Nautical navy · teal-cyan wind · warm amber heat · off-white
+     100% self-contained. System fonts + inline SVG only.
+     ============================================================ */
+
+  :root {
+    /* hulls & panels */
+    --bg-0:  #04101b;
+    --bg-1:  #071a2b;
+    --panel-a: #103049;
+    --panel-b: #0a1d2e;
+    --panel-c: #0c2338;
+    --line:  rgba(110,200,220,0.12);
+    --line-2: rgba(110,200,220,0.06);
+
+    /* ink */
+    --ink:   #e9f3f9;
+    --muted: #93abc0;
+    --faint: #5f7994;
+
+    /* instrument accents */
+    --cyan:        #33d6c8;
+    --cyan-bright: #7bf1e4;
+    --cyan-deep:   #12b3c9;
+    --amber:       #ffb14e;
+    --amber-bright:#ffd08a;
+    --hot:         #ff5f63;
+
+    --r-lg: 20px;
+    --r-md: 14px;
+    --r-sm: 10px;
+
+    --font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 760px at 50% -12%, #0e2c43 0%, #071a2b 46%, var(--bg-0) 100%),
+      var(--bg-0);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.4;
+    overflow-x: hidden;
+  }
+
+  /* faint horizon glow + hairline "powered" bar at very top */
+  body::before {
+    content: "";
+    position: fixed; inset: 0 0 auto 0; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--cyan-deep) 22%, var(--cyan) 50%, var(--cyan-deep) 78%, transparent);
+    opacity: 0.55;
+    z-index: 60;
+    pointer-events: none;
+  }
+
+  /* condensed, tabular instrument numerals */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    font-stretch: 85%;
+    letter-spacing: -0.01em;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 18px 16px 40px;
+  }
+
+  /* ---------------------------------------------------------- TOPBAR */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 4px 18px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand-mark {
+    width: 42px; height: 42px; flex: none;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: linear-gradient(160deg, #143a54, #08192a);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 16px rgba(0,0,0,0.4);
+    color: var(--cyan-bright);
+  }
+  .brand-text { display: flex; flex-direction: column; min-width: 0; }
+  .brand-text .loc {
+    font-weight: 700; font-size: 1.02rem; letter-spacing: 0.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .brand-text .sub {
+    font-size: 0.66rem; color: var(--faint);
+    text-transform: uppercase; letter-spacing: 0.22em;
+  }
+
+  .status { display: flex; align-items: center; gap: 10px; flex: none; }
+  .live {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.72rem; color: var(--muted);
+    background: rgba(9,26,40,0.6);
+    border: 1px solid var(--line);
+    padding: 6px 11px; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 0 0 rgba(51,214,200,0.55);
+    animation: ping 2.4s ease-out infinite;
+  }
+  @keyframes ping {
+    0%   { box-shadow: 0 0 0 0 rgba(51,214,200,0.55); }
+    70%  { box-shadow: 0 0 0 7px rgba(51,214,200,0); }
+    100% { box-shadow: 0 0 0 0 rgba(51,214,200,0); }
+  }
+
+  .btn-donate {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: inherit; font-size: 0.76rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: #04141f;
+    background: linear-gradient(180deg, var(--cyan-bright), var(--cyan));
+    border: none; cursor: pointer;
+    padding: 8px 14px; border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(51,214,200,0.35), inset 0 1px 0 rgba(255,255,255,0.5);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn-donate:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(51,214,200,0.5), inset 0 1px 0 rgba(255,255,255,0.5); }
+  .btn-donate:active { transform: translateY(0); }
+  .btn-donate svg { width: 15px; height: 15px; }
+
+  /* ---------------------------------------------------------- CARDS */
+  .card {
+    position: relative;
+    background: linear-gradient(158deg, var(--panel-a), var(--panel-b));
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 16px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 0 40px rgba(4,16,27,0.5),
+      0 14px 34px rgba(0,0,0,0.45);
+  }
+  /* engraved bezel line */
+  .card::after {
+    content: ""; position: absolute; inset: 5px;
+    border-radius: calc(var(--r-lg) - 6px);
+    border: 1px solid rgba(0,0,0,0.35);
+    pointer-events: none;
+  }
+
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 12px;
+  }
+  .chip {
+    font-size: 0.66rem; font-weight: 800; letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 4px 10px; border-radius: 7px;
+    background: rgba(51,214,200,0.1);
+    color: var(--cyan-bright);
+    border: 1px solid rgba(51,214,200,0.22);
+  }
+  .chip.amber {
+    background: rgba(255,177,78,0.1);
+    color: var(--amber-bright);
+    border-color: rgba(255,177,78,0.24);
+  }
+  .chip-hot {
+    font-size: 0.62rem; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 4px 9px; border-radius: 7px;
+    color: #2a0e0e;
+    background: linear-gradient(180deg, #ff8a5c, var(--hot));
+    box-shadow: 0 0 16px rgba(255,95,99,0.35);
+  }
+  .card-sub {
+    font-size: 0.66rem; color: var(--faint);
+    text-transform: uppercase; letter-spacing: 0.18em;
+    white-space: nowrap;
+  }
+
+  /* ---------------------------------------------------------- HERO */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  /* WIND — the star */
+  .wind-card {
+    order: 1;
+    background:
+      radial-gradient(120% 80% at 50% 8%, rgba(51,214,200,0.12), transparent 60%),
+      linear-gradient(158deg, var(--panel-a), var(--panel-b));
+  }
+  .compass {
+    position: relative;
+    width: min(80vw, 340px);
+    margin: 6px auto 4px;
+    aspect-ratio: 1 / 1;
+  }
+  .compass-svg { width: 100%; height: 100%; display: block; }
+
+  .needle {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(225deg);
+    filter: drop-shadow(0 0 6px rgba(123,241,228,0.55));
+  }
+
+  .readout {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 1px; pointer-events: none;
+  }
+  .r-label {
+    font-size: 0.56rem; color: var(--faint);
+    letter-spacing: 0.24em; text-transform: uppercase;
+  }
+  .r-speed { display: flex; align-items: baseline; gap: 4px; }
+  .r-speed b {
+    font-size: 3.1rem; font-weight: 800; line-height: 0.9;
+    color: var(--cyan-bright);
+    text-shadow: 0 0 22px rgba(51,214,200,0.45);
+  }
+  .r-speed i {
+    font-style: normal; font-size: 0.78rem; color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .r-gust {
+    font-size: 0.68rem; color: var(--muted);
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .r-gust b { color: var(--amber-bright); font-weight: 800; }
+
+  .live-flash { animation: flash 5s ease-in-out infinite; }
+  @keyframes flash {
+    0%, 88%, 100% { text-shadow: 0 0 22px rgba(51,214,200,0.45); }
+    92% { text-shadow: 0 0 34px rgba(123,241,228,0.95); color: #d9fff8; }
+  }
+
+  .wind-foot {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; margin-top: 10px;
+    border-top: 1px solid var(--line-2); padding-top: 12px;
+  }
+  .wind-foot > div {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .wf-k { font-size: 0.58rem; color: var(--faint); letter-spacing: 0.18em; text-transform: uppercase; }
+  .wf-v { font-size: 0.98rem; font-weight: 700; color: var(--ink); }
+
+  /* TEMPERATURE — co-headliner */
+  .temp-card {
+    order: 2;
+    display: flex; flex-direction: column;
+    background:
+      radial-gradient(120% 80% at 50% 8%, rgba(255,177,78,0.1), transparent 60%),
+      linear-gradient(158deg, var(--panel-a), var(--panel-b));
+  }
+  .temp-main {
+    display: flex; flex-direction: column; align-items: flex-start;
+    padding: 6px 2px 2px; flex: 1; justify-content: center;
+  }
+  .temp-val {
+    font-size: clamp(4.4rem, 20vw, 7rem);
+    font-weight: 800; line-height: 0.86;
+    color: var(--amber-bright);
+    text-shadow: 0 0 30px rgba(255,177,78,0.35);
+    display: flex; align-items: flex-start;
+  }
+  .temp-val .deg {
+    font-size: 0.32em; font-weight: 700; color: var(--amber);
+    margin-top: 0.35em; margin-left: 0.06em; letter-spacing: 0;
+  }
+  .feels {
+    margin-top: 8px;
+    font-size: 0.78rem; color: var(--muted);
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .feels b { color: var(--ink); font-weight: 800; }
+
+  .range {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 18px;
+  }
+  .range-end { font-size: 0.82rem; font-weight: 700; color: var(--muted); flex: none; }
+  .range-track {
+    position: relative; flex: 1; height: 8px; border-radius: 999px;
+    background: linear-gradient(90deg, #2f6fb0, #35b7c9 34%, var(--amber) 74%, var(--hot));
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .range-marker {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    width: 15px; height: 15px; border-radius: 50%;
+    background: #fff;
+    border: 3px solid #0a1d2e;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.4), 0 2px 8px rgba(0,0,0,0.6);
+  }
+  .range-cap {
+    display: flex; justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.56rem; color: var(--faint);
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+
+  /* ---------------------------------------------------------- TILES */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .tile { padding: 14px; }
+  .tile-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .tile-ico {
+    width: 30px; height: 30px; flex: none;
+    display: grid; place-items: center; border-radius: 9px;
+    background: rgba(51,214,200,0.1);
+    border: 1px solid rgba(51,214,200,0.18);
+    color: var(--cyan-bright);
+  }
+  .tile-ico.amber { background: rgba(255,177,78,0.1); border-color: rgba(255,177,78,0.2); color: var(--amber-bright); }
+  .tile-ico svg { width: 17px; height: 17px; }
+  .tile-name {
+    font-size: 0.6rem; color: var(--muted);
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .tile-val {
+    font-size: 1.85rem; font-weight: 800; line-height: 1;
+    color: var(--ink);
+  }
+  .tile-val small { font-size: 0.5em; font-weight: 700; color: var(--muted); letter-spacing: 0; }
+  .tile-sub {
+    margin-top: 6px; font-size: 0.72rem; color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tag {
+    font-size: 0.58rem; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 2px 7px; border-radius: 5px;
+  }
+  .tag.hot   { background: rgba(255,95,99,0.16);  color: #ff9498; }
+  .tag.calm  { background: rgba(51,214,200,0.14); color: var(--cyan-bright); }
+  .tag.fall  { background: rgba(255,177,78,0.14); color: var(--amber-bright); }
+
+  /* mini severity meter (UV) */
+  .meter {
+    margin-top: 10px; height: 6px; border-radius: 999px;
+    background: linear-gradient(90deg, #2fb56a, #ffd23f 40%, #ff8a3d 66%, var(--hot) 84%, #b060ff);
+    position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .meter i {
+    position: absolute; top: 50%; transform: translate(-50%,-50%);
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #fff; border: 2px solid #0a1d2e;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.6);
+  }
+
+  .down-arrow { color: var(--amber-bright); display: inline-flex; }
+
+  /* ---------------------------------------------------------- CHART */
+  .chart-card { margin-bottom: 14px; }
+  .chart-svg { width: 100%; height: auto; display: block; }
+  .chart-svg text { font-family: var(--font); }
+
+  /* ---------------------------------------------------------- FOOTER */
+  .foot {
+    text-align: center;
+    color: var(--faint);
+    font-size: 0.74rem;
+    line-height: 1.7;
+    padding: 8px 10px 4px;
+  }
+  .foot .disc { color: var(--muted); font-weight: 600; }
+  .foot a { color: var(--cyan); text-decoration: none; }
+
+  /* ---------------------------------------------------------- MODAL */
+  .modal {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    background: rgba(3,10,17,0.72);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    animation: fade 0.35s ease both;
+  }
+  .modal.hidden { display: none; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-card {
+    position: relative; width: min(94vw, 400px);
+    background: linear-gradient(158deg, #12354e, #0a1c2c);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 30px 26px 24px;
+    text-align: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 30px 70px rgba(0,0,0,0.65);
+    animation: rise 0.4s cubic-bezier(0.2,0.8,0.2,1) both;
+  }
+  @keyframes rise { from { transform: translateY(16px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .modal-x {
+    position: absolute; top: 12px; right: 12px;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line); color: var(--muted);
+    transition: color 0.12s ease, background 0.12s ease;
+  }
+  .modal-x:hover { color: var(--ink); background: rgba(255,255,255,0.1); }
+  .modal-x svg { width: 15px; height: 15px; }
+
+  .modal-ring { width: 62px; height: 62px; margin: 2px auto 14px; }
+  .modal-card h2 {
+    margin: 0 0 8px; font-size: 1.32rem; font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+  .modal-card p {
+    margin: 0 auto 20px; max-width: 30ch;
+    font-size: 0.88rem; color: var(--muted); line-height: 1.55;
+  }
+  .modal-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: inherit; font-size: 0.9rem; font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #04141f; cursor: pointer;
+    background: linear-gradient(180deg, var(--cyan-bright), var(--cyan));
+    border: none; padding: 12px 26px; border-radius: 999px;
+    box-shadow: 0 6px 22px rgba(51,214,200,0.4), inset 0 1px 0 rgba(255,255,255,0.5);
+    transition: transform 0.12s ease;
+  }
+  .modal-primary:hover { transform: translateY(-1px); }
+  .modal-primary svg { width: 17px; height: 17px; }
+  .modal-later {
+    display: block; margin-top: 15px;
+    font-size: 0.78rem; color: var(--faint);
+    text-decoration: none; letter-spacing: 0.04em;
+  }
+  .modal-later:hover { color: var(--muted); }
+
+  /* ---------------------------------------------------------- RESPONSIVE */
+  @media (min-width: 560px) {
+    .tiles { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (min-width: 820px) {
+    .wrap { padding: 26px 22px 48px; }
+    .hero { grid-template-columns: 0.86fr 1.14fr; align-items: stretch; }
+    .temp-card { order: 1; }
+    .wind-card { order: 2; }
+    .compass { width: min(46vw, 380px); }
+    .tiles { grid-template-columns: repeat(6, 1fr); }
+    .temp-val { font-size: clamp(5rem, 8vw, 7.4rem); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .needle { transform: rotate(225deg) !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- ========================================================= TOPBAR -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 4.5 13.4 12 12 19.5 10.6 12Z" fill="currentColor" stroke="none"></path>
+            <path d="M4.5 12 12 10.6 19.5 12 12 13.4Z" fill="currentColor" opacity="0.4" stroke="none"></path>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="loc">Havasu Lake, CA</span>
+          <span class="sub">WS-2902D&nbsp;·&nbsp;Bridge&nbsp;Console</span>
+        </span>
+      </div>
+      <div class="status">
+        <span class="live"><span class="live-dot"></span><span id="freshness">Updated 12s ago</span></span>
+        <button id="donateBtn" class="btn-donate" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.3-8.6C1 9.3 2.4 6 5.6 6 7.6 6 9 7.3 12 10c3-2.7 4.4-4 6.4-4 3.2 0 4.6 3.3 2.9 6.4C19 16.4 12 21 12 21Z"/></svg>
+          Support
+        </button>
+      </div>
+    </header>
+
+    <!-- ========================================================= HERO -->
+    <section class="hero">
+
+      <!-- WIND · the star -->
+      <article class="card wind-card">
+        <div class="card-head">
+          <span class="chip">Wind</span>
+          <span class="card-sub">From SW&nbsp;·&nbsp;225°</span>
+        </div>
+
+        <div class="compass">
+          <svg class="compass-svg" viewBox="0 0 300 300" aria-label="Wind compass, 11 miles per hour from the south-west">
+            <defs>
+              <radialGradient id="faceGrad" cx="50%" cy="40%" r="66%">
+                <stop offset="0%" stop-color="#123146"/>
+                <stop offset="58%" stop-color="#0c2032"/>
+                <stop offset="100%" stop-color="#071522"/>
+              </radialGradient>
+              <linearGradient id="bezelGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#2b4d66"/>
+                <stop offset="48%" stop-color="#102838"/>
+                <stop offset="100%" stop-color="#05101a"/>
+              </linearGradient>
+              <radialGradient id="discGrad" cx="50%" cy="38%" r="70%">
+                <stop offset="0%" stop-color="#123650"/>
+                <stop offset="100%" stop-color="#081824"/>
+              </radialGradient>
+              <linearGradient id="needleGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#a9fff2"/>
+                <stop offset="100%" stop-color="#2ec6c9"/>
+              </linearGradient>
+            </defs>
+
+            <!-- bezel stack -->
+            <circle cx="150" cy="150" r="147" fill="url(#bezelGrad)"/>
+            <circle cx="150" cy="150" r="139" fill="#081826" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            <circle cx="150" cy="150" r="132" fill="url(#faceGrad)" stroke="rgba(51,214,200,0.14)" stroke-width="1"/>
+
+            <!-- tick ring (populated by JS) -->
+            <g id="ticks"></g>
+
+            <!-- cardinal + intercardinal labels -->
+            <g fill="#c8dbe8" font-family="Segoe UI, system-ui, sans-serif" text-anchor="middle" dominant-baseline="central">
+              <text x="150" y="46"  font-size="17" font-weight="800" fill="#7bf1e4">N</text>
+              <text x="254" y="150" font-size="17" font-weight="800">E</text>
+              <text x="150" y="255" font-size="17" font-weight="800">S</text>
+              <text x="46"  y="150" font-size="17" font-weight="800">W</text>
+              <text x="222" y="78"  font-size="10.5" fill="#7690a4" font-weight="700">NE</text>
+              <text x="222" y="222" font-size="10.5" fill="#7690a4" font-weight="700">SE</text>
+              <text x="78"  y="222" font-size="10.5" fill="#7bf1e4" font-weight="800">SW</text>
+              <text x="78"  y="78"  font-size="10.5" fill="#7690a4" font-weight="700">NW</text>
+            </g>
+
+            <!-- rotating wind needle (points SW = 225°) -->
+            <g id="needle" class="needle">
+              <polygon points="150,34 156,90 144,90" fill="url(#needleGrad)"/>
+              <polygon points="150,250 156,210 144,210" fill="#26495e"/>
+              <circle cx="150" cy="34" r="3.6" fill="#d9fff8"/>
+            </g>
+
+            <!-- central instrument disc (covers needle hub) -->
+            <circle cx="150" cy="150" r="61" fill="url(#discGrad)" stroke="rgba(51,214,200,0.35)" stroke-width="1.5"/>
+            <circle cx="150" cy="150" r="61" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="1" transform="translate(0,1.5)"/>
+          </svg>
+
+          <div class="readout">
+            <span class="r-label">Wind Speed</span>
+            <span class="r-speed"><b id="windSpeed" class="num live-flash">11</b><i>mph</i></span>
+            <span class="r-gust">Gust&nbsp;<b class="num">19</b></span>
+          </div>
+        </div>
+
+        <div class="wind-foot">
+          <div><span class="wf-k">Direction</span><span class="wf-v num">SW 225°</span></div>
+          <div><span class="wf-k">Gust</span><span class="wf-v num">19 mph</span></div>
+          <div><span class="wf-k">Sustained</span><span class="wf-v num">11 mph</span></div>
+        </div>
+      </article>
+
+      <!-- TEMPERATURE · co-headliner -->
+      <article class="card temp-card">
+        <div class="card-head">
+          <span class="chip amber">Air Temp</span>
+          <span class="chip-hot">Extreme Heat</span>
+        </div>
+
+        <div class="temp-main">
+          <span class="temp-val num">108<span class="deg">°F</span></span>
+          <span class="feels">Feels like&nbsp;<b class="num">105°</b></span>
+        </div>
+
+        <div class="range">
+          <span class="range-end num">84°</span>
+          <div class="range-track"><span class="range-marker" style="left:85.7%"></span></div>
+          <span class="range-end num">112°</span>
+        </div>
+        <div class="range-cap"><span>24h Low</span><span>24h High</span></div>
+      </article>
+    </section>
+
+    <!-- ========================================================= TILES -->
+    <section class="tiles">
+
+      <!-- UV -->
+      <div class="card tile">
+        <div class="tile-head">
+          <span class="tile-ico amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+          </span>
+          <span class="tile-name">UV Index</span>
+        </div>
+        <div class="tile-val num">9 <small>Very High</small></div>
+        <div class="meter"><i style="left:75%"></i></div>
+      </div>
+
+      <!-- Humidity / dew -->
+      <div class="card tile">
+        <div class="tile-head">
+          <span class="tile-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.4 6 10.5A6 6 0 0 1 6 13.5C6 9.4 12 3 12 3Z"/></svg>
+          </span>
+          <span class="tile-name">Humidity</span>
+        </div>
+        <div class="tile-val num">15<small>%</small></div>
+        <div class="tile-sub"><span class="tag calm">Dry</span> Dew point <b class="num">47°F</b></div>
+      </div>
+
+      <!-- Pressure -->
+      <div class="card tile">
+        <div class="tile-head">
+          <span class="tile-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a8 8 0 1 1 16 0"/><path d="M12 14l4-3"/><circle cx="12" cy="14" r="1.4" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <span class="tile-name">Pressure</span>
+        </div>
+        <div class="tile-val num">29.85<small> inHg</small></div>
+        <div class="tile-sub">
+          <span class="down-arrow"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>
+          <span class="tag fall">Falling</span>
+        </div>
+      </div>
+
+      <!-- Rain -->
+      <div class="card tile">
+        <div class="tile-head">
+          <span class="tile-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 15a4.5 4.5 0 0 1-.4-8.98A6 6 0 0 1 17.7 7.2 4 4 0 0 1 17 15"/><path d="M8 18.5l-1 2M12 18.5l-1 2M16 18.5l-1 2"/></svg>
+          </span>
+          <span class="tile-name">Rain Today</span>
+        </div>
+        <div class="tile-val num">0.00<small> in</small></div>
+        <div class="tile-sub">Rate <b class="num">0.00 in/hr</b></div>
+      </div>
+
+      <!-- 24h high / low -->
+      <div class="card tile">
+        <div class="tile-head">
+          <span class="tile-ico amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0Z"/><circle cx="12" cy="16.5" r="1.6" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <span class="tile-name">24h Range</span>
+        </div>
+        <div class="tile-val num">112°<small> / 84°</small></div>
+        <div class="tile-sub"><span class="tag hot">Peak 4pm</span> Low overnight</div>
+      </div>
+
+      <!-- Solar -->
+      <div class="card tile">
+        <div class="tile-head">
+          <span class="tile-ico amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
+          </span>
+          <span class="tile-name">Solar</span>
+        </div>
+        <div class="tile-val num">890<small> W/m²</small></div>
+        <div class="tile-sub"><span class="tag hot">Intense</span> Full sun</div>
+      </div>
+    </section>
+
+    <!-- ========================================================= HISTORY -->
+    <section class="card chart-card">
+      <div class="card-head">
+        <span class="chip amber">24-Hour Air Temp</span>
+        <span class="card-sub">°F&nbsp;·&nbsp;last 24h</span>
+      </div>
+      <svg id="chart" class="chart-svg" viewBox="0 0 740 264" aria-label="24 hour temperature history chart">
+        <defs>
+          <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stop-color="#ffb14e" stop-opacity="0.42"/>
+            <stop offset="70%" stop-color="#ffb14e" stop-opacity="0.06"/>
+            <stop offset="100%" stop-color="#ffb14e" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="tempLine" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffd08a"/>
+            <stop offset="100%" stop-color="#ff8a3d"/>
+          </linearGradient>
+        </defs>
+        <g id="grid"></g>
+        <path id="areaPath" fill="url(#tempFill)"></path>
+        <path id="linePath" fill="none" stroke="url(#tempLine)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"></path>
+        <g id="chartAnno"></g>
+        <g id="xlabels"></g>
+      </svg>
+    </section>
+
+    <!-- ========================================================= FOOTER -->
+    <footer class="foot">
+      <div class="disc">Personal WS-2902D weather station — not an official observation.</div>
+      <div>Ambient Weather station · Havasu Lake, CA · outdoor conditions only</div>
+    </footer>
+  </div>
+
+  <!-- ========================================================= DONATION MODAL -->
+  <div class="modal" id="donateModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-x" id="modalClose" role="button" tabindex="0" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </div>
+
+      <svg class="modal-ring" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="26" fill="none" stroke="#0a1d2e" stroke-width="14"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="#e9f3f9" stroke-width="11"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="#ff5f63" stroke-width="11" stroke-dasharray="20.4 20.4" transform="rotate(22.5 32 32)"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="#33d6c8" stroke-width="1.6"/>
+        <circle cx="32" cy="32" r="14.5" fill="none" stroke="#33d6c8" stroke-width="1.6"/>
+      </svg>
+
+      <h2 id="modalTitle">Keep the buoy lit</h2>
+      <p>This station and its live page run on a hobbyist budget. A small tip helps cover hosting so the community can keep checking wind &amp; heat.</p>
+      <button class="modal-primary" type="button" id="modalDonate">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.3-8.6C1 9.3 2.4 6 5.6 6 7.6 6 9 7.3 12 10c3-2.7 4.4-4 6.4-4 3.2 0 4.6 3.3 2.9 6.4C19 16.4 12 21 12 21Z"/></svg>
+        Donate
+      </button>
+      <a href="#" class="modal-later" id="modalLater">Maybe later</a>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    var SVGNS = "http://www.w3.org/2000/svg";
+    function el(tag, attrs) {
+      var n = document.createElementNS(SVGNS, tag);
+      for (var k in attrs) { n.setAttribute(k, attrs[k]); }
+      return n;
+    }
+
+    /* -------- freshness counter ("Updated Ns ago") -------- */
+    var startSec = 12, t0 = Date.now();
+    var fresh = document.getElementById("freshness");
+    setInterval(function () {
+      var s = startSec + Math.floor((Date.now() - t0) / 1000);
+      fresh.textContent = "Updated " + s + "s ago";
+    }, 1000);
+
+    /* -------- compass tick ring -------- */
+    var ticks = document.getElementById("ticks");
+    if (ticks) {
+      for (var a = 0; a < 360; a += 15) {
+        var major = (a % 45 === 0);
+        ticks.appendChild(el("line", {
+          x1: 150, x2: 150,
+          y1: major ? 16 : 20, y2: major ? 32 : 28,
+          transform: "rotate(" + a + " 150 150)",
+          stroke: major ? "#6fe6da" : "#3a5870",
+          "stroke-width": major ? 3 : 1.6,
+          "stroke-linecap": "round"
+        }));
+      }
+    }
+
+    /* -------- needle settle animation -------- */
+    var needle = document.getElementById("needle");
+    if (needle && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      needle.style.transform = "rotate(150deg)";
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          needle.style.transition = "transform 1.7s cubic-bezier(.18,.75,.2,1)";
+          needle.style.transform = "rotate(225deg)";
+        });
+      });
+    }
+
+    /* -------- 24h temperature chart -------- */
+    var data = [86,85,84,84,85,87,90,94,98,102,105,108,110,112,112,111,109,106,103,100,96,93,90,88];
+    var vMin = 84, vMax = 112;
+    var x0 = 20, x1 = 720, yTop = 26, yBot = 210;
+    function X(i) { return x0 + i * ((x1 - x0) / (data.length - 1)); }
+    function Y(v) { return yBot - (v - vMin) / (vMax - vMin) * (yBot - yTop); }
+
+    // gridlines + right-edge labels
+    var grid = document.getElementById("grid");
+    [90, 100, 110].forEach(function (gv) {
+      var y = Y(gv);
+      grid.appendChild(el("line", { x1: x0, x2: x1, y1: y, y2: y, stroke: "rgba(110,200,220,0.09)", "stroke-width": 1, "stroke-dasharray": "2 5" }));
+      var t = el("text", { x: x1 + 4, y: y + 3.5, "font-size": 10, fill: "#5f7994", "text-anchor": "start" });
+      t.textContent = gv + "°";
+      grid.appendChild(t);
+    });
+
+    // paths
+    var d = "";
+    data.forEach(function (v, i) { d += (i === 0 ? "M" : "L") + X(i).toFixed(1) + " " + Y(v).toFixed(1) + " "; });
+    document.getElementById("linePath").setAttribute("d", d.trim());
+    document.getElementById("areaPath").setAttribute("d",
+      d + "L" + X(data.length - 1).toFixed(1) + " " + yBot + " L" + X(0).toFixed(1) + " " + yBot + " Z");
+
+    // peak marker (first 112)
+    var anno = document.getElementById("chartAnno");
+    var pk = data.indexOf(vMax), px = X(pk), py = Y(vMax);
+    anno.appendChild(el("circle", { cx: px, cy: py, r: 4.5, fill: "#ffd08a", stroke: "#04101b", "stroke-width": 2 }));
+    var pl = el("text", { x: px, y: py - 11, "font-size": 12, "font-weight": 800, fill: "#ffd08a", "text-anchor": "middle" });
+    pl.textContent = "112° peak";
+    anno.appendChild(pl);
+
+    // "now" endpoint marker + guide
+    var li = data.length - 1, nx = X(li), ny = Y(data[li]);
+    anno.appendChild(el("line", { x1: nx, x2: nx, y1: ny, y2: yBot, stroke: "rgba(255,177,78,0.35)", "stroke-width": 1, "stroke-dasharray": "3 3" }));
+    anno.appendChild(el("circle", { cx: nx, cy: ny, r: 4, fill: "#04101b", stroke: "#ff8a3d", "stroke-width": 2.5 }));
+
+    // x-axis labels
+    var xlab = document.getElementById("xlabels");
+    [[0, "24h"], [6, "18h"], [12, "12h"], [18, "6h"], [23, "now"]].forEach(function (p) {
+      var t = el("text", { x: X(p[0]), y: 234, "font-size": 10.5, fill: "#5f7994", "text-anchor": "middle", "letter-spacing": "0.08em" });
+      t.textContent = p[1];
+      xlab.appendChild(t);
+    });
+
+    /* -------- subtle "live" nudge on wind speed -------- */
+    // (visual pulse handled in CSS .live-flash; keep the value crisp/stable)
+
+    /* -------- donation modal wiring -------- */
+    var modal = document.getElementById("donateModal");
+    function close() { modal.classList.add("hidden"); }
+    function open() { modal.classList.remove("hidden"); }
+    document.getElementById("modalClose").addEventListener("click", close);
+    document.getElementById("modalClose").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); close(); } });
+    document.getElementById("modalLater").addEventListener("click", function (e) { e.preventDefault(); close(); });
+    document.getElementById("modalDonate").addEventListener("click", close);
+    document.getElementById("donateBtn").addEventListener("click", open);
+    modal.addEventListener("click", function (e) { if (e.target === modal) close(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  })();
+  </script>
+</body>
+</html>
