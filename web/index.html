@@ -51,6 +51,23 @@
   ]
 }
 </script>
+
+<!-- Google Analytics (GA4) — loads only on the live domain, so local testing never pollutes the data -->
+<script>
+  (function () {
+    var h = location.hostname;
+    if (h !== "havasulakeweather.com" && h !== "www.havasulakeweather.com") return;
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.googletagmanager.com/gtag/js?id=G-NTKCW8E330";
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag("js", new Date());
+    gtag("config", "G-NTKCW8E330");
+  })();
+</script>
 <style>
   :root{
     --ink:#2b1810;--ink-soft:rgba(43,24,16,.70);--ink-faint:rgba(43,24,16,.48);

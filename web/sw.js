@@ -1,5 +1,5 @@
 /* Havasu Lake Weather — service worker (installability + offline shell) */
-const CACHE = "havasu-wx-v5";
+const CACHE = "havasu-wx-v6";
 const SHELL = [
   "/", "/index.html", "/manifest.json",
   "/assets/icon-192.png", "/assets/icon-512.png", "/assets/icon-180.png",
@@ -21,6 +21,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return; // never touch cross-origin (Google Analytics, CDNs)
   if (url.pathname.startsWith("/api/")) return; // live data always goes to the network
 
   // Stale-while-revalidate for the app shell: instant load, refresh in the background.
