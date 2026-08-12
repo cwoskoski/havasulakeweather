@@ -2,108 +2,99 @@
 
 ## Goal
 
-Capture readings from a personal Ambient Weather station in Havasu Lake, CA, on
-self-hosted infrastructure, as cheaply as possible. Phase 1 is data capture.
-Phase 2 (later) is a mobile-friendly public page for the community.
+Capture readings from a personal Ambient Weather station in Havasu Lake, CA, into
+a cheap **serverless AWS** backend. Phase 1 is data capture. Phase 2 (later) is a
+mobile-friendly public page for the community. Target cost: **~$0–2/month**.
 
-Target cost: **~$0–2/month** plus ~$10–12/year for a domain.
+## Why not a Raspberry Pi (we pivoted)
+
+We first planned a Pi-on-the-LAN receiver, then pivoted to fully serverless. The Pi
+is an extra failure point living in the house, and — crucially — CloudFront can
+accept the console's plaintext HTTP directly, so no local box is needed to bridge
+to HTTPS. **Tradeoff accepted:** no local store-and-forward buffer, so if the
+internet drops, those readings are lost. Fine for this use.
+
+## The plaintext-HTTP constraint (the crux)
+
+The Ambient console posts **plaintext HTTP on port 80** and cannot do TLS. AWS
+API Gateway and Lambda URLs are HTTPS-only. **CloudFront is the bridge:** its
+viewer protocol policy accepts HTTP on port 80 at the edge and re-originates to the
+backend over HTTPS. The console thinks it's talking plain HTTP; everything behind
+the edge is encrypted.
 
 ## High-level shape
 
 ```
-Ambient Weather console
-      │  HTTP GET (plaintext, LAN)
-      ▼
-Raspberry Pi 4  (havasu-weather)
-  ├─ Node ingest service ──► SQLite (WAL)
-  │                             │
-  │                             └─► Litestream ──► Cloudflare R2 (continuous backup)
-  └─ (later) web: static page + JSON API ──► Cloudflare Tunnel ──► public, edge-cached
+Ambient console ──HTTP :80──▶ CloudFront ──HTTPS──▶ Lambda (Node 20) ──▶ DynamoDB
+                              accepts HTTP,          parse query,        one table,
+                              CachingDisabled,       MAC allowlist,      idempotent
+                              forward query strings  dedupe              writes
 ```
 
-## Phase 1 — Ingest (building now)
-
-- **Console → Pi over the LAN, plaintext HTTP.** The console speaks HTTP on port
-  80 and cannot do TLS. On the LAN that's fine — no certificates, no
-  TLS-termination workaround. This is the main reason to run on the Pi rather than
-  point the console straight at a cloud HTTPS endpoint.
-- **Node listener.** Small HTTP server; parses the query string into a map.
-- **SQLite in WAL mode.** ~525k rows/year at 60s intervals — trivial for SQLite
-  for a decade. One observations table.
-- **Idempotent writes.** Unique constraint on (station id, dateutc); consoles
-  retry, so replays must not duplicate. Insert-or-ignore.
-- **Store two timestamps.** The console's `dateutc` *and* the Pi's receive time,
-  as separate columns. Console clocks drift; when they disagree you'll want both,
-  and the receive time can't be reconstructed later.
-- **Parse into a map, log unknown keys.** The console only sends fields the
-  hardware actually has, and Ambient's field naming has quirks. Never reject a
-  payload for unknown fields — log them.
-- **Non-root port.** Bind 8080 (or `setcap` for 80) so the service isn't root.
+- **CloudFront** — viewer policy allows HTTP (the whole trick), `CachingDisabled`,
+  forwards *all* query strings (weather data rides in the query string). The free
+  `*.cloudfront.net` host serves port 80, so no domain is needed to start.
+- **Lambda (Node 20)** — parses the query into a map, checks the station MAC against
+  an allowlist, writes to DynamoDB with a conditional put (idempotent — consoles
+  retry). Reserved concurrency caps blast radius.
+- **DynamoDB** — partition key `MAC#YYYY-MM-DD`, sort key `dateutc`, on-demand.
+  ~1,440 writes/day is pennies. "Latest" and "last 24h" are single queries.
 
 ## Data format: Ambient vs Wunderground
 
 The console's "Customized" upload can speak either protocol. Both are an HTTP GET
 with a weather query string; the differences:
 
-|                  | Ambient Weather format                                              | Wunderground format                        |
-|------------------|--------------------------------------------------------------------|--------------------------------------------|
-| Station id field | `PASSKEY` = station MAC                                             | `ID` + `PASSWORD`                          |
-| Field set        | **Everything the hardware reports** (indoor, battery, extra sensors, AQ, lightning…) | WU-standard subset                         |
-| Naming           | Ambient's native names                                             | WU PWS names (core names largely the same) |
-| Extras           | —                                                                  | expects `action=updateraw`, replies `success` |
+|                  | Ambient Weather format                             | Wunderground format                        |
+|------------------|----------------------------------------------------|--------------------------------------------|
+| Station id field | `PASSKEY` = station MAC                             | `ID` + `PASSWORD`                          |
+| Field set        | **Everything the hardware reports**                | WU-standard subset                         |
+| Extras           | —                                                  | expects `action=updateraw`, replies `success` |
 
-**Decision: use Ambient Weather format for our custom server.** We're building the
-receiver ourselves, so we want the complete native field set and the MAC
-(`PASSKEY`) as the natural device id / dedupe key. The richer format costs nothing
-given we parse into a map and log unknown keys.
+**Decision: Ambient Weather format.** We own the receiver, so we want the complete
+native field set and the MAC (`PASSKEY`) as the device id / dedupe key. Confirmed
+empirically in Phase 1 — the logger Lambda prints a real payload before we design
+the table. Keep AmbientWeather.net + Wunderground uploads on as a free backup.
 
-We confirm the exact fields empirically: step 1 of the ingest service just **logs**
-whatever the console sends, so we design the schema from a real payload.
+## Storage & retention
 
-**Also keep the real AmbientWeather.net and Wunderground uploads enabled.** They're
-independent settings on the console, cost nothing, and give a zero-effort backup
-data path plus a sanity check against our own numbers during development.
+- **DynamoDB on-demand.** Trivial workload; no server, no idle cost.
+- **Idempotency:** conditional put on (MAC, `dateutc`) so retries don't duplicate.
+- **Two timestamps:** store the console's `dateutc` *and* the server receive time —
+  console clocks drift, and receive time can't be reconstructed later.
+- **Retention:** keep everything (no TTL). Optional nightly roll to S3/Parquet +
+  Athena later for multi-year SQL. Storage cost is rounding-error.
 
-## Storage & backup
+## Security
 
-- **SQLite over any cloud DB.** The workload is tiny; a managed time-series DB
-  (Timestream, InfluxDB) is the wrong tool and/or an always-on cost.
-- **Litestream → Cloudflare R2.** Continuous streaming replication of the SQLite
-  file to object storage. R2 has a free tier and no egress fees; the DB will be
-  tens of MB. Restoring after a Pi failure is one command — the difference between
-  "lost three years of history" and a 15-minute rebuild.
+- **Lock the Function URL to CloudFront** (OAC / `AWS_IAM`) so it can't be hit
+  directly, bypassing the edge.
+- **Secret path segment + MAC allowlist** checked before any write.
+- **Reserved concurrency** (~5) + an **AWS Budgets alarm** to cap blast radius/cost.
 
-## Hardware notes
+## Phase 2 — public page (later, designed for now)
 
-- **Pi 4 Model B**, Raspberry Pi OS Lite (64-bit), Wi-Fi, hostname `havasu-weather`.
-- **Booting from SD card for now.** Continuous small writes (SQLite + WAL + logs)
-  wear out SD cards; plan to migrate to a USB SSD for endurance. Keep the Pi
-  indoors / air-conditioned — Havasu summers thermal-throttle and age flash.
-- **DHCP reservation** for the Pi on the router. The console stores whatever
-  address you type and won't chase it if DHCP moves the Pi. Don't rely on mDNS
-  (`.local`) for the console.
+- **Static HTML + JSON endpoints** (`/api/current`, `/api/history?hours=24`) on
+  S3 + CloudFront. No framework — fast on a phone with two bars on the lake. Charts
+  via **uPlot**.
+- **Edge caching is the load-bearing trick.** Small JSON with a 30–60s cache header;
+  CloudFront absorbs community traffic so origin sees ~1 request/minute regardless.
+- **Custom domain + ACM cert** (cert must be in **us-east-1** for CloudFront).
+- **Disclaimer:** personal station, not an official observation.
 
-## Phase 2 — Public page (later, but designed for now)
+## Tooling
 
-- **Static HTML + two JSON endpoints** (`/api/current`, `/api/history?hours=24`).
-  No framework — loads fast on a phone with two bars out on the lake. Charts via
-  **uPlot** (a few KB, good on mobile).
-- **Cloudflare Tunnel.** Free HTTPS, no port forwarding, works behind CGNAT /
-  dynamic IP, never exposes the home IP.
-- **Edge caching is the load-bearing trick.** Serve current conditions as small
-  JSON with a 30–60s cache header. Cloudflare then absorbs essentially all
-  community traffic — 5 or 500 viewers, the uplink sees ~1 request/minute.
-- **Security for the open endpoint:** secret path segment + MAC allowlist checked
-  before any write; rate limits to cap blast radius.
-- **Disclaimer:** note it's a personal station, not an official observation —
-  people may check wind before putting a boat in.
+- **IaC: AWS SAM** (`template.yaml`). CloudFront is added as a raw CloudFormation
+  resource (SAM is a CloudFormation superset).
+- **Runtime: Node.js 20.**
+- **Region: us-west-2.** Deploys pinned to the personal `havasu` profile via
+  `samconfig.toml` so they can never target a work account.
 
 ## Explicitly rejected
 
-- **AWS Lambda / API Gateway / CloudFront / DynamoDB / Timestream** — unnecessary
-  once the Pi ingests on the LAN; adds cost and the HTTPS-termination workaround.
+- **Any always-on server** (EC2/Lightsail/VPS — and the Pi) — reintroduces a box to
+  manage and a standing cost.
+- **Timestream / InfluxDB** — wrong tool and/or always-on cost for 1,440 rows/day.
 - **Event sourcing / Axon** — this is a telemetry stream: append-only timestamped
-  facts, no commands, aggregates, or invariants to protect. A table of
-  observations gives everything event sourcing would, without the framework.
-- **A web framework (Laravel/Vue) for the public page** — static + JSON is faster
-  and simpler here.
+  facts, no commands or invariants. A table of observations suffices.
+- **A web framework for the public page** — static + JSON is faster and simpler.

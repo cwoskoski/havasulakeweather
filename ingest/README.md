@@ -1,31 +1,27 @@
 # ingest
 
-Node service that receives the weather console's HTTP posts and stores them.
+Lambda source (Node.js 20) that receives the weather console's HTTP posts and
+stores them. Deployed via the SAM stack (`../template.yaml`) behind CloudFront,
+which accepts the console's plaintext HTTP on port 80 and forwards to the Lambda
+over HTTPS.
 
-## Status: step 1 — request logger (zero dependencies)
+## Status: step 1 — logger
 
-`src/server.js` currently just **logs** every request the console sends and replies
-`success`. Point the console's custom upload at the Pi and watch the output to see
-the real field names — that's how we finalize the storage schema and confirm the
-Ambient-vs-Wunderground format choice with real data.
+The first deploy is a **logger** Lambda that dumps whatever the console sends to
+CloudWatch, so we can read one real payload, finalize the schema, and settle the
+Ambient-vs-Wunderground format question with actual data. Storage (DynamoDB) +
+dedupe come next.
 
-Storage (SQLite via `better-sqlite3`) and dedupe come next.
-
-## Run
-
-```bash
-npm start            # listens on 0.0.0.0:8080
-PORT=9000 npm start  # override the port
-```
-
-## On the Pi
-
-Raspberry Pi OS Lite doesn't ship Node — install Node 20 LTS, then run as above.
-A systemd unit to keep it alive across reboots will live in `../deploy/systemd/`.
+> `src/server.js` is the original local HTTP listener from the Pi plan; it gets
+> converted into the Lambda handler in Phase 0.
 
 ## Console upload settings (Ambient "Customized")
 
 - Protocol: **Ambient Weather**
-- Server / IP: the Pi's reserved LAN IP
-- Port: **8080**
-- Path: `/`
+- Server: the CloudFront distribution domain (`*.cloudfront.net`)
+- Port: **80**
+- Path: the ingest path (set in Phase 1)
+
+## Local test
+
+`sam local invoke` with a sample event (added in Phase 1).
