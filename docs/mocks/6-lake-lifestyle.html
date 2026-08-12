@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#ff9e57" />
+<title>Havasu Lake Weather — Live Conditions</title>
+<style>
+  /* =========================================================
+     LAKE LIFESTYLE / GLASSMORPHISM
+     A CSS-only Lake Havasu golden hour, with a frosted
+     "conditions" card floating over the water.
+     100% self-contained. No external resources.
+     ========================================================= */
+
+  :root {
+    --ink:        #2b1810;
+    --ink-soft:   rgba(43, 24, 16, 0.70);
+    --ink-faint:  rgba(43, 24, 16, 0.48);
+    --coral:      #ff6a45;
+    --coral-deep: #e8451f;
+    --gold:       #ffb347;
+    --teal:       #0f7f8f;
+    --teal-deep:  #0a5a66;
+
+    /* glass recipe */
+    --glass-bg:      rgba(255, 250, 245, 0.26);
+    --glass-bg-2:    rgba(255, 248, 240, 0.16);
+    --glass-brd:     rgba(255, 255, 255, 0.55);
+    --glass-hi:      rgba(255, 255, 255, 0.85);
+    --glass-shadow:  0 22px 60px -20px rgba(58, 22, 10, 0.55),
+                     0 6px 20px -12px rgba(58, 22, 10, 0.45);
+    --blur: saturate(160%) blur(22px);
+
+    --radius: 26px;
+    --radius-sm: 18px;
+    --font: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui,
+            -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    min-height: 100vh;
+    background: #0e4a5e; /* deep-water fallback */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* ----------------------------------------------------------
+     THE SCENE — fixed, full-bleed golden hour, pure CSS
+     ---------------------------------------------------------- */
+  .scene {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Sky: dusk violet at top melting into molten gold at horizon */
+  .sky {
+    position: absolute;
+    inset: 0 0 40% 0;
+    background:
+      linear-gradient(
+        180deg,
+        #4a2d73 0%,
+        #7a3f83 13%,
+        #b9557f 27%,
+        #ef7b56 42%,
+        #ff9e57 55%,
+        #ffc36a 72%,
+        #ffe39a 92%,
+        #fff0c0 100%
+      );
+  }
+
+  /* soft haze / clouds — blurred light radial washes */
+  .sky::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(60% 30% at 22% 34%, rgba(255,255,255,0.20), transparent 70%),
+      radial-gradient(48% 22% at 78% 24%, rgba(255,214,170,0.28), transparent 70%),
+      radial-gradient(70% 26% at 60% 46%, rgba(255,160,120,0.22), transparent 72%);
+    filter: blur(4px);
+  }
+
+  /* The sun: bright core + wide warm glow, sitting on the horizon */
+  .sun {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: 150px;
+    height: 150px;
+    transform: translate(-40%, -50%);
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%,
+        #fffdf2 0%, #fff2c0 26%, #ffd970 52%, rgba(255,190,90,0.65) 66%,
+        rgba(255,150,80,0.20) 78%, transparent 82%);
+    box-shadow:
+      0 0 90px 40px rgba(255, 214, 120, 0.55),
+      0 0 200px 120px rgba(255, 160, 90, 0.30);
+  }
+
+  /* Layered mountain silhouettes at the horizon for depth */
+  .range {
+    position: absolute;
+    left: -5%;
+    right: -5%;
+    bottom: 40%;
+  }
+  .range.far {
+    height: 120px;
+    background: linear-gradient(180deg, #9a4f6e, #7c3f63);
+    opacity: 0.55;
+    clip-path: polygon(0% 100%,
+      0% 62%, 9% 74%, 17% 50%, 26% 70%, 34% 44%, 45% 66%,
+      55% 40%, 64% 62%, 73% 46%, 82% 68%, 91% 52%, 100% 66%,
+      100% 100%);
+    filter: blur(0.4px);
+  }
+  .range.near {
+    height: 88px;
+    background: linear-gradient(180deg, #5f2f52, #3f2143);
+    opacity: 0.85;
+    clip-path: polygon(0% 100%,
+      0% 74%, 8% 60%, 15% 78%, 24% 54%, 33% 76%, 43% 58%,
+      52% 80%, 61% 56%, 71% 78%, 80% 62%, 90% 82%, 100% 64%,
+      100% 100%);
+  }
+
+  /* The water: reflected molten horizon fading to deep teal */
+  .water {
+    position: absolute;
+    inset: 60% 0 0 0;
+    background:
+      linear-gradient(
+        180deg,
+        #ffd98a 0%,
+        #f7a862 8%,
+        #d97a55 20%,
+        #6a5f6e 40%,
+        #1f6d7d 66%,
+        #0e4a5e 100%
+      );
+    overflow: hidden;
+  }
+
+  /* Ripple bands — repeating gradients, denser toward foreground */
+  .water::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        rgba(255,255,255,0.00) 0px,
+        rgba(255,255,255,0.06) 1px,
+        rgba(255,255,255,0.00) 3px,
+        rgba(0,0,0,0.05) 6px,
+        rgba(255,255,255,0.00) 9px
+      );
+    opacity: 0.9;
+  }
+
+  /* Sun reflection column shimmering on the water */
+  .water::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 150px;
+    transform: translateX(-40%);
+    background:
+      linear-gradient(180deg,
+        rgba(255,245,200,0.85), rgba(255,210,130,0.35) 30%, transparent 70%);
+    filter: blur(3px);
+    mask-image: repeating-linear-gradient(180deg,
+        #000 0px, #000 2px, transparent 3px, transparent 7px);
+    -webkit-mask-image: repeating-linear-gradient(180deg,
+        #000 0px, #000 2px, transparent 3px, transparent 7px);
+    animation: shimmer 7s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.85; transform: translateX(-40%) scaleX(1); }
+    50%      { opacity: 1;    transform: translateX(-38%) scaleX(1.06); }
+  }
+
+  /* fine film grain for a photographic finish */
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .water::after, .live-dot, .temp-flash { animation: none !important; }
+  }
+
+  /* ----------------------------------------------------------
+     PAGE LAYOUT
+     ---------------------------------------------------------- */
+  .page {
+    position: relative;
+    z-index: 2;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 26px 16px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: 100vh;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #fff;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-shadow: 0 2px 10px rgba(60,20,10,0.45);
+  }
+  .brand .pin {
+    width: 38px; height: 38px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(160deg, rgba(255,255,255,0.35), rgba(255,255,255,0.12));
+    border: 1px solid rgba(255,255,255,0.55);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    flex: none;
+  }
+  .brand .place { font-weight: 700; font-size: 1.02rem; letter-spacing: 0.2px; }
+  .brand .sub   { font-size: 0.74rem; opacity: 0.9; font-weight: 600; }
+
+  .freshness {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #2b1810;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-brd);
+    box-shadow: inset 0 1px 0 var(--glass-hi);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    white-space: nowrap;
+  }
+  .live-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #16c05a;
+    box-shadow: 0 0 0 0 rgba(22,192,90,0.6);
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(22,192,90,0.55); }
+    70%  { box-shadow: 0 0 0 9px rgba(22,192,90,0); }
+    100% { box-shadow: 0 0 0 0 rgba(22,192,90,0); }
+  }
+
+  /* Generic glass surface */
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-brd);
+    border-radius: var(--radius);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+  }
+
+  /* ----------------------------------------------------------
+     HERO — Temperature & Wind as co-headliners
+     ---------------------------------------------------------- */
+  .hero { padding: 22px 20px 20px; }
+  .hero-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; margin-bottom: 8px;
+  }
+  .hero-head .kicker {
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 1.4px;
+    text-transform: uppercase; color: var(--ink-soft);
+  }
+  .hero-head .stamp { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); }
+
+  .headliners {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .head-col {
+    padding: 14px 4px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .head-col + .head-col { border-top: 1px dashed rgba(43,24,16,0.18); }
+
+  .headline-icon {
+    width: 58px; height: 58px; flex: none;
+    display: grid; place-items: center;
+    border-radius: 16px;
+    background: linear-gradient(160deg, rgba(255,255,255,0.5), rgba(255,255,255,0.14));
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+  }
+  .head-main { min-width: 0; }
+  .head-label {
+    font-size: 0.74rem; font-weight: 800; letter-spacing: 0.6px;
+    text-transform: uppercase; color: var(--ink-soft); margin-bottom: 2px;
+  }
+  .big {
+    font-size: 3.7rem; font-weight: 800; line-height: 0.95;
+    letter-spacing: -1.5px;
+    background: linear-gradient(160deg, #ff8a3d, #ff5a3c 60%, #e8451f);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: var(--coral-deep);
+  }
+  .big .deg { font-size: 1.9rem; -webkit-text-fill-color: var(--coral); vertical-align: top; }
+  .big.teal {
+    background: linear-gradient(160deg, #17a0ad, #0f7f8f 60%, #0a5a66);
+    -webkit-background-clip: text; background-clip: text; color: var(--teal-deep);
+  }
+  .head-sub {
+    margin-top: 5px; font-size: 0.92rem; font-weight: 650; color: var(--ink-soft);
+  }
+  .head-sub b { color: var(--ink); font-weight: 800; }
+
+  .temp-flash { animation: tflash 9s ease-in-out infinite; }
+  @keyframes tflash {
+    0%, 92%, 100% { filter: none; }
+    95% { filter: brightness(1.18) drop-shadow(0 0 8px rgba(255,110,70,0.5)); }
+  }
+
+  /* Compass for wind */
+  .compass { width: 58px; height: 58px; flex: none; }
+
+  /* ----------------------------------------------------------
+     RAIN STATUS — the community's #1 question, front & center
+     ---------------------------------------------------------- */
+  .rain {
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px 16px;
+    align-items: center;
+    background:
+      linear-gradient(160deg, rgba(90,205,225,0.30), rgba(255,255,255,0.14)),
+      var(--glass-bg-2);
+    border: 1px solid rgba(255,255,255,0.55);
+  }
+  .rain-badge {
+    width: 62px; height: 62px; flex: none;
+    display: grid; place-items: center;
+    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(160deg, #22b8c9, #0f7f8f);
+    box-shadow: 0 10px 22px -10px rgba(15,127,143,0.8), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .rain-lead .status {
+    font-size: 1.85rem; font-weight: 800; line-height: 1; letter-spacing: -0.5px;
+    color: var(--teal-deep);
+  }
+  .rain-lead .status .now {
+    font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    color: #fff; background: #0f7f8f; padding: 3px 8px; border-radius: 999px;
+    vertical-align: middle; margin-left: 8px;
+  }
+  .rain-lead .msg { margin-top: 4px; font-size: 0.9rem; font-weight: 650; color: var(--ink-soft); }
+  .rain-facts {
+    grid-column: 1 / -1;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 14px;
+    padding-top: 12px; border-top: 1px solid rgba(43,24,16,0.14);
+  }
+  .rain-fact { display: flex; justify-content: space-between; font-size: 0.82rem; }
+  .rain-fact .k { color: var(--ink-soft); font-weight: 650; }
+  .rain-fact .v { color: var(--ink); font-weight: 800; }
+
+  /* ----------------------------------------------------------
+     TILE GRID
+     ---------------------------------------------------------- */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .tile {
+    padding: 14px 15px 15px;
+    display: flex; flex-direction: column; gap: 6px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-brd);
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 1px 0 var(--glass-hi), 0 10px 26px -18px rgba(58,22,10,0.5);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+  }
+  .tile-top { display: flex; align-items: center; gap: 8px; }
+  .tile-top .ico { width: 26px; height: 26px; flex: none; color: var(--coral-deep); }
+  .tile-top .t { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.6px;
+                 text-transform: uppercase; color: var(--ink-soft); }
+  .tile-val { font-size: 1.7rem; font-weight: 800; line-height: 1; letter-spacing: -0.5px; }
+  .tile-val small { font-size: 0.9rem; font-weight: 700; color: var(--ink-soft); }
+  .tile-sub { font-size: 0.8rem; font-weight: 650; color: var(--ink-soft); }
+
+  .chip {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase;
+  }
+  .chip.veryhigh { background: rgba(232,69,31,0.16); color: var(--coral-deep); }
+  .chip.falling { background: rgba(15,127,143,0.16); color: var(--teal-deep); }
+
+  /* UV strength meter */
+  .uvbar {
+    height: 7px; border-radius: 999px; margin-top: 4px;
+    background: linear-gradient(90deg, #4caf50, #cddc39, #ffc107, #ff7043, #e53935, #8e24aa);
+    position: relative;
+  }
+  .uvbar::after {
+    content: ""; position: absolute; top: -3px; width: 13px; height: 13px;
+    left: 75%; transform: translateX(-50%);
+    border-radius: 50%; background: #fff; border: 2px solid var(--coral-deep);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+
+  /* ----------------------------------------------------------
+     CHART
+     ---------------------------------------------------------- */
+  .chart { padding: 18px 16px 12px; }
+  .chart-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 8px; padding: 0 4px;
+  }
+  .chart-head .t { font-size: 0.86rem; font-weight: 800; color: var(--ink); }
+  .chart-head .hl { font-size: 0.76rem; font-weight: 700; color: var(--ink-soft); }
+  .chart-head .hl b { color: var(--coral-deep); }
+  .chart svg { display: block; width: 100%; height: auto; }
+
+  /* ----------------------------------------------------------
+     DONATE
+     ---------------------------------------------------------- */
+  .support {
+    padding: 18px 18px 16px;
+    text-align: center;
+    background:
+      linear-gradient(160deg, rgba(255,180,90,0.28), rgba(255,255,255,0.12)),
+      var(--glass-bg-2);
+    border: 1px solid rgba(255,255,255,0.55);
+  }
+  .support h3 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 800; }
+  .support p  { margin: 0 0 13px; font-size: 0.86rem; font-weight: 600; color: var(--ink-soft); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    padding: 13px 24px; border-radius: 999px;
+    font-family: var(--font); font-size: 0.98rem; font-weight: 800; letter-spacing: 0.2px;
+    border: none; cursor: pointer; text-decoration: none;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    user-select: none;
+  }
+  .btn-primary {
+    color: #fff;
+    background: linear-gradient(160deg, #ff7a45, #e8451f);
+    box-shadow: 0 12px 26px -10px rgba(232,69,31,0.8), inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.05); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-ghost {
+    color: var(--ink); background: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.7);
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.6); }
+  .btn .heart { width: 18px; height: 18px; }
+
+  /* ----------------------------------------------------------
+     FOOTER
+     ---------------------------------------------------------- */
+  .footer {
+    margin-top: 2px; text-align: center;
+    color: #fff; text-shadow: 0 1px 8px rgba(60,20,10,0.45);
+    font-size: 0.78rem; font-weight: 650; opacity: 0.95;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .footer .disc { opacity: 0.9; }
+
+  /* ----------------------------------------------------------
+     DONATION MODAL — pure-CSS toggle (checkbox hack)
+     ---------------------------------------------------------- */
+  .modal-toggle { position: absolute; opacity: 0; pointer-events: none; }
+  .modal {
+    position: fixed; inset: 0; z-index: 50;
+    display: grid; place-items: center;
+    padding: 20px;
+    background: rgba(35, 15, 8, 0.42);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 1; visibility: visible;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  .modal-toggle:checked ~ .modal { opacity: 0; visibility: hidden; }
+
+  .modal-card {
+    position: relative;
+    width: 100%; max-width: 380px;
+    padding: 30px 24px 24px;
+    text-align: center;
+    background: rgba(255, 250, 245, 0.42);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 28px;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+    backdrop-filter: saturate(160%) blur(26px);
+    -webkit-backdrop-filter: saturate(160%) blur(26px);
+    animation: pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  }
+  @keyframes pop { from { transform: translateY(14px) scale(0.96); opacity: 0; } }
+
+  .modal-x {
+    position: absolute; top: 12px; right: 12px;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer;
+    background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.7);
+    color: var(--ink); font-size: 1.1rem; line-height: 1; font-weight: 700;
+  }
+  .modal-x:hover { background: rgba(255,255,255,0.75); }
+  .modal-emoji {
+    width: 66px; height: 66px; margin: 0 auto 12px;
+    display: grid; place-items: center; border-radius: 20px;
+    background: linear-gradient(160deg, #ffd27a, #ff7a45);
+    color: #fff; box-shadow: 0 12px 26px -12px rgba(232,69,31,0.8);
+  }
+  .modal-card h2 { margin: 0 0 8px; font-size: 1.3rem; font-weight: 800; }
+  .modal-card p  { margin: 0 0 20px; font-size: 0.9rem; font-weight: 600;
+                   color: var(--ink-soft); line-height: 1.45; }
+  .modal-actions { display: flex; flex-direction: column; gap: 10px; }
+  .modal-actions .btn { width: 100%; }
+
+  /* ----------------------------------------------------------
+     DESKTOP
+     ---------------------------------------------------------- */
+  @media (min-width: 620px) {
+    .page { padding: 34px 22px 48px; }
+    .headliners { grid-template-columns: 1fr 1fr; }
+    .head-col + .head-col { border-top: none; border-left: 1px dashed rgba(43,24,16,0.2); padding-left: 22px; }
+    .head-col { padding: 6px 4px; }
+    .big { font-size: 4.2rem; }
+    .tiles { grid-template-columns: repeat(4, 1fr); }
+    .rain { grid-template-columns: auto 1fr auto; }
+    .rain-facts { grid-column: 1 / -1; grid-template-columns: repeat(4, 1fr); }
+    .modal-actions { flex-direction: row-reverse; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ===== SCENE ===== -->
+  <div class="scene" aria-hidden="true">
+    <div class="sky"></div>
+    <div class="sun"></div>
+    <div class="range far"></div>
+    <div class="range near"></div>
+    <div class="water"></div>
+  </div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ===== DONATION MODAL (pure-CSS toggle) ===== -->
+  <input type="checkbox" id="donateToggle" class="modal-toggle" />
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="donateTitle">
+    <div class="modal-card">
+      <label for="donateToggle" class="modal-x" role="button" aria-label="Close" title="Close">&times;</label>
+      <div class="modal-emoji" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 21s-7.5-4.7-10-9.2C.4 8.6 2 5 5.4 5c2 0 3.4 1.2 4.6 2.7C11.2 6.2 12.6 5 14.6 5 18 5 19.6 8.6 22 11.8 19.5 16.3 12 21 12 21z"/>
+        </svg>
+      </div>
+      <h2 id="donateTitle">Keep the lake report free</h2>
+      <p>This station runs on a neighbor's dime — hosting, power, and upkeep.
+         A small tip keeps live Havasu Lake conditions online for everyone.</p>
+      <div class="modal-actions">
+        <label for="donateToggle" class="btn btn-primary" role="button">
+          <svg class="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 21s-7.5-4.7-10-9.2C.4 8.6 2 5 5.4 5c2 0 3.4 1.2 4.6 2.7C11.2 6.2 12.6 5 14.6 5 18 5 19.6 8.6 22 11.8 19.5 16.3 12 21 12 21z"/>
+          </svg>
+          Donate
+        </label>
+        <label for="donateToggle" class="btn btn-ghost" role="button">Maybe later</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE ===== -->
+  <main class="page">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="pin" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/>
+            <circle cx="12" cy="10" r="2.5"/>
+          </svg>
+        </span>
+        <span>
+          <div class="place">Havasu Lake, CA</div>
+          <div class="sub">Live outdoor conditions</div>
+        </span>
+      </div>
+      <div class="freshness">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span>Updated <span id="ago">12</span>s ago</span>
+      </div>
+    </header>
+
+    <!-- HERO: Temperature & Wind co-headliners -->
+    <section class="glass hero" aria-label="Current temperature and wind">
+      <div class="hero-head">
+        <span class="kicker">Right now on the lake</span>
+        <span class="stamp">Golden hour</span>
+      </div>
+      <div class="headliners">
+
+        <!-- Temperature -->
+        <div class="head-col">
+          <span class="headline-icon" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#e8451f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/>
+              <circle cx="12" cy="16.5" r="1.6" fill="#e8451f" stroke="none"/>
+            </svg>
+          </span>
+          <div class="head-main">
+            <div class="head-label">Temperature</div>
+            <div class="big temp-flash" id="tempVal">108<span class="deg">&deg;F</span></div>
+            <div class="head-sub">Feels like <b>105&deg;F</b></div>
+          </div>
+        </div>
+
+        <!-- Wind -->
+        <div class="head-col">
+          <svg class="compass" viewBox="0 0 60 60" aria-hidden="true">
+            <circle cx="30" cy="30" r="27" fill="rgba(255,255,255,0.35)" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+            <circle cx="30" cy="30" r="27" fill="none" stroke="rgba(15,127,143,0.25)" stroke-width="1"/>
+            <text x="30" y="12" text-anchor="middle" font-size="7" font-weight="800" fill="#0a5a66" font-family="sans-serif">N</text>
+            <text x="30" y="53" text-anchor="middle" font-size="6" font-weight="700" fill="#0a5a66" font-family="sans-serif">S</text>
+            <text x="51" y="32.5" text-anchor="middle" font-size="6" font-weight="700" fill="#0a5a66" font-family="sans-serif">E</text>
+            <text x="9"  y="32.5" text-anchor="middle" font-size="6" font-weight="700" fill="#0a5a66" font-family="sans-serif">W</text>
+            <!-- arrow points FROM the SW (225 deg): rotate 225 from north -->
+            <g transform="rotate(225 30 30)">
+              <path d="M30 12 L35 30 L30 26 L25 30 Z" fill="#0f7f8f"/>
+              <path d="M30 48 L27 34 L30 37 L33 34 Z" fill="rgba(15,127,143,0.35)"/>
+            </g>
+            <circle cx="30" cy="30" r="2.6" fill="#0a5a66"/>
+          </svg>
+          <div class="head-main">
+            <div class="head-label">Wind</div>
+            <div class="big teal">11<span class="deg" style="-webkit-text-fill-color:#0f7f8f;color:#0f7f8f;">mph</span></div>
+            <div class="head-sub">Gusting <b>19 mph</b> &middot; from <b>SW</b> (225&deg;)</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RAIN STATUS — #1 community question -->
+    <section class="glass rain" aria-label="Rain status">
+      <div class="rain-badge" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/>
+        </svg>
+      </div>
+      <div class="rain-lead">
+        <div class="status">Dry <span class="now">Not raining</span></div>
+        <div class="msg">No rain on the station right now — clear and dry.</div>
+      </div>
+      <div class="rain-facts">
+        <div class="rain-fact"><span class="k">Rain rate</span><span class="v">0.00 in/hr</span></div>
+        <div class="rain-fact"><span class="k">Today</span><span class="v">0.00 in</span></div>
+        <div class="rain-fact"><span class="k">Last rain</span><span class="v">3 days ago</span></div>
+        <div class="rain-fact"><span class="k">This month</span><span class="v">0.31 in</span></div>
+      </div>
+    </section>
+
+    <!-- TILES -->
+    <section class="tiles" aria-label="Conditions detail">
+
+      <div class="tile">
+        <div class="tile-top">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>
+          </svg>
+          <span class="t">UV Index</span>
+        </div>
+        <div class="tile-val">9 <span class="chip veryhigh">Very High</span></div>
+        <div class="uvbar" aria-hidden="true"></div>
+        <div class="tile-sub">Sunscreen &amp; shade advised</div>
+      </div>
+
+      <div class="tile">
+        <div class="tile-top">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3s6 6.3 6 10.5A6 6 0 0 1 6 13.5C6 9.3 12 3 12 3z"/>
+          </svg>
+          <span class="t">Humidity</span>
+        </div>
+        <div class="tile-val">15<small>%</small></div>
+        <div class="tile-sub">Dew point <b>47&deg;F</b> &middot; very dry</div>
+      </div>
+
+      <div class="tile">
+        <div class="tile-top">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 14a8 8 0 1 1 16 0"/><path d="M12 14l4-3"/>
+          </svg>
+          <span class="t">Pressure</span>
+        </div>
+        <div class="tile-val">29.85<small> inHg</small></div>
+        <div class="tile-sub"><span class="chip falling">&#9660; Falling</span></div>
+      </div>
+
+      <div class="tile">
+        <div class="tile-top">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 3v18M7 6h5M7 11h4M7 16h5"/><path d="M17 3v18M14 3l3-0 3 0"/>
+          </svg>
+          <span class="t">24h Range</span>
+        </div>
+        <div class="tile-val">112&deg; <small>/ 84&deg;F</small></div>
+        <div class="tile-sub">High &middot; Low today</div>
+      </div>
+
+      <div class="tile">
+        <div class="tile-top">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.2 4.2l2 2M17.8 17.8l2 2M19.8 4.2l-2 2M6.2 17.8l-2 2"/>
+          </svg>
+          <span class="t">Solar</span>
+        </div>
+        <div class="tile-val">890 <small>W/m&sup2;</small></div>
+        <div class="tile-sub">Strong desert sun</div>
+      </div>
+
+    </section>
+
+    <!-- CHART -->
+    <section class="glass chart" aria-label="24-hour temperature history">
+      <div class="chart-head">
+        <span class="t">Temperature &middot; last 24 hours</span>
+        <span class="hl">High <b>112&deg;</b> &middot; Low <b>84&deg;</b></span>
+      </div>
+      <svg viewBox="0 0 700 262" role="img" aria-label="Line chart of hourly temperature over the last 24 hours, low of 84 near dawn rising to a high of 112 in the afternoon.">
+        <defs>
+          <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stop-color="#ff7a45" stop-opacity="0.55"/>
+            <stop offset="55%" stop-color="#ff9e57" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="#ffd98a" stop-opacity="0.02"/>
+          </linearGradient>
+          <linearGradient id="tempLine" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="#0f7f8f"/>
+            <stop offset="45%"  stop-color="#ff8a3d"/>
+            <stop offset="100%" stop-color="#e8451f"/>
+          </linearGradient>
+        </defs>
+
+        <!-- gridlines -->
+        <g stroke="rgba(43,24,16,0.12)" stroke-width="1">
+          <line x1="10" y1="107.1" x2="690" y2="107.1"/>
+          <line x1="10" y1="171.4" x2="690" y2="171.4"/>
+          <line x1="10" y1="240"   x2="690" y2="240"/>
+        </g>
+        <g fill="rgba(43,24,16,0.5)" font-size="11" font-weight="700" font-family="sans-serif" text-anchor="end">
+          <text x="690" y="103">100&deg;</text>
+          <text x="690" y="167">90&deg;</text>
+        </g>
+
+        <!-- area -->
+        <path fill="url(#tempFill)" d="M10,197.1 L39.6,203.6 L69.1,210 L98.7,210 L128.3,203.6 L157.8,190.7 L187.4,171.4 L217,145.7 L246.5,120 L276.1,94.3 L305.7,75 L335.2,55.7 L364.8,42.9 L394.3,30 L423.9,30 L453.5,36.4 L483,49.3 L512.6,68.6 L542.2,87.9 L571.7,107.1 L601.3,132.9 L630.9,152.1 L660.4,171.4 L690,184.3 L690,240 L10,240 Z"/>
+        <!-- line -->
+        <path fill="none" stroke="url(#tempLine)" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"
+          d="M10,197.1 L39.6,203.6 L69.1,210 L98.7,210 L128.3,203.6 L157.8,190.7 L187.4,171.4 L217,145.7 L246.5,120 L276.1,94.3 L305.7,75 L335.2,55.7 L364.8,42.9 L394.3,30 L423.9,30 L453.5,36.4 L483,49.3 L512.6,68.6 L542.2,87.9 L571.7,107.1 L601.3,132.9 L630.9,152.1 L660.4,171.4 L690,184.3"/>
+
+        <!-- peak marker -->
+        <circle cx="394.3" cy="30" r="4.5" fill="#fff" stroke="#e8451f" stroke-width="2.5"/>
+        <text x="394.3" y="22" text-anchor="middle" font-size="12" font-weight="800" fill="#e8451f" font-family="sans-serif">112&deg;</text>
+        <!-- low marker -->
+        <circle cx="83.9" cy="210" r="4.5" fill="#fff" stroke="#0f7f8f" stroke-width="2.5"/>
+        <text x="83.9" y="228" text-anchor="middle" font-size="12" font-weight="800" fill="#0a5a66" font-family="sans-serif">84&deg;</text>
+
+        <!-- x axis labels -->
+        <g fill="rgba(43,24,16,0.55)" font-size="11" font-weight="700" font-family="sans-serif">
+          <text x="10"  y="257" text-anchor="start">12a</text>
+          <text x="187" y="257" text-anchor="middle">6a</text>
+          <text x="365" y="257" text-anchor="middle">12p</text>
+          <text x="542" y="257" text-anchor="middle">6p</text>
+          <text x="690" y="257" text-anchor="end">11p</text>
+        </g>
+      </svg>
+    </section>
+
+    <!-- DONATE -->
+    <section class="glass support" aria-label="Support this station">
+      <h3>Enjoying the lake report?</h3>
+      <p>A neighbor keeps this weather station running for the community.</p>
+      <label for="donateToggle" class="btn btn-primary" role="button">
+        <svg class="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 21s-7.5-4.7-10-9.2C.4 8.6 2 5 5.4 5c2 0 3.4 1.2 4.6 2.7C11.2 6.2 12.6 5 14.6 5 18 5 19.6 8.6 22 11.8 19.5 16.3 12 21 12 21z"/>
+        </svg>
+        Donate to keep it running
+      </label>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="disc">Personal WS-2902D weather station — not an official observation.</div>
+      <div>Havasu Lake, CA &middot; Ambient Weather &middot; Outdoor readings only</div>
+    </footer>
+
+  </main>
+
+  <!-- ===== tiny live-nudge JS (freshness only) ===== -->
+  <script>
+    (function () {
+      var el = document.getElementById('ago');
+      if (!el) return;
+      var s = 12;
+      setInterval(function () {
+        s += 1;
+        if (s > 59) s = 12; // pretend a refresh landed
+        el.textContent = s;
+      }, 1000);
+    })();
+  </script>
+
+</body>
+</html>
