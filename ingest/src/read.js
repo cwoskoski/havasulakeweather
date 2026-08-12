@@ -12,6 +12,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { getAlerts, getForecast } from "./nws.js";
+import { getCompare } from "./compare.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.TABLE_NAME;
@@ -159,7 +160,31 @@ export const handler = async (event) => {
       }
     }
 
-    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts"] }, 15);
+    // Compare our station against a nearby WU PWS (QA / drift check).
+    // ?mock=agree|drift|offline works now; live needs WU_API_KEY.
+    if (path.endsWith("/api/compare")) {
+      try {
+        let mine = null;
+        if (!qs.mock) {
+          const it = await newest();
+          if (it) {
+            const ageSec = it.receivedAt ? (Date.now() - Date.parse(it.receivedAt)) / 1000 : null;
+            mine = {
+              id: STATION, label: "Havasu Lake (mine)",
+              tempF: it.tempf, windMph: it.windspeedmph, humidity: it.humidity,
+              pressureInHg: it.baromrelin, rainTodayIn: it.dailyrainin,
+              observedAt: it.dateutc, stale: ageSec != null && ageSec > 600,
+            };
+          }
+        }
+        return res(200, await getCompare(qs.mock, mine), qs.mock ? 20 : 300);
+      } catch (e) {
+        console.error(JSON.stringify({ msg: "compare-upstream", error: String(e?.message || e) }));
+        return res(200, { source: "live", stations: { mine: null, nearby: null }, error: "upstream" }, 30);
+      }
+    }
+
+    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare"] }, 15);
   } catch (e) {
     console.error(JSON.stringify({ msg: "read-error", error: String(e?.message || e), path }));
     return res(500, { error: "internal" }, 5);

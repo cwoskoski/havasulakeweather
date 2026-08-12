@@ -13,6 +13,15 @@ Parameters:
       Comma-separated station PASSKEYs allowed to store data. Empty = accept all
       (passed at deploy via --parameter-overrides so the key isn't committed).
 
+  WuApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: >
+      Weather Underground PWS read key (api.weather.com) for the nearby-station
+      comparison. Empty = /api/compare serves mock only. Passed at deploy via
+      --parameter-overrides so the key isn't committed.
+
 Globals:
   Function:
     Runtime: nodejs24.x
@@ -88,6 +97,9 @@ Resources:
           NWS_POINT: "34.4822,-114.4138"
           NWS_GRID: "VEF/138,20"
           LOCATION_LABEL: "Havasu Lake, CA"
+          # Nearby-station comparison (Weather Underground PWS). Key empty until set.
+          WU_API_KEY: !Ref WuApiKey
+          WU_NEARBY_STATION: "KCAHAVAS2"
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref WeatherTable
