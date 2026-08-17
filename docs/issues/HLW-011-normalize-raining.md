@@ -1,9 +1,9 @@
 # HLW-011: Normalize "raining now" (rate-based + debounce)
 
-- **Status:** proposed
+- **Status:** in-progress (built + verified by replay)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/13
 - **Branch:** `feat/HLW-011-normalize-raining`
-- **PR:** (open when the work is ready)
+- **PR:** (opened from this branch)
 - **Created:** 2026-08-12
 
 ## Summary
@@ -32,18 +32,27 @@ easing: 22:56 0.165 → 22:57 0.118 → 22:59 0.047               (decaying)
 
 ## Plan
 
-- [ ] Base "raining now" on `hourlyrainin > 0` (rate) instead of the tip delta.
-- [ ] Debounce: stay Raining until the rate has read 0 for ~10–15 min; only then Dry.
-- [ ] Compute in the read API (latest reading + a small recent-window query for the
-      debounce), decoupling from the fragile in-memory watermark.
-- [ ] `lastRainAt` = last time the rate was > 0.
-- [ ] Verify against the recorded flapping window (should read steady Raining through it).
+- [x] Base "raining now" on `hourlyrainin > 0` (rate) instead of the tip delta.
+- [x] Debounce (`RAIN_DEBOUNCE_MIN`, default 15, env-tunable): stay Raining until the
+      rate has read 0 for the whole window; only then Dry.
+- [x] Compute in the read API — new pure `rainState(recent, latest)` + a small
+      `rainWindow()` query in `/api/current`, decoupled from the in-memory watermark.
+- [x] `lastRainAt` = last reading with rate > 0. Also expose `rain.rateInHr`.
+- [x] Verify against the recorded flapping window.
+
+## Verification (replay of the recorded 22:43–22:59 monsoon, no AWS needed)
+
+- OLD logic: **8** Dry↔Raining flips; **7** false "Dry" readings mid-storm.
+- NEW logic: **2** flips (clean onset + clean end), **0** false "Dry", stayed Raining
+  through the 5-min data gap, flipped to Dry at 23:15 (15 min after last rain).
 
 ## Acceptance criteria
 
-- [ ] During continuous rain the section stays "Raining" (no minute-to-minute flips).
-- [ ] Flips to "Dry" only after the debounce window with no rain rate.
-- [ ] Backed by a replay of the 22:43–22:59 data (0 spurious Dry readings).
+- [x] During continuous rain the section stays "Raining" (no minute-to-minute flips).
+- [x] Flips to "Dry" only after the debounce window with no rain rate.
+- [x] Backed by a replay of the 22:43–22:59 data (0 spurious Dry readings).
+- [ ] Live end-to-end (deployed) — pending deploy approval (and/or `aws sso login`
+      for a local dev-server check once HLW-012 lands).
 
 ## Notes
 
