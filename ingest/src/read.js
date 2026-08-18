@@ -18,6 +18,7 @@ import { getWater } from "./water.js";
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.TABLE_NAME;
 const STATION = (process.env.STATION_KEY || "").split(",")[0].trim();
+const RAIN_DEBOUNCE_MIN = Number(process.env.RAIN_DEBOUNCE_MIN || 15); // stay "raining" until the rate has read 0 this long
 
 const obsPk = (mm) => `OBS#${STATION}#${mm}`;
 const ym = (d) => d.toISOString().slice(0, 7);
@@ -97,6 +98,38 @@ async function series(hours) {
   return items;
 }
 
+// Recent readings (last `minutes`) for the rain debounce — small, edge-cached query.
+async function rainWindow(minutes) {
+  const now = new Date();
+  const startISO = new Date(now - minutes * 60e3).toISOString().slice(0, 19) + "Z";
+  const months = [ym(new Date(now - minutes * 60e3)), ym(now)].filter((v, i, a) => a.indexOf(v) === i);
+  const items = [];
+  for (const mm of months) {
+    const r = await ddb.send(new QueryCommand({
+      TableName: TABLE,
+      KeyConditionExpression: "pk = :pk AND sk >= :s",
+      ExpressionAttributeValues: { ":pk": obsPk(mm), ":s": startISO },
+      ProjectionExpression: "sk, hourlyrainin, lastRainAt",
+    }));
+    items.push(...(r.Items || []));
+  }
+  items.sort((a, b) => (a.sk < b.sk ? -1 : 1));
+  return items;
+}
+
+// Normalize "raining now". This station reports `hourlyrainin` as a rain RATE (it
+// exceeds the daily/total counters and decays smoothly), so key off that instead of
+// the tipping-bucket delta — which only ticks when the 0.01" bucket tips and so flaps
+// Dry↔Raining between tips. Debounce over the window so a tip gap / dropout can't flip
+// it to Dry mid-storm; only go Dry after the rate has been 0 for the whole window.
+export function rainState(recent, latest) {
+  const rate = (r) => (r && typeof r.hourlyrainin === "number" ? r.hourlyrainin : 0);
+  const wet = (recent || []).filter((r) => rate(r) > 0);
+  const rainingNow = rate(latest) > 0 || wet.length > 0;
+  const lastRainAt = wet.length ? wet[wet.length - 1].sk : (latest?.lastRainAt ?? null);
+  return { rainingNow, rateInHr: rate(latest) || null, lastRainAt };
+}
+
 export const handler = async (event) => {
   const method = event?.requestContext?.http?.method || "GET";
   const path = event?.rawPath || event?.requestContext?.http?.path || "/";
@@ -109,6 +142,7 @@ export const handler = async (event) => {
       if (!it) return res(200, { station: STATION, reading: null }, 15);
       const tf = it.tempf, rh = it.humidity;
       const ageSec = it.receivedAt ? (Date.now() - Date.parse(it.receivedAt)) / 1000 : null;
+      const rain = rainState(await rainWindow(RAIN_DEBOUNCE_MIN), it);
       return res(200, {
         station: STATION,
         observedAt: it.dateutc,
@@ -122,7 +156,7 @@ export const handler = async (event) => {
         pressureInHg: it.baromrelin,
         uv: it.uv,
         solarWm2: it.solarradiation,
-        rain: { rainingNow: !!it.rainingNow, lastRainAt: it.lastRainAt ?? null, todayIn: it.dailyrainin, monthIn: it.monthlyrainin, yearIn: it.yearlyrainin },
+        rain: { rainingNow: rain.rainingNow, rateInHr: rain.rateInHr, lastRainAt: rain.lastRainAt, todayIn: it.dailyrainin, monthIn: it.monthlyrainin, yearIn: it.yearlyrainin },
       }, 30);
     }
 
