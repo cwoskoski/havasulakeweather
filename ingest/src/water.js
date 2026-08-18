@@ -21,6 +21,8 @@ const HAVASU_FULL = 450;     // ~full pool (Reclamation datum); used only for a 
 //   Parker Dam release = outflow downstream      (RISE item 6130, Lake Havasu record 4371)
 const RISE_DAVIS_ID = process.env.RISE_DAVIS_ID || "6135";
 const RISE_PARKER_ID = process.env.RISE_PARKER_ID || "6130";
+const RISE_HAVASU_TEMP = process.env.RISE_HAVASU_TEMP || "6127"; // Lake Havasu water temp (DegF)
+const RISE_MOHAVE_TEMP = process.env.RISE_MOHAVE_TEMP || "6132"; // Lake Mohave water temp (DegF)
 
 const now = () => new Date().toISOString();
 
@@ -43,8 +45,9 @@ async function usgsLatest(service, site, pcode, timeoutMs = 4500) {
   }
 }
 
-// USBR RISE release (cfs). Item id pinned via env at go-live; null until then.
-async function riseRelease(itemId, name, timeoutMs = 4500) {
+// USBR RISE — latest daily value for a catalog item. RISE requires the JSON:API media
+// type (Accept: application/vnd.api+json) — application/json returns a 406.
+async function riseNum(itemId, timeoutMs = 4500) {
   if (!itemId) return null;
   const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&order%5BdateTime%5D=desc&itemsPerPage=1`;
   const ctrl = new AbortController();
@@ -52,16 +55,19 @@ async function riseRelease(itemId, name, timeoutMs = 4500) {
   try {
     const r = await fetch(url, { headers: { accept: "application/vnd.api+json" }, signal: ctrl.signal });
     if (!r.ok) throw new Error(`RISE ${itemId} -> ${r.status}`);
-    const j = await r.json();
-    const rec = (j.data || [])[0];
-    const a = rec && rec.attributes ? rec.attributes : null;
-    if (!a) return null;
-    return { name, cfs: Math.round(parseFloat(a.result)), trend: "steady", observedAt: a.dateTime, source: "USBR RISE" };
+    const a = ((await r.json()).data || [])[0]?.attributes;
+    const v = a ? parseFloat(a.result) : NaN;
+    return Number.isFinite(v) ? { value: v, at: a.dateTime } : null;
   } catch (e) {
     return null;
   } finally {
     clearTimeout(t);
   }
+}
+// Dam release (cfs).
+async function riseRelease(itemId, name) {
+  const v = await riseNum(itemId);
+  return v ? { name, cfs: Math.round(v.value), trend: "steady", observedAt: v.at, source: "USBR RISE" } : null;
 }
 
 function lakeStatus(elev) {
@@ -79,18 +85,22 @@ async function getLive() {
     settle(usgsLatest("iv", "09427500", "00065", 8000)),  // Lake Havasu gage height
     settle(usgsLatest("dv", "09422500", "62614", 8000)),  // Lake Mohave elevation (NGVD29)
   ]);
+  const [inflow, outflow, havTemp, mohTemp] = await Promise.all([
+    riseRelease(RISE_DAVIS_ID, "Davis Dam release"),
+    riseRelease(RISE_PARKER_ID, "Parker Dam release"),
+    riseNum(RISE_HAVASU_TEMP),
+    riseNum(RISE_MOHAVE_TEMP),
+  ]);
   const elev = hav ? +(hav.value + HAVASU_DATUM).toFixed(2) : null;
   const lake = hav ? {
     name: "Lake Havasu", elevationFt: elev, gageFt: hav.value, fullPoolFt: HAVASU_FULL,
-    status: lakeStatus(elev), observedAt: hav.at, datum: "NAVD88",
+    status: lakeStatus(elev), waterTempF: havTemp ? +havTemp.value.toFixed(1) : null,
+    observedAt: hav.at, datum: "NAVD88",
   } : null;
   const upstream = moh ? {
-    name: "Lake Mohave", elevationFt: +moh.value.toFixed(2), observedAt: moh.at, datum: "NGVD29",
+    name: "Lake Mohave", elevationFt: +moh.value.toFixed(2),
+    waterTempF: mohTemp ? +mohTemp.value.toFixed(1) : null, observedAt: moh.at, datum: "NGVD29",
   } : null;
-  const [inflow, outflow] = await Promise.all([
-    riseRelease(RISE_DAVIS_ID, "Davis Dam release"),
-    riseRelease(RISE_PARKER_ID, "Parker Dam release"),
-  ]);
   const notes = [];
   if (lake && lake.status === "low") notes.push("Lake Havasu is running below its normal band.");
   if (!inflow && !outflow) notes.push("Dam release rates (USBR) coming soon.");
@@ -115,9 +125,9 @@ export async function getWater(mock) {
  * normal | low-lake | high-release. Fake, shaped like the live output.
  */
 function mockLake(elev, status) {
-  return { name: "Lake Havasu", elevationFt: elev, gageFt: +(elev - HAVASU_DATUM).toFixed(2), fullPoolFt: HAVASU_FULL, status, observedAt: now(), datum: "NAVD88" };
+  return { name: "Lake Havasu", elevationFt: elev, gageFt: +(elev - HAVASU_DATUM).toFixed(2), fullPoolFt: HAVASU_FULL, status, waterTempF: 88.0, observedAt: now(), datum: "NAVD88" };
 }
-const moh = (elev) => ({ name: "Lake Mohave", elevationFt: elev, observedAt: now(), datum: "NGVD29" });
+const moh = (elev) => ({ name: "Lake Mohave", elevationFt: elev, waterTempF: 76.0, observedAt: now(), datum: "NGVD29" });
 const rel = (name, cfs, trend) => ({ name, cfs, trend, observedAt: now(), source: "USBR RISE" });
 
 const MOCK = {
