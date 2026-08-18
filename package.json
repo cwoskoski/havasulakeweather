@@ -1,0 +1,14 @@
+{
+  "name": "havasu-lake-weather",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Havasu Lake Weather — local dev runner for the read API + static site",
+  "scripts": {
+    "dev": "node dev/server.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3",
+    "@aws-sdk/lib-dynamodb": "^3"
+  }
+}
