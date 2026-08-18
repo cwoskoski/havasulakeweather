@@ -16,6 +16,11 @@
 const UA = process.env.NWS_USER_AGENT || "HavasuLakeWeather/1.0 (+https://havasulakeweather.com)";
 const HAVASU_DATUM = 402.85; // ft, gage-height → NAVD88 water-surface elevation for 09427500
 const HAVASU_FULL = 450;     // ~full pool (Reclamation datum); used only for a coarse status
+// USBR RISE catalog item ids — daily "Lake/Reservoir Release - Total" (cfs), pinned:
+//   Davis Dam release  = inflow to Lake Havasu  (RISE item 6135, Lake Mohave record 4369)
+//   Parker Dam release = outflow downstream      (RISE item 6130, Lake Havasu record 4371)
+const RISE_DAVIS_ID = process.env.RISE_DAVIS_ID || "6135";
+const RISE_PARKER_ID = process.env.RISE_PARKER_ID || "6130";
 
 const now = () => new Date().toISOString();
 
@@ -41,11 +46,11 @@ async function usgsLatest(service, site, pcode, timeoutMs = 4500) {
 // USBR RISE release (cfs). Item id pinned via env at go-live; null until then.
 async function riseRelease(itemId, name, timeoutMs = 4500) {
   if (!itemId) return null;
-  const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&order[dateTime]=desc&itemsPerPage=1`;
+  const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&order%5BdateTime%5D=desc&itemsPerPage=1`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const r = await fetch(url, { headers: { accept: "application/json" }, signal: ctrl.signal });
+    const r = await fetch(url, { headers: { accept: "application/vnd.api+json" }, signal: ctrl.signal });
     if (!r.ok) throw new Error(`RISE ${itemId} -> ${r.status}`);
     const j = await r.json();
     const rec = (j.data || [])[0];
@@ -83,8 +88,8 @@ async function getLive() {
     name: "Lake Mohave", elevationFt: +moh.value.toFixed(2), observedAt: moh.at, datum: "NGVD29",
   } : null;
   const [inflow, outflow] = await Promise.all([
-    riseRelease(process.env.RISE_DAVIS_ID, "Davis Dam release"),
-    riseRelease(process.env.RISE_PARKER_ID, "Parker Dam release"),
+    riseRelease(RISE_DAVIS_ID, "Davis Dam release"),
+    riseRelease(RISE_PARKER_ID, "Parker Dam release"),
   ]);
   const notes = [];
   if (lake && lake.status === "low") notes.push("Lake Havasu is running below its normal band.");
