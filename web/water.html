@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0e4a5e" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" type="image/png" href="/assets/icon-192.png" />
+<link rel="apple-touch-icon" href="/assets/icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Havasu Wx" />
+<meta name="description" content="Lake Havasu water conditions for Havasu Lake, CA — live lake level, Davis & Parker Dam releases (inflow/outflow), and water temperature." />
+<title>Lake &amp; River — Havasu Lake, CA</title>
+<style>
+  :root{
+    --ink:#eaf6f8;--ink-soft:rgba(234,246,248,.72);--ink-faint:rgba(234,246,248,.5);
+    --coral:#ff7a4d;--coral-deep:#ff8f68;--gold:#ffbf5c;--teal:#2fb9c4;--teal-deep:#7fe6e2;
+    --sand:#d7b487;
+    --glass:rgba(10,42,52,.55);--glass-2:rgba(255,255,255,.06);--brd:rgba(255,255,255,.16);
+    --radius:22px;--radius-sm:15px;
+    --font:ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --shadow:0 18px 44px -18px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font);color:var(--ink);background:#0a2b34;
+    background:linear-gradient(180deg,#0d3a49 0%,#0a2b34 60%,#08222a 100%);min-height:100vh;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;}
+
+  .wnav{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;
+    padding:max(12px,env(safe-area-inset-top)) 16px 12px;background:rgba(8,34,42,.72);
+    backdrop-filter:blur(12px) saturate(150%);-webkit-backdrop-filter:blur(12px) saturate(150%);
+    border-bottom:1px solid rgba(255,255,255,.08);}
+  .wnav a.back{display:inline-flex;align-items:center;gap:7px;color:var(--ink);text-decoration:none;
+    font-weight:800;font-size:.92rem;background:rgba(255,255,255,.08);border:1px solid var(--brd);
+    border-radius:999px;padding:8px 14px;transition:background .18s;}
+  .wnav a.back:hover{background:rgba(255,255,255,.15);}
+  .wnav .title{font-weight:800;font-size:1.02rem;letter-spacing:.01em;}
+  .wnav .title small{display:block;font-weight:600;font-size:.68rem;color:var(--ink-faint);}
+
+  /* ---- flow animation hero ---- */
+  .flow-hero{position:relative;height:clamp(360px,54vh,560px);overflow:hidden;
+    border-bottom:1px solid rgba(255,255,255,.08);}
+  .flow-hero[hidden]{display:none;}
+  #flow{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .lbl{position:absolute;left:50%;transform:translateX(-50%);z-index:3;text-align:center;
+    background:rgba(6,26,32,.62);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+    border:1px solid var(--brd);border-radius:15px;padding:9px 14px;min-width:150px;box-shadow:var(--shadow);}
+  .lbl-top{top:12px;border-top:3px solid var(--teal-deep);}
+  .lbl-bot{bottom:12px;border-bottom:3px solid var(--coral);}
+  .lbl .dam{font-weight:800;font-size:.88rem;}
+  .lbl .dir{font-weight:700;font-size:.66rem;}
+  .lbl-top .dir{color:var(--teal-deep);} .lbl-bot .dir{color:var(--coral-deep);}
+  .lbl .cfs{font-weight:800;font-size:1.35rem;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:1px;}
+  .lbl .cfs span{font-size:.66rem;font-weight:700;opacity:.7;}
+  .lbl .sub{font-size:.64rem;font-weight:600;opacity:.6;margin-top:1px;}
+  .place{position:absolute;z-index:3;font-weight:800;font-size:.7rem;letter-spacing:.02em;
+    text-shadow:0 1px 6px rgba(0,0,0,.8);display:flex;align-items:center;gap:5px;opacity:.9;}
+  .place::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(255,191,92,.3);}
+  .place-w{left:12px;top:50%;}
+  .place-e{right:12px;top:42%;flex-direction:row-reverse;}
+  .net{position:absolute;left:12px;top:94px;z-index:3;background:rgba(6,26,32,.62);
+    border:1px solid var(--brd);border-radius:999px;padding:5px 11px;font-weight:800;font-size:.74rem;
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;gap:6px;align-items:center;}
+  .net .dot{width:8px;height:8px;border-radius:50%;background:var(--teal-deep);}
+
+  /* ---- data cards ---- */
+  .wpage{max-width:640px;margin:0 auto;padding:16px 16px calc(28px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:12px;}
+  .card{background:var(--glass);border:1px solid var(--brd);border-radius:var(--radius);padding:16px;
+    backdrop-filter:blur(12px) saturate(150%);-webkit-backdrop-filter:blur(12px) saturate(150%);box-shadow:var(--shadow);}
+  .card h2{margin:0 0 2px;font-size:1.05rem;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .card .src{font-size:.66rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
+  .lk-elev{font-weight:800;font-size:2.2rem;color:var(--teal-deep);font-variant-numeric:tabular-nums;line-height:1.1;margin-top:4px;}
+  .lk-elev small{font-size:.9rem;font-weight:700;color:var(--ink-soft);}
+  .pill{font-size:.68rem;font-weight:800;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;}
+  .pill-full,.pill-normal{background:rgba(47,185,196,.2);color:var(--teal-deep);}
+  .pill-low{background:rgba(255,122,77,.2);color:var(--coral-deep);}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .metric{background:var(--glass-2);border:1px solid var(--brd);border-radius:14px;padding:10px 12px;}
+  .metric .k{font-size:.66rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.02em;}
+  .metric .v{font-size:1.15rem;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .metric .v small{font-size:.68rem;font-weight:700;color:var(--ink-soft);}
+  .flows3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .note{font-size:.82rem;font-weight:650;color:var(--gold);background:rgba(255,191,92,.1);border-radius:12px;padding:9px 12px;line-height:1.4;}
+  .foot{text-align:center;font-size:.72rem;color:var(--ink-faint);line-height:1.5;margin-top:4px;}
+  .foot a{color:var(--ink-soft);}
+  /* warnings */
+  #warnings{display:flex;flex-direction:column;gap:8px;}
+  #warnings:empty{display:none;}
+  .warn{display:flex;gap:9px;align-items:flex-start;border-radius:14px;padding:11px 13px;font-weight:650;font-size:.86rem;line-height:1.4;border:1px solid var(--brd);box-shadow:var(--shadow);}
+  .warn-warn{background:linear-gradient(150deg,rgba(255,122,77,.94),rgba(255,88,48,.86));color:#2a0f06;border-color:rgba(255,255,255,.3);}
+  .warn-info{background:var(--glass);color:var(--ink);}
+  .warn-ico{font-size:1.05rem;line-height:1.15;flex:none;}
+  /* flow rows + gauges */
+  .flow-row{padding:12px 0;border-top:1px solid rgba(255,255,255,.08);}
+  .flow-row:first-child{border-top:0;padding-top:2px;}
+  .flow-top{display:flex;align-items:center;gap:10px;}
+  .flow-label{font-weight:700;font-size:.9rem;color:var(--ink-soft);flex:1;}
+  .flow-val{font-weight:800;font-size:1.15rem;font-variant-numeric:tabular-nums;}
+  .flow-val small{font-size:.68rem;font-weight:700;color:var(--ink-soft);}
+  .chip{font-size:.66rem;font-weight:800;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;}
+  .chip-low{background:rgba(255,191,92,.22);color:var(--gold);}
+  .chip-normal{background:rgba(47,185,196,.2);color:var(--teal-deep);}
+  .chip-high{background:rgba(255,122,77,.24);color:var(--coral-deep);}
+  .chip-unknown{background:var(--glass-2);color:var(--ink-faint);}
+  .gauge{position:relative;height:8px;border-radius:999px;margin:8px 0 5px;overflow:visible;border:1px solid rgba(255,255,255,.12);}
+  .gmark{position:absolute;top:-3px;width:3px;height:14px;background:#fff;border-radius:2px;box-shadow:0 0 5px rgba(0,0,0,.6);transform:translateX(-1.5px);}
+  .flow-cap{font-size:.72rem;font-weight:600;color:var(--ink-faint);}
+  .flow-net{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .flow-net b{font-variant-numeric:tabular-nums;} .net-sub{font-weight:600;font-size:.72rem;color:var(--ink-faint);}
+  .net-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  /* chart */
+  .chart-legend{display:flex;gap:14px;margin:2px 0 8px;font-size:.72rem;font-weight:700;}
+  .lg{display:flex;align-items:center;gap:5px;color:var(--ink-soft);}
+  .lg::before{content:"";width:12px;height:3px;border-radius:2px;}
+  .lg-in::before{background:#2fb9c4;} .lg-out::before{background:#ff7a4d;}
+  #flowChart{width:100%;height:130px;display:block;}
+  @media (min-width:560px){ .lbl .cfs{font-size:1.5rem;} }
+</style>
+</head>
+<body>
+  <header class="wnav">
+    <a class="back" href="/">&larr; Conditions</a>
+    <div class="title">Lake &amp; River<small>Havasu Lake, CA · Colorado River</small></div>
+  </header>
+
+  <!-- flow animation hidden for now (HLW-013) — needs polish; markup + JS kept so it's a one-line un-hide -->
+  <section class="flow-hero" aria-label="Lake Havasu flow" hidden>
+    <canvas id="flow"></canvas>
+    <div class="lbl lbl-top">
+      <div class="dam">Davis Dam <span class="dir">&darr; INFLOW</span></div>
+      <div class="cfs"><span id="inCfs">--</span> <span>cfs</span></div>
+      <div class="sub">from Lake Mohave &mdash; upstream</div>
+    </div>
+    <div class="place place-w">Havasu Lake, CA</div>
+    <div class="place place-e">Lake Havasu City, AZ</div>
+    <div class="net" id="net"><span class="dot"></span><span id="netTxt">&mdash;</span></div>
+    <div class="lbl lbl-bot">
+      <div class="dam">Parker Dam <span class="dir">&darr; OUTFLOW</span></div>
+      <div class="cfs"><span id="outCfs">--</span> <span>cfs</span></div>
+      <div class="sub">downstream to Parker</div>
+    </div>
+  </section>
+
+  <main class="wpage">
+    <div id="warnings"></div>
+    <section class="card">
+      <h2>Lake Havasu <span class="src" id="lakeSrc"></span></h2>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="lk-elev"><span id="lakeElev">--</span><small> ft</small></div>
+        <span class="pill pill-full" id="lakePill">&mdash;</span>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="k">Water temp</div><div class="v"><span id="lakeTemp">--</span><small>&deg;F</small></div></div>
+        <div class="metric"><div class="k">Full pool</div><div class="v">~450<small> ft</small></div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Dam releases <span class="src">USBR RISE · daily</span></h2>
+      <div id="flowRows"></div>
+      <div class="flow-net" id="flowNetRow"></div>
+    </section>
+
+    <section class="card" id="chartCard" hidden>
+      <h2>Recent flow <span class="src">last 30 days · cfs</span></h2>
+      <div class="chart-legend"><span class="lg lg-in">Davis in</span><span class="lg lg-out">Parker out</span></div>
+      <svg id="flowChart" viewBox="0 0 320 130" preserveAspectRatio="none" role="img" aria-label="Recent dam releases"></svg>
+    </section>
+
+    <section class="card">
+      <h2>Lake Mohave <span class="src">upstream</span></h2>
+      <div class="metrics">
+        <div class="metric"><div class="k">Elevation</div><div class="v"><span id="mohElev">--</span><small> ft</small></div></div>
+        <div class="metric"><div class="k">Water temp</div><div class="v"><span id="mohTemp">--</span><small>&deg;F</small></div></div>
+      </div>
+    </section>
+
+    <div id="notes"></div>
+
+    <div class="foot">
+      Lake level: USGS · Dam releases &amp; water temp: USBR RISE · updates ~hourly.<br>
+      Community reference only &mdash; not an official forecast. <a href="/">&larr; back to conditions</a>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var API=(location.protocol==="file:")
+    ? "https://ptbiuyiuoswsxhylotz4jrufjy0abmgd.lambda-url.us-west-2.on.aws" : "";
+  var Q=new URLSearchParams(location.search);
+  var mockW=Q.get("mockWater")||(Q.get("demo")?"normal":"");
+  var $=function(id){return document.getElementById(id);};
+  var fmt=function(n){return n==null?"--":Math.round(n).toLocaleString();};
+  var esc=function(s){return String(s==null?"":s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});};
+  var MONTHS=["","January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  function gaugeHTML(ctx,cur){
+    if(!ctx||ctx.monthLo==null||ctx.allLo==null)return "";
+    var lo=ctx.allLo,hi=ctx.allHi,span=Math.max(1,hi-lo);
+    var pct=function(v){return Math.max(0,Math.min(100,(v-lo)/span*100));};
+    var a=pct(ctx.monthLo),b=pct(ctx.monthHi),m=pct(cur);
+    var bg='linear-gradient(90deg,rgba(255,191,92,.3) 0%,rgba(255,191,92,.3) '+a+'%,rgba(47,185,196,.32) '+a+'%,rgba(47,185,196,.32) '+b+'%,rgba(255,122,77,.3) '+b+'%,rgba(255,122,77,.3) 100%)';
+    return '<div class="gauge" style="background:'+bg+'"><span class="gmark" style="left:'+m.toFixed(1)+'%"></span></div>';
+  }
+  function flowRow(label,o){
+    if(!o||o.cfs==null) return '<div class="flow-row"><div class="flow-top"><span class="flow-label">'+label+'</span><span class="flow-val">&mdash;</span></div></div>';
+    var ctx=o.context||{},lvl=ctx.level||"unknown";
+    var chip='<span class="chip chip-'+lvl+'">'+({low:"Low",normal:"Normal",high:"High",unknown:"—"}[lvl]||"—")+'</span>';
+    var arrow=o.trend==="rising"?" ▲":o.trend==="falling"?" ▼":"";
+    var body=(ctx.monthLo!=null)? gaugeHTML(ctx,o.cfs)+'<div class="flow-cap">Typical '+fmt(ctx.monthLo)+'–'+fmt(ctx.monthHi)+' cfs for '+MONTHS[new Date().getUTCMonth()+1]+'</div>':"";
+    return '<div class="flow-row"><div class="flow-top"><span class="flow-label">'+label+'</span>'+
+      '<span class="flow-val">'+fmt(o.cfs)+' <small>cfs'+arrow+'</small></span>'+chip+'</div>'+body+'</div>';
+  }
+  function renderWarnings(ws){
+    $("warnings").innerHTML=(ws||[]).map(function(w){
+      var cls=w.severity==="warning"?"warn":"info";
+      return '<div class="warn warn-'+cls+'"><span class="warn-ico">'+(w.severity==="warning"?"⚠":"ℹ")+'</span><span>'+esc(w.text)+'</span></div>';
+    }).join("");
+  }
+  function renderChart(s){
+    var card=$("chartCard"),svg=$("flowChart");
+    if(!s||!s.dates||!s.dates.length){card.hidden=true;return;}
+    var all=[].concat((s.davisIn||[]).filter(function(x){return x!=null;}),(s.parkerOut||[]).filter(function(x){return x!=null;}));
+    if(!all.length){card.hidden=true;return;}
+    card.hidden=false;
+    var W=320,H=130,pad=10,n=s.dates.length;
+    var mn=Math.min.apply(null,all)*0.9,mx=Math.max.apply(null,all)*1.05,span=Math.max(1,mx-mn);
+    function path(arr,col){
+      var d="",first=true;
+      for(var i=0;i<n;i++){var v=arr[i];if(v==null)continue;var x=pad+(W-2*pad)*(n<2?0.5:i/(n-1));var y=H-pad-(H-2*pad)*((v-mn)/span);d+=(first?"M":"L")+x.toFixed(1)+" "+y.toFixed(1);first=false;}
+      return d?'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>':"";
+    }
+    svg.innerHTML=path(s.davisIn||[],"#2fb9c4")+path(s.parkerOut||[],"#ff7a4d");
+  }
+
+  /* ---------- data ---------- */
+  async function load(){
+    try{
+      var r=await fetch(API+"/api/water"+(mockW?("?mock="+encodeURIComponent(mockW)):""),{cache:"no-store"});
+      render(await r.json());
+    }catch(e){/* keep last */}
+  }
+  function render(d){
+    if(!d)return;
+    var lake=d.lake||{}, up=d.upstream||{}, inf=d.inflow, out=d.outflow;
+    $("lakeSrc").textContent=d.source==="mock"?"demo data":"USGS";
+    $("lakeElev").textContent=lake.elevationFt!=null?lake.elevationFt.toFixed(1):"--";
+    var st=lake.status||"unknown";
+    var pill=$("lakePill");
+    pill.className="pill pill-"+(st==="low"?"low":st==="unknown"?"normal":st);
+    pill.textContent={full:"Full pool",normal:"Normal",low:"Low",unknown:"—"}[st]||"—";
+    $("lakeTemp").textContent=lake.waterTempF!=null?lake.waterTempF.toFixed(1):"--";
+    $("mohElev").textContent=up.elevationFt!=null?up.elevationFt.toFixed(1):"--";
+    $("mohTemp").textContent=up.waterTempF!=null?up.waterTempF.toFixed(1):"--";
+
+    var inCfs=inf&&inf.cfs!=null?inf.cfs:null, outCfs=out&&out.cfs!=null?out.cfs:null;
+    if($("inCfs"))$("inCfs").textContent=fmt(inCfs);   // hidden animation-hero labels
+    if($("outCfs"))$("outCfs").textContent=fmt(outCfs);
+
+    renderWarnings(d.warnings||[]);
+    $("flowRows").innerHTML=flowRow("Davis Dam in",inf)+flowRow("Parker Dam out",out);
+    if(inCfs!=null&&outCfs!=null){
+      var net=inCfs-outCfs;
+      $("flowNetRow").innerHTML='<span class="net-dot" style="background:'+(net>=0?"#7fe6e2":"#ff7a4d")+'"></span><span>'+(net>=0?"Filling":"Draining")+' <b>'+(net>=0?"+":"")+fmt(net)+' cfs</b></span> <span class="net-sub">(inflow − outflow)</span>';
+      if($("netTxt"))$("netTxt").innerHTML=(net>=0?"Filling ":"Draining ")+"<b>"+(net>=0?"+":"")+fmt(net)+" cfs</b>";
+    }else{ $("flowNetRow").innerHTML='<span class="net-sub">Dam release data pending (USBR).</span>'; }
+    renderChart(d.series);
+
+    $("notes").innerHTML=(d.notes||[]).map(function(n){return '<div class="note">'+esc(n)+'</div>';}).join("");
+
+    // drive the animation (fall back to a gentle flow if releases are pending)
+    setFlow(inCfs!=null?inCfs:11000, outCfs!=null?outCfs:9000);
+  }
+
+  /* ---------- flow animation ---------- */
+  var canvas=$("flow"), ctx=canvas.getContext("2d");
+  var W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
+  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var target={inflow:11000,outflow:9000}, cur={inflow:11000,outflow:9000};
+  function setFlow(i,o){target.inflow=i;target.outflow=o;}
+
+  var base=document.createElement("canvas"), bctx=base.getContext("2d");
+  function resize(){
+    var r=canvas.getBoundingClientRect(); W=r.width; H=r.height;
+    canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
+    buildStatic(); seed();
+  }
+  window.addEventListener("resize",resize);
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function clamp(v,a,b){return v<a?a:v>b?b:v;}
+  function centerX(t){return W*(0.5+0.07*Math.sin(t*Math.PI*1.7-0.4));}
+  function halfW(t){
+    var river=W*0.05,mouth=W*0.11,lake=W*0.30;
+    if(t<0.15)return lerp(river,mouth,(t/0.15));
+    if(t<0.82){var u=(t-0.15)/0.67;return mouth+(lake-mouth)*Math.sin(u*Math.PI);}
+    return lerp(W*0.13,river,(t-0.82)/0.18);
+  }
+  function buildStatic(){
+    base.width=canvas.width; base.height=canvas.height; bctx.setTransform(DPR,0,0,DPR,0,0);
+    var sand=bctx.createLinearGradient(0,0,W,H);
+    sand.addColorStop(0,"#caa877");sand.addColorStop(.5,"#b6884f");sand.addColorStop(1,"#8f6a3d");
+    bctx.fillStyle=sand; bctx.fillRect(0,0,W,H);
+    bctx.globalAlpha=.45;
+    for(var i=0;i<22;i++){var side=i%2?1:-1,t=i/22,cx=centerX(t)+side*(halfW(t)+(16+(i*13%54)));
+      bctx.fillStyle=i%3?"#8f6a3d":"#a87c46"; var yy=t*H,s=22+(i*17%36);
+      bctx.beginPath();bctx.moveTo(cx,yy);bctx.lineTo(cx+side*s,yy-s*.7);bctx.lineTo(cx+side*s*1.6,yy+s*.4);bctx.closePath();bctx.fill();}
+    bctx.globalAlpha=1;
+    var steps=80,lft=[],rgt=[];
+    for(var k=0;k<=steps;k++){var tt=k/steps,cxx=centerX(tt),hw=halfW(tt);lft.push([cxx-hw,tt*H]);rgt.push([cxx+hw,tt*H]);}
+    bctx.beginPath();bctx.moveTo(lft[0][0],lft[0][1]);
+    for(var a=1;a<lft.length;a++)bctx.lineTo(lft[a][0],lft[a][1]);
+    for(var b=rgt.length-1;b>=0;b--)bctx.lineTo(rgt[b][0],rgt[b][1]);
+    bctx.closePath();
+    var wg=bctx.createLinearGradient(0,0,0,H);
+    wg.addColorStop(0,"#0f7f95");wg.addColorStop(.4,"#1a97a6");wg.addColorStop(.65,"#127f93");wg.addColorStop(1,"#0b4a5e");
+    bctx.fillStyle=wg;bctx.fill();
+    bctx.save();bctx.clip();bctx.lineWidth=Math.max(9,W*0.045);bctx.strokeStyle="rgba(127,230,226,.3)";
+    bctx.beginPath();bctx.moveTo(lft[0][0],lft[0][1]);for(var c=1;c<lft.length;c++)bctx.lineTo(lft[c][0],lft[c][1]);bctx.stroke();
+    bctx.beginPath();bctx.moveTo(rgt[0][0],rgt[0][1]);for(var e=1;e<rgt.length;e++)bctx.lineTo(rgt[e][0],rgt[e][1]);bctx.stroke();
+    bctx.restore();
+  }
+  var parts=[];
+  function seed(){parts.length=0;for(var i=0;i<200;i++)parts.push({t:Math.random(),off:(Math.random()*2-1)*.72,len:8+Math.random()*15,a:.5+Math.random()*.5,w:.8+Math.random()*1.6});}
+  function cfsAt(t){return lerp(cur.inflow,cur.outflow,t);}
+  function speedAt(t){return clamp(cfsAt(t)/(halfW(t)*2)*0.9,24,210);}
+  var last=0,spawnAcc=0;
+  function frame(ts){
+    if(!last)last=ts;var dt=Math.min((ts-last)/1000,.05);last=ts;
+    cur.inflow=lerp(cur.inflow,target.inflow,1-Math.pow(.002,dt));
+    cur.outflow=lerp(cur.outflow,target.outflow,1-Math.pow(.002,dt));
+    ctx.clearRect(0,0,W,H);ctx.drawImage(base,0,0,W,H);
+    spawnAcc+=(reduce?.35:1)*(cur.inflow/900)*dt*28;
+    while(spawnAcc>=1&&parts.length<460){parts.push({t:0,off:(Math.random()*2-1)*.72,len:8+Math.random()*15,a:.5+Math.random()*.5,w:.8+Math.random()*1.6});spawnAcc-=1;}
+    for(var i=parts.length-1;i>=0;i--){var p=parts[i];var v=speedAt(p.t)*(reduce?.4:1);p.t+=(v/H)*dt;
+      if(p.t>=1){parts.splice(i,1);continue;}
+      var cx=centerX(p.t),hw=halfW(p.t),x=cx+p.off*hw*.94,y=p.t*H,y2=y-Math.min(p.len*(v/90),p.len);
+      var fade=p.t<.06?p.t/.06:(p.t>.94?(1-p.t)/.06:1);
+      var g=ctx.createLinearGradient(x,y,x,y2);
+      g.addColorStop(0,"rgba(234,255,254,"+(p.a*fade)+")");g.addColorStop(1,"rgba(127,230,226,0)");
+      ctx.strokeStyle=g;ctx.lineWidth=p.w;ctx.lineCap="round";
+      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y2);ctx.stroke();}
+    dam(0.006);dam(0.994);
+    requestAnimationFrame(frame);
+  }
+  function dam(t){var cx=centerX(t),hw=halfW(t);ctx.fillStyle="#e9d9b8";ctx.fillRect(cx-hw-6,t*H-4,hw*2+12,8);}
+
+  var hero=document.querySelector(".flow-hero");
+  if(hero&&!hero.hasAttribute("hidden")){ resize(); requestAnimationFrame(frame); }
+  load(); setInterval(load,300000);
+})();
+</script>
+</body>
+</html>

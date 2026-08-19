@@ -13,6 +13,12 @@
  * shows "—". ?mock=<scenario> serves fixtures: normal | low-lake | high-release.
  */
 
+import { readFileSync } from "node:fs";
+
+// Seasonal baselines (monthly percentiles from ~decades of RISE history) used to
+// classify releases as low / normal / high for the current month — see HLW-014.
+const NORMALS = JSON.parse(readFileSync(new URL("../data/water-normals.json", import.meta.url), "utf8"));
+
 const UA = process.env.NWS_USER_AGENT || "HavasuLakeWeather/1.0 (+https://havasulakeweather.com)";
 const HAVASU_DATUM = 402.85; // ft, gage-height → NAVD88 water-surface elevation for 09427500
 const HAVASU_FULL = 450;     // ~full pool (Reclamation datum); used only for a coarse status
@@ -21,6 +27,8 @@ const HAVASU_FULL = 450;     // ~full pool (Reclamation datum); used only for a 
 //   Parker Dam release = outflow downstream      (RISE item 6130, Lake Havasu record 4371)
 const RISE_DAVIS_ID = process.env.RISE_DAVIS_ID || "6135";
 const RISE_PARKER_ID = process.env.RISE_PARKER_ID || "6130";
+const RISE_HAVASU_TEMP = process.env.RISE_HAVASU_TEMP || "6127"; // Lake Havasu water temp (DegF)
+const RISE_MOHAVE_TEMP = process.env.RISE_MOHAVE_TEMP || "6132"; // Lake Mohave water temp (DegF)
 
 const now = () => new Date().toISOString();
 
@@ -43,8 +51,9 @@ async function usgsLatest(service, site, pcode, timeoutMs = 4500) {
   }
 }
 
-// USBR RISE release (cfs). Item id pinned via env at go-live; null until then.
-async function riseRelease(itemId, name, timeoutMs = 4500) {
+// USBR RISE — latest daily value for a catalog item. RISE requires the JSON:API media
+// type (Accept: application/vnd.api+json) — application/json returns a 406.
+async function riseNum(itemId, timeoutMs = 4500) {
   if (!itemId) return null;
   const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&order%5BdateTime%5D=desc&itemsPerPage=1`;
   const ctrl = new AbortController();
@@ -52,16 +61,19 @@ async function riseRelease(itemId, name, timeoutMs = 4500) {
   try {
     const r = await fetch(url, { headers: { accept: "application/vnd.api+json" }, signal: ctrl.signal });
     if (!r.ok) throw new Error(`RISE ${itemId} -> ${r.status}`);
-    const j = await r.json();
-    const rec = (j.data || [])[0];
-    const a = rec && rec.attributes ? rec.attributes : null;
-    if (!a) return null;
-    return { name, cfs: Math.round(parseFloat(a.result)), trend: "steady", observedAt: a.dateTime, source: "USBR RISE" };
+    const a = ((await r.json()).data || [])[0]?.attributes;
+    const v = a ? parseFloat(a.result) : NaN;
+    return Number.isFinite(v) ? { value: v, at: a.dateTime } : null;
   } catch (e) {
     return null;
   } finally {
     clearTimeout(t);
   }
+}
+// Dam release (cfs).
+async function riseRelease(itemId, name) {
+  const v = await riseNum(itemId);
+  return v ? { name, cfs: Math.round(v.value), trend: "steady", observedAt: v.at, source: "USBR RISE" } : null;
 }
 
 function lakeStatus(elev) {
@@ -71,30 +83,97 @@ function lakeStatus(elev) {
   return "low";
 }
 
+// --- seasonal context + warnings (HLW-014) ---
+function contextFor(norm, value, month) {
+  if (value == null || !norm) return null;
+  const b = norm.byMonth[String(month)];
+  const level = !b ? "unknown" : value < b.p10 ? "low" : value > b.p90 ? "high" : "normal";
+  return { level, monthLo: b ? b.p10 : null, monthMed: b ? b.median : null, monthHi: b ? b.p90 : null, allLo: norm.allTime.min, allHi: norm.allTime.max };
+}
+
+// Recent daily series for a RISE item (oldest -> newest), or null.
+async function riseSeries(itemId, n = 30, timeoutMs = 5000) {
+  if (!itemId) return null;
+  const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&itemsPerPage=${n}&order%5BdateTime%5D=desc`;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { headers: { accept: "application/vnd.api+json" }, signal: ctrl.signal });
+    if (!r.ok) throw new Error(`RISE ${itemId} -> ${r.status}`);
+    const pts = ((await r.json()).data || [])
+      .map((x) => ({ date: (x.attributes.dateTime || "").slice(0, 10), value: parseFloat(x.attributes.result) }))
+      .filter((p) => p.date && Number.isFinite(p.value));
+    pts.sort((a, b) => (a.date < b.date ? -1 : 1));
+    return pts.length ? pts : null;
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// Latest release (cfs) + trend + seasonal context, from a recent series.
+function seriesToRelease(series, name, norm, month) {
+  if (!series || !series.length) return null;
+  const cfs = Math.round(series[series.length - 1].value);
+  const prev = series.length > 7 ? series[series.length - 8].value : series[0].value;
+  const trend = cfs > prev * 1.05 ? "rising" : cfs < prev * 0.95 ? "falling" : "steady";
+  return { name, cfs, trend, observedAt: series[series.length - 1].date, source: "USBR RISE", context: contextFor(norm, cfs, month) };
+}
+
+// Align Davis + Parker series by date for the mini-chart (last ~30 days).
+function buildSeries(davisS, parkerS) {
+  if (!davisS && !parkerS) return null;
+  const dmap = new Map((davisS || []).map((p) => [p.date, p.value]));
+  const pmap = new Map((parkerS || []).map((p) => [p.date, p.value]));
+  const dates = [...new Set([...dmap.keys(), ...pmap.keys()])].sort().slice(-30);
+  return {
+    dates,
+    davisIn: dates.map((d) => (dmap.has(d) ? Math.round(dmap.get(d)) : null)),
+    parkerOut: dates.map((d) => (pmap.has(d) ? Math.round(pmap.get(d)) : null)),
+  };
+}
+
+function warningsFor(lake, inflow, outflow) {
+  const w = [];
+  const n = (x) => x.toLocaleString();
+  if (inflow && inflow.context && inflow.context.level === "high")
+    w.push({ kind: "river", severity: "warning", text: `High flows on the Colorado below Davis Dam (${n(inflow.cfs)} cfs, high for the season) — expect stronger current.` });
+  if (outflow && outflow.context && outflow.context.level === "high")
+    w.push({ kind: "river", severity: "info", text: `Heavy Parker Dam releases (${n(outflow.cfs)} cfs, high for the season) downstream.` });
+  if (lake && lake.status === "low")
+    w.push({ kind: "lake", severity: "warning", text: "Lake Havasu is running below its normal level." });
+  if (inflow && inflow.context && inflow.context.level === "low")
+    w.push({ kind: "river", severity: "info", text: `Davis Dam releases are low for the season (${n(inflow.cfs)} cfs) — calmer water below the dam.` });
+  return w;
+}
+
 async function getLive() {
-  // USGS waterservices is slow from Lambda (well over NWS latency), so give it
-  // room and let each gauge fail independently rather than aborting the pair.
   const settle = async (p) => { try { return await p; } catch { return null; } };
-  const [hav, moh] = await Promise.all([
+  const month = new Date().getUTCMonth() + 1;
+  const [hav, moh, davisS, parkerS, havTemp, mohTemp] = await Promise.all([
     settle(usgsLatest("iv", "09427500", "00065", 8000)),  // Lake Havasu gage height
     settle(usgsLatest("dv", "09422500", "62614", 8000)),  // Lake Mohave elevation (NGVD29)
+    settle(riseSeries(RISE_DAVIS_ID, 30)),                 // Davis release (current + chart)
+    settle(riseSeries(RISE_PARKER_ID, 30)),                // Parker release (current + chart)
+    settle(riseNum(RISE_HAVASU_TEMP)),
+    settle(riseNum(RISE_MOHAVE_TEMP)),
   ]);
   const elev = hav ? +(hav.value + HAVASU_DATUM).toFixed(2) : null;
   const lake = hav ? {
     name: "Lake Havasu", elevationFt: elev, gageFt: hav.value, fullPoolFt: HAVASU_FULL,
-    status: lakeStatus(elev), observedAt: hav.at, datum: "NAVD88",
+    status: lakeStatus(elev), waterTempF: havTemp ? +havTemp.value.toFixed(1) : null,
+    observedAt: hav.at, datum: "NAVD88",
   } : null;
   const upstream = moh ? {
-    name: "Lake Mohave", elevationFt: +moh.value.toFixed(2), observedAt: moh.at, datum: "NGVD29",
+    name: "Lake Mohave", elevationFt: +moh.value.toFixed(2),
+    waterTempF: mohTemp ? +mohTemp.value.toFixed(1) : null, observedAt: moh.at, datum: "NGVD29",
   } : null;
-  const [inflow, outflow] = await Promise.all([
-    riseRelease(RISE_DAVIS_ID, "Davis Dam release"),
-    riseRelease(RISE_PARKER_ID, "Parker Dam release"),
-  ]);
+  const inflow = seriesToRelease(davisS, "Davis Dam release", NORMALS.davisRelease, month);
+  const outflow = seriesToRelease(parkerS, "Parker Dam release", NORMALS.parkerRelease, month);
   const notes = [];
-  if (lake && lake.status === "low") notes.push("Lake Havasu is running below its normal band.");
   if (!inflow && !outflow) notes.push("Dam release rates (USBR) coming soon.");
-  return { source: "live", lake, upstream, inflow, outflow, notes };
+  return { source: "live", lake, upstream, inflow, outflow, series: buildSeries(davisS, parkerS), warnings: warningsFor(lake, inflow, outflow), notes };
 }
 
 export async function getWater(mock) {
@@ -115,28 +194,29 @@ export async function getWater(mock) {
  * normal | low-lake | high-release. Fake, shaped like the live output.
  */
 function mockLake(elev, status) {
-  return { name: "Lake Havasu", elevationFt: elev, gageFt: +(elev - HAVASU_DATUM).toFixed(2), fullPoolFt: HAVASU_FULL, status, observedAt: now(), datum: "NAVD88" };
+  return { name: "Lake Havasu", elevationFt: elev, gageFt: +(elev - HAVASU_DATUM).toFixed(2), fullPoolFt: HAVASU_FULL, status, waterTempF: 88.0, observedAt: now(), datum: "NAVD88" };
 }
-const moh = (elev) => ({ name: "Lake Mohave", elevationFt: elev, observedAt: now(), datum: "NGVD29" });
-const rel = (name, cfs, trend) => ({ name, cfs, trend, observedAt: now(), source: "USBR RISE" });
+const moh = (elev) => ({ name: "Lake Mohave", elevationFt: elev, waterTempF: 76.0, observedAt: now(), datum: "NGVD29" });
+function mockSeries(dCur, pCur) {
+  const dates = [], davisIn = [], parkerOut = [];
+  const today = new Date();
+  for (let i = 29; i >= 0; i--) {
+    dates.push(new Date(today.getTime() - i * 86400e3).toISOString().slice(0, 10));
+    const f = 1 - i / 60;
+    davisIn.push(Math.round(dCur * (0.75 + 0.25 * f) + (i % 5) * 120));
+    parkerOut.push(Math.round(pCur * (0.8 + 0.2 * f) + (i % 4) * 90));
+  }
+  return { dates, davisIn, parkerOut };
+}
+function mockScenario(lake, upstream, dCfs, dTrend, pCfs, pTrend) {
+  const m = new Date().getUTCMonth() + 1;
+  const inflow = { name: "Davis Dam release", cfs: dCfs, trend: dTrend, observedAt: now().slice(0, 10), source: "USBR RISE", context: contextFor(NORMALS.davisRelease, dCfs, m) };
+  const outflow = { name: "Parker Dam release", cfs: pCfs, trend: pTrend, observedAt: now().slice(0, 10), source: "USBR RISE", context: contextFor(NORMALS.parkerRelease, pCfs, m) };
+  return { lake, upstream, inflow, outflow, series: mockSeries(dCfs, pCfs), warnings: warningsFor(lake, inflow, outflow), notes: [] };
+}
 
 const MOCK = {
-  "normal": () => ({
-    lake: mockLake(451.5, "full"), upstream: moh(643.1),
-    inflow: rel("Davis Dam release", 12500, "steady"),
-    outflow: rel("Parker Dam release", 9200, "steady"),
-    notes: [],
-  }),
-  "low-lake": () => ({
-    lake: mockLake(444.2, "low"), upstream: moh(638.4),
-    inflow: rel("Davis Dam release", 8000, "falling"),
-    outflow: rel("Parker Dam release", 7200, "falling"),
-    notes: ["Lake Havasu is running low for the season."],
-  }),
-  "high-release": () => ({
-    lake: mockLake(451.0, "full"), upstream: moh(644.0),
-    inflow: rel("Davis Dam release", 19500, "rising"),
-    outflow: rel("Parker Dam release", 16000, "rising"),
-    notes: ["Heavy Davis Dam releases — stronger current downstream; use caution on the water."],
-  }),
+  "normal": () => mockScenario(mockLake(451.5, "full"), moh(643.1), 12500, "steady", 9200, "steady"),
+  "low-lake": () => mockScenario(mockLake(444.2, "low"), moh(638.4), 8000, "falling", 7200, "falling"),
+  "high-release": () => mockScenario(mockLake(451.0, "full"), moh(644.0), 19500, "rising", 16000, "rising"),
 };

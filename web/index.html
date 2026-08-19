@@ -309,6 +309,13 @@
   /* ---- lake & river (USGS + USBR) ---- */
   /* NOTE: class is .lakeriver, NOT .water — .water is the background scene's lake element. */
   .lakeriver{margin-top:14px;padding:16px;}
+  .lakeriver-teaser{margin-top:14px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:inherit;cursor:pointer;transition:transform .15s ease;}
+  .lakeriver-teaser:hover{transform:translateY(-1px);}
+  .wtr-t-left{display:flex;flex-direction:column;gap:2px;}
+  .wtr-t-k{font-size:.7rem;font-weight:800;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
+  .wtr-t-lake{font-size:1.15rem;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px;}
+  .wtr-t-lake b{color:var(--teal-deep);}
+  .wtr-t-go{font-size:.82rem;font-weight:800;color:var(--coral-deep);white-space:nowrap;}
   .wtr-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;}
   .wtr-head h2{margin:0;font-size:1.05rem;font-weight:800;}
   .wtr-src{font-size:.7rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
@@ -449,16 +456,14 @@
       </div>
     </section>
 
-    <!-- LAKE & RIVER (USGS + USBR) -->
-    <section class="glass lakeriver" id="water" aria-labelledby="wtr-h" hidden>
-      <div class="wtr-head">
-        <h2 id="wtr-h">Lake &amp; river</h2>
-        <span class="wtr-src" id="wtrSrc"></span>
-      </div>
-      <div class="wtr-lake" id="wtrLake"></div>
-      <div class="wtr-flows" id="wtrFlows"></div>
-      <div class="wtr-notes" id="wtrNotes"></div>
-    </section>
+    <!-- LAKE & RIVER teaser — full detail (levels, dam releases, flow animation) on /water -->
+    <a class="glass lakeriver-teaser" id="waterTeaser" href="/water.html" hidden>
+      <span class="wtr-t-left">
+        <span class="wtr-t-k">Lake &amp; river</span>
+        <span class="wtr-t-lake"><b id="teaserLake">--</b> ft <span class="wtr-pill wtr-full" id="teaserPill">&mdash;</span></span>
+      </span>
+      <span class="wtr-t-go">Dams &amp; flow &rarr;</span>
+    </a>
 
     <!-- CHART -->
     <section class="glass chart" aria-labelledby="chart-h">
@@ -772,31 +777,20 @@
     $("cmpNotes").innerHTML=notes.map(function(n){return '<div class="cmp-note">'+esc(n)+'</div>';}).join("");
   }
 
-  /* -- lake & river -- */
-  function wtrPill(s){var m={full:["Full pool","full"],normal:["Normal","normal"],low:["Low","low"]}[s]||["—","unknown"];return '<span class="wtr-pill wtr-'+m[1]+'">'+m[0]+'</span>';}
-  function wtrFlow(label,o){
-    if(!o||o.cfs==null)return '<div class="wtr-flow"><span class="fl-k">'+label+'</span><span class="fl-v">—</span></div>';
-    var arrow=o.trend==="rising"?" ▲":o.trend==="falling"?" ▼":"";
-    return '<div class="wtr-flow"><span class="fl-k">'+label+'</span><span class="fl-v">'+o.cfs.toLocaleString()+' <small>cfs</small>'+arrow+'</span></div>';
-  }
+  /* -- lake & river teaser (full page at /water.html) -- */
   async function loadWater(){
-    // Preview-only for now: don't show the lake/river card to normal visitors
-    // until the feature is finished (RISE dam releases + final design). It only
-    // appears with ?demo=1 or ?mockWater=<scenario>. Flip this to always-on to launch.
-    if(!Q.get("mockWater") && !DEMO){ var s=$("water"); if(s) s.hidden=true; return; }
-    try{var r=await fetch(API+"/api/water"+mockQ("Water","normal"),{cache:"no-store"});renderWater(await r.json());}catch(e){}
+    try{var r=await fetch(API+"/api/water"+mockQ("Water",""),{cache:"no-store"});renderWater(await r.json());}catch(e){}
   }
   function renderWater(d){
-    var sec=$("water");if(!sec||!d)return;
+    var t=$("waterTeaser");if(!t||!d)return;
     var lake=d.lake;
-    if(!lake&&!d.upstream){sec.hidden=true;return;}
-    sec.hidden=false;
-    $("wtrSrc").textContent=d.source==="mock"?"demo data":"USGS · USBR";
-    $("wtrLake").innerHTML=lake?('<div class="wtr-lk-main"><span class="wtr-lk-name">'+esc(lake.name)+'</span>'+wtrPill(lake.status)+'</div><div class="wtr-lk-elev">'+(lake.elevationFt!=null?lake.elevationFt.toFixed(1):"--")+'<small> ft</small></div>'):"";
-    var flows=wtrFlow("Davis Dam in",d.inflow)+wtrFlow("Parker Dam out",d.outflow);
-    if(d.upstream)flows+='<div class="wtr-flow"><span class="fl-k">Lake Mohave</span><span class="fl-v">'+(d.upstream.elevationFt!=null?d.upstream.elevationFt.toFixed(1):"--")+' <small>ft</small></span></div>';
-    $("wtrFlows").innerHTML=flows;
-    $("wtrNotes").innerHTML=(d.notes||[]).map(function(n){return '<div class="wtr-note">'+esc(n)+'</div>';}).join("");
+    if(!lake||lake.elevationFt==null){t.hidden=true;return;}
+    t.hidden=false;
+    $("teaserLake").textContent=lake.elevationFt.toFixed(1);
+    var st=lake.status||"unknown";
+    var pill=$("teaserPill");
+    pill.className="wtr-pill wtr-"+(st==="low"?"low":st==="unknown"?"unknown":st);
+    pill.textContent={full:"Full",normal:"Normal",low:"Low",unknown:"—"}[st]||"—";
   }
 
   /* ---------- go ---------- */
