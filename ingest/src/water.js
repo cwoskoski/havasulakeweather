@@ -91,10 +91,13 @@ function contextFor(norm, value, month) {
   return { level, monthLo: b ? b.p10 : null, monthMed: b ? b.median : null, monthHi: b ? b.p90 : null, allLo: norm.allTime.min, allHi: norm.allTime.max };
 }
 
-// Recent daily series for a RISE item (oldest -> newest), or null.
-async function riseSeries(itemId, n = 30, timeoutMs = 5000) {
+// Recent daily series for a RISE item (oldest -> newest), or null. NB: a plain
+// order=desc query on the ~90-year release series HANGS on RISE (30s+ timeouts);
+// bounding the query to recent dates (?dateTime[after]=) returns in <1s.
+async function riseSeries(itemId, days = 40, timeoutMs = 6000) {
   if (!itemId) return null;
-  const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&itemsPerPage=${n}&order%5BdateTime%5D=desc`;
+  const after = new Date(Date.now() - days * 86400e3).toISOString().slice(0, 10);
+  const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&itemsPerPage=100&dateTime%5Bafter%5D=${after}`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
