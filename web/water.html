@@ -41,6 +41,7 @@
   /* ---- flow animation hero ---- */
   .flow-hero{position:relative;height:clamp(360px,54vh,560px);overflow:hidden;
     border-bottom:1px solid rgba(255,255,255,.08);}
+  .flow-hero[hidden]{display:none;}
   #flow{position:absolute;inset:0;width:100%;height:100%;display:block;}
   .lbl{position:absolute;left:50%;transform:translateX(-50%);z-index:3;text-align:center;
     background:rgba(6,26,32,.62);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
@@ -93,7 +94,8 @@
     <div class="title">Lake &amp; River<small>Havasu Lake, CA · Colorado River</small></div>
   </header>
 
-  <section class="flow-hero" aria-label="Lake Havasu flow: Davis Dam inflow to Parker Dam outflow">
+  <!-- flow animation hidden for now (HLW-013) — needs polish; markup + JS kept so it's a one-line un-hide -->
+  <section class="flow-hero" aria-label="Lake Havasu flow" hidden>
     <canvas id="flow"></canvas>
     <div class="lbl lbl-top">
       <div class="dam">Davis Dam <span class="dir">&darr; INFLOW</span></div>
@@ -267,7 +269,8 @@
   }
   function dam(t){var cx=centerX(t),hw=halfW(t);ctx.fillStyle="#e9d9b8";ctx.fillRect(cx-hw-6,t*H-4,hw*2+12,8);}
 
-  resize();requestAnimationFrame(frame);
+  var hero=document.querySelector(".flow-hero");
+  if(hero&&!hero.hasAttribute("hidden")){ resize(); requestAnimationFrame(frame); }
   load(); setInterval(load,300000);
 })();
 </script>
