@@ -73,6 +73,9 @@
   .card .src{font-size:.66rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
   .lk-elev{font-weight:800;font-size:2.2rem;color:var(--teal-deep);font-variant-numeric:tabular-nums;line-height:1.1;margin-top:4px;}
   .lk-elev small{font-size:.9rem;font-weight:700;color:var(--ink-soft);}
+  .lk-elev-label{font-size:.72rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;}
+  .lk-elev-note{font-size:.72rem;font-weight:600;color:var(--ink-faint);margin-top:3px;line-height:1.35;}
+  .lk-elev-note b{color:var(--ink-soft);}
   .pill{font-size:.68rem;font-weight:800;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;}
   .pill-full,.pill-normal{background:rgba(47,185,196,.2);color:var(--teal-deep);}
   .pill-low{background:rgba(255,122,77,.2);color:var(--coral-deep);}
@@ -147,13 +150,15 @@
     <div id="warnings"></div>
     <section class="card">
       <h2>Lake Havasu <span class="src" id="lakeSrc"></span></h2>
+      <div class="lk-elev-label">Surface elevation</div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div class="lk-elev"><span id="lakeElev">--</span><small> ft</small></div>
         <span class="pill pill-full" id="lakePill">&mdash;</span>
       </div>
+      <div class="lk-elev-note">height of the water above sea level &mdash; <b>not depth</b> (full pool &asymp; 450 ft)</div>
       <div class="metrics">
+        <div class="metric"><div class="k">Storage (volume)</div><div class="v"><span id="lakeStorage">--</span><small> acre-ft</small></div></div>
         <div class="metric"><div class="k">Water temp</div><div class="v"><span id="lakeTemp">--</span><small>&deg;F</small></div></div>
-        <div class="metric"><div class="k">Full pool</div><div class="v">~450<small> ft</small></div></div>
       </div>
     </section>
 
@@ -172,7 +177,7 @@
     <section class="card">
       <h2>Lake Mohave <span class="src">upstream</span></h2>
       <div class="metrics">
-        <div class="metric"><div class="k">Elevation</div><div class="v"><span id="mohElev">--</span><small> ft</small></div></div>
+        <div class="metric"><div class="k">Surface elev</div><div class="v"><span id="mohElev">--</span><small> ft</small></div></div>
         <div class="metric"><div class="k">Water temp</div><div class="v"><span id="mohTemp">--</span><small>&deg;F</small></div></div>
       </div>
     </section>
@@ -252,6 +257,7 @@
     pill.className="pill pill-"+(st==="low"?"low":st==="unknown"?"normal":st);
     pill.textContent={full:"Full pool",normal:"Normal",low:"Low",unknown:"—"}[st]||"—";
     $("lakeTemp").textContent=lake.waterTempF!=null?lake.waterTempF.toFixed(1):"--";
+    $("lakeStorage").textContent=lake.storageAf!=null?fmt(lake.storageAf):"--";
     $("mohElev").textContent=up.elevationFt!=null?up.elevationFt.toFixed(1):"--";
     $("mohTemp").textContent=up.waterTempF!=null?up.waterTempF.toFixed(1):"--";
 
