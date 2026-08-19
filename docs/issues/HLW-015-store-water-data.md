@@ -1,9 +1,9 @@
 # HLW-015: Store lake & dam data (daily snapshots) + acre-feet storage
 
-- **Status:** in-progress (built + previewed locally)
+- **Status:** done (deployed + prod-verified 2026-08-19)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/24
-- **Branch:** `feat/HLW-015-store-water-data`
-- **PR:** (opened from this branch)
+- **Branch:** `feat/HLW-015-store-water-data` (merged)
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/25 (merged)
 - **Created:** 2026-08-18
 
 ## Summary
@@ -52,8 +52,8 @@ number is unambiguous.
 - [x] Scheduled writer persists daily lake/dam snapshots incl. **acre-feet storage**.
 - [x] `/api/water` reads snapshots first, falls back to live.
 - [x] Page shows storage in acre-ft and clarifies ft = elevation, not depth.
-- [ ] Deployed; first ingest run confirmed writing `WATER#DAILY` (gated on Chad's approval).
-- [ ] `/api/water` confirmed serving `source: db` in prod after first run.
+- [x] Deployed; first ingest run wrote `WATER#DAILY` snapshot `2026-08-19`.
+- [x] `/api/water` confirmed serving `source: stored` in prod (451.97 ft / 541,741 acre-ft).
 
 ## Notes / follow-ups
 
