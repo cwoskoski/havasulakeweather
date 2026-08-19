@@ -147,6 +147,38 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${PwsIngestFunction}"
       RetentionInDays: 14
 
+  # Scheduled snapshot of lake levels, storage (acre-ft), temps, and dam releases into
+  # DynamoDB (pk = WATER#DAILY). /api/water reads these instead of hitting RISE live.
+  WaterIngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: havasu-weather-water-ingest
+      Description: Scheduled snapshot of lake/dam data into DynamoDB
+      CodeUri: ingest/
+      Handler: src/water-ingest.handler
+      Timeout: 30
+      LoggingConfig:
+        LogFormat: JSON
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref WeatherTable
+      Events:
+        Tick:
+          Type: Schedule
+          Properties:
+            Schedule: "rate(6 hours)"
+            Description: Snapshot lake & river data
+            Enabled: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WeatherTable
+
+  WaterIngestLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${WaterIngestFunction}"
+      RetentionInDays: 14
+
   Distribution:
     Type: AWS::CloudFront::Distribution
     Properties:

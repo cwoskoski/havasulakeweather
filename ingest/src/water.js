@@ -14,6 +14,12 @@
  */
 
 import { readFileSync } from "node:fs";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const WATER_TABLE = process.env.TABLE_NAME;
+const WATER_PK = "WATER#DAILY"; // one snapshot per day (levels, storage, temps, releases)
 
 // Seasonal baselines (monthly percentiles from ~decades of RISE history) used to
 // classify releases as low / normal / high for the current month — see HLW-014.
@@ -29,6 +35,8 @@ const RISE_DAVIS_ID = process.env.RISE_DAVIS_ID || "6135";
 const RISE_PARKER_ID = process.env.RISE_PARKER_ID || "6130";
 const RISE_HAVASU_TEMP = process.env.RISE_HAVASU_TEMP || "6127"; // Lake Havasu water temp (DegF)
 const RISE_MOHAVE_TEMP = process.env.RISE_MOHAVE_TEMP || "6132"; // Lake Mohave water temp (DegF)
+const RISE_HAVASU_STORAGE = process.env.RISE_HAVASU_STORAGE || "6129"; // Lake Havasu storage (acre-ft)
+const RISE_MOHAVE_STORAGE = process.env.RISE_MOHAVE_STORAGE || "6134"; // Lake Mohave storage (acre-ft)
 
 const now = () => new Date().toISOString();
 
@@ -53,17 +61,23 @@ async function usgsLatest(service, site, pcode, timeoutMs = 4500) {
 
 // USBR RISE — latest daily value for a catalog item. RISE requires the JSON:API media
 // type (Accept: application/vnd.api+json) — application/json returns a 406.
-async function riseNum(itemId, timeoutMs = 4500) {
+async function riseNum(itemId, timeoutMs = 5000) {
   if (!itemId) return null;
-  const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&order%5BdateTime%5D=desc&itemsPerPage=1`;
+  // Date-scope the query — a plain order=desc hangs on the ~90-year series (storage,
+  // elevation). We fetch recent points and take the latest.
+  const after = new Date(Date.now() - 20 * 86400e3).toISOString().slice(0, 10);
+  const url = `https://data.usbr.gov/rise/api/result?itemId=${itemId}&itemsPerPage=40&dateTime%5Bafter%5D=${after}`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const r = await fetch(url, { headers: { accept: "application/vnd.api+json" }, signal: ctrl.signal });
     if (!r.ok) throw new Error(`RISE ${itemId} -> ${r.status}`);
-    const a = ((await r.json()).data || [])[0]?.attributes;
-    const v = a ? parseFloat(a.result) : NaN;
-    return Number.isFinite(v) ? { value: v, at: a.dateTime } : null;
+    const pts = ((await r.json()).data || [])
+      .map((x) => ({ at: x.attributes.dateTime, value: parseFloat(x.attributes.result) }))
+      .filter((p) => p.at && Number.isFinite(p.value));
+    if (!pts.length) return null;
+    pts.sort((a, b) => (a.at < b.at ? -1 : 1));
+    return pts[pts.length - 1];
   } catch (e) {
     return null;
   } finally {
@@ -151,25 +165,28 @@ function warningsFor(lake, inflow, outflow) {
   return w;
 }
 
-async function getLive() {
+export async function getLive() {
   const settle = async (p) => { try { return await p; } catch { return null; } };
   const month = new Date().getUTCMonth() + 1;
-  const [hav, moh, davisS, parkerS, havTemp, mohTemp] = await Promise.all([
+  const [hav, moh, davisS, parkerS, havTemp, mohTemp, havStore, mohStore] = await Promise.all([
     settle(usgsLatest("iv", "09427500", "00065", 8000)),  // Lake Havasu gage height
     settle(usgsLatest("dv", "09422500", "62614", 8000)),  // Lake Mohave elevation (NGVD29)
     settle(riseSeries(RISE_DAVIS_ID, 30)),                 // Davis release (current + chart)
     settle(riseSeries(RISE_PARKER_ID, 30)),                // Parker release (current + chart)
     settle(riseNum(RISE_HAVASU_TEMP)),
     settle(riseNum(RISE_MOHAVE_TEMP)),
+    settle(riseNum(RISE_HAVASU_STORAGE)),                  // acre-ft
+    settle(riseNum(RISE_MOHAVE_STORAGE)),                  // acre-ft
   ]);
   const elev = hav ? +(hav.value + HAVASU_DATUM).toFixed(2) : null;
   const lake = hav ? {
     name: "Lake Havasu", elevationFt: elev, gageFt: hav.value, fullPoolFt: HAVASU_FULL,
-    status: lakeStatus(elev), waterTempF: havTemp ? +havTemp.value.toFixed(1) : null,
-    observedAt: hav.at, datum: "NAVD88",
+    status: lakeStatus(elev), storageAf: havStore ? Math.round(havStore.value) : null,
+    waterTempF: havTemp ? +havTemp.value.toFixed(1) : null, observedAt: hav.at, datum: "NAVD88",
   } : null;
   const upstream = moh ? {
     name: "Lake Mohave", elevationFt: +moh.value.toFixed(2),
+    storageAf: mohStore ? Math.round(mohStore.value) : null,
     waterTempF: mohTemp ? +mohTemp.value.toFixed(1) : null, observedAt: moh.at, datum: "NGVD29",
   } : null;
   const inflow = seriesToRelease(davisS, "Davis Dam release", NORMALS.davisRelease, month);
@@ -179,12 +196,54 @@ async function getLive() {
   return { source: "live", lake, upstream, inflow, outflow, series: buildSeries(davisS, parkerS), warnings: warningsFor(lake, inflow, outflow), notes };
 }
 
+// Read the latest stored snapshot (+ recent series) from DynamoDB — populated by the
+// scheduled water-ingest so /api/water is fast and doesn't hit RISE at request time.
+// Returns null if nothing is stored yet (then we fall back to a live fetch).
+async function getFromDb() {
+  try {
+    const r = await ddb.send(new QueryCommand({
+      TableName: WATER_TABLE,
+      KeyConditionExpression: "pk = :p",
+      ExpressionAttributeValues: { ":p": WATER_PK },
+      ScanIndexForward: false, Limit: 35,
+    }));
+    const items = r.Items || [];
+    return items.length ? snapshotsToResponse(items) : null;
+  } catch (e) {
+    console.error(JSON.stringify({ msg: "water-db-read-fail", error: String(e && e.message || e) }));
+    return null;
+  }
+}
+
+function snapshotsToResponse(items) {
+  const latest = items[0];               // newest first
+  const asc = items.slice().reverse();   // oldest -> newest
+  const month = new Date().getUTCMonth() + 1;
+  const lake = latest.havasuElevFt != null ? {
+    name: "Lake Havasu", elevationFt: latest.havasuElevFt, fullPoolFt: HAVASU_FULL,
+    status: lakeStatus(latest.havasuElevFt), storageAf: latest.havasuStorageAf ?? null,
+    waterTempF: latest.havasuTempF ?? null, observedAt: latest.date, datum: "NAVD88",
+  } : null;
+  const upstream = latest.mohaveElevFt != null ? {
+    name: "Lake Mohave", elevationFt: latest.mohaveElevFt, storageAf: latest.mohaveStorageAf ?? null,
+    waterTempF: latest.mohaveTempF ?? null, observedAt: latest.date, datum: "NGVD29",
+  } : null;
+  const davisSeries = asc.filter((s) => s.davisCfs != null).map((s) => ({ date: s.date, value: s.davisCfs }));
+  const parkerSeries = asc.filter((s) => s.parkerCfs != null).map((s) => ({ date: s.date, value: s.parkerCfs }));
+  const inflow = seriesToRelease(davisSeries, "Davis Dam release", NORMALS.davisRelease, month);
+  const outflow = seriesToRelease(parkerSeries, "Parker Dam release", NORMALS.parkerRelease, month);
+  return { source: "stored", lake, upstream, inflow, outflow, series: buildSeries(davisSeries, parkerSeries), warnings: warningsFor(lake, inflow, outflow), notes: [] };
+}
+
 export async function getWater(mock) {
   const updatedAt = now();
   if (mock) {
     const make = MOCK[mock] || MOCK.normal;
     return { updatedAt, location: "Lake Havasu", source: "mock", mock, ...make() };
   }
+  const stored = await getFromDb();
+  if (stored && (stored.lake || stored.inflow)) return { updatedAt, location: "Lake Havasu", ...stored };
+  // fallback: live fetch (before the ingest has populated the store)
   try {
     return { updatedAt, location: "Lake Havasu", ...(await getLive()) };
   } catch (e) {
@@ -197,9 +256,10 @@ export async function getWater(mock) {
  * normal | low-lake | high-release. Fake, shaped like the live output.
  */
 function mockLake(elev, status) {
-  return { name: "Lake Havasu", elevationFt: elev, gageFt: +(elev - HAVASU_DATUM).toFixed(2), fullPoolFt: HAVASU_FULL, status, waterTempF: 88.0, observedAt: now(), datum: "NAVD88" };
+  const storeAf = status === "low" ? 555000 : status === "normal" ? 595000 : 619000;
+  return { name: "Lake Havasu", elevationFt: elev, gageFt: +(elev - HAVASU_DATUM).toFixed(2), fullPoolFt: HAVASU_FULL, status, storageAf: storeAf, waterTempF: 88.0, observedAt: now(), datum: "NAVD88" };
 }
-const moh = (elev) => ({ name: "Lake Mohave", elevationFt: elev, waterTempF: 76.0, observedAt: now(), datum: "NGVD29" });
+const moh = (elev) => ({ name: "Lake Mohave", elevationFt: elev, storageAf: 1650000, waterTempF: 76.0, observedAt: now(), datum: "NGVD29" });
 function mockSeries(dCur, pCur) {
   const dates = [], davisIn = [], parkerOut = [];
   const today = new Date();
