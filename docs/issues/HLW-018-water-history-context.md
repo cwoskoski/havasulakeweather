@@ -1,8 +1,8 @@
 # HLW-018: "Compared to history" context on /water (percentile + multi-year trend)
 
-- **Status:** proposed
+- **Status:** in-progress (approved scope: callout + decades sparkline)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/28
-- **Branch:** (created on approval) `feat/HLW-018-water-history-context`
+- **Branch:** `feat/HLW-018-water-history-context`
 - **PR:** —
 - **Created:** 2026-08-19
 

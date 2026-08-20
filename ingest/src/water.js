@@ -24,6 +24,10 @@ const WATER_PK = "WATER#DAILY"; // one snapshot per day (levels, storage, temps,
 // Seasonal baselines (monthly percentiles from ~decades of RISE history) used to
 // classify releases as low / normal / high for the current month — see HLW-014.
 const NORMALS = JSON.parse(readFileSync(new URL("../data/water-normals.json", import.meta.url), "utf8"));
+// Per-year monthly-median distributions from the full backfilled record (HLW-018) — used to
+// place today's storage against decades of the same month ("lower than N% of past Augusts").
+const HISTORY = JSON.parse(readFileSync(new URL("../data/water-history.json", import.meta.url), "utf8"));
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const UA = process.env.NWS_USER_AGENT || "HavasuLakeWeather/1.0 (+https://havasulakeweather.com)";
 const HAVASU_DATUM = 402.85; // ft, gage-height → NAVD88 water-surface elevation for 09427500
@@ -105,6 +109,24 @@ function contextFor(norm, value, month) {
   return { level, monthLo: b ? b.p10 : null, monthMed: b ? b.median : null, monthHi: b ? b.p90 : null, allLo: norm.allTime.min, allHi: norm.allTime.max };
 }
 
+// Place a current value against decades of the same calendar month (HLW-018). Returns the
+// percentile (share of past years whose monthly-median was below it), the count/start of the
+// record used, and the per-year series for the sparkline. null when we have no history.
+function historyFor(field, value, month) {
+  if (value == null) return null;
+  const s = HISTORY.series[field];
+  const b = s && s.byMonth[String(month)];
+  if (!b || !b.years || !b.years.length) return null;
+  const meds = b.years.map((y) => y[1]);
+  const below = meds.filter((v) => v < value).length;
+  return {
+    percentile: Math.round((100 * below) / meds.length),
+    nYears: b.nYears, sinceYear: s.sinceYear, monthName: MONTH_NAMES[month - 1],
+    median: b.median, min: b.min, max: b.max, current: Math.round(value),
+    sparkline: b.years, // [[year, monthlyMedian], ...] oldest -> newest
+  };
+}
+
 // Recent daily series for a RISE item (oldest -> newest), or null. NB: a plain
 // order=desc query on the ~90-year release series HANGS on RISE (30s+ timeouts);
 // bounding the query to recent dates (?dateTime[after]=) returns in <1s.
@@ -184,6 +206,7 @@ export async function getLive() {
     status: lakeStatus(elev), storageAf: havStore ? Math.round(havStore.value) : null,
     waterTempF: havTemp ? +havTemp.value.toFixed(1) : null, observedAt: hav.at, datum: "NAVD88",
   } : null;
+  if (lake && lake.storageAf != null) lake.history = historyFor("havasuStorageAf", lake.storageAf, month);
   const upstream = moh ? {
     name: "Lake Mohave", elevationFt: +moh.value.toFixed(2),
     storageAf: mohStore ? Math.round(mohStore.value) : null,
@@ -224,6 +247,7 @@ function snapshotsToResponse(items) {
     status: lakeStatus(latest.havasuElevFt), storageAf: latest.havasuStorageAf ?? null,
     waterTempF: latest.havasuTempF ?? null, observedAt: latest.date, datum: "NAVD88",
   } : null;
+  if (lake && lake.storageAf != null) lake.history = historyFor("havasuStorageAf", lake.storageAf, month);
   const upstream = latest.mohaveElevFt != null ? {
     name: "Lake Mohave", elevationFt: latest.mohaveElevFt, storageAf: latest.mohaveStorageAf ?? null,
     waterTempF: latest.mohaveTempF ?? null, observedAt: latest.date, datum: "NGVD29",
@@ -257,7 +281,8 @@ export async function getWater(mock) {
  */
 function mockLake(elev, status) {
   const storeAf = status === "low" ? 555000 : status === "normal" ? 595000 : 619000;
-  return { name: "Lake Havasu", elevationFt: elev, gageFt: +(elev - HAVASU_DATUM).toFixed(2), fullPoolFt: HAVASU_FULL, status, storageAf: storeAf, waterTempF: 88.0, observedAt: now(), datum: "NAVD88" };
+  const m = new Date().getUTCMonth() + 1;
+  return { name: "Lake Havasu", elevationFt: elev, gageFt: +(elev - HAVASU_DATUM).toFixed(2), fullPoolFt: HAVASU_FULL, status, storageAf: storeAf, waterTempF: 88.0, observedAt: now(), datum: "NAVD88", history: historyFor("havasuStorageAf", storeAf, m) };
 }
 const moh = (elev) => ({ name: "Lake Mohave", elevationFt: elev, storageAf: 1650000, waterTempF: 76.0, observedAt: now(), datum: "NGVD29" });
 function mockSeries(dCur, pCur) {
