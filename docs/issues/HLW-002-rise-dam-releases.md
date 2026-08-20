@@ -1,6 +1,6 @@
 # HLW-002: Pin USBR RISE dam-release ids (Davis + Parker)
 
-- **Status:** in-progress (ids pinned + wired; live values pending RISE cooldown)
+- **Status:** done (deployed — Davis/Parker releases live in /api/water)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/3
 - **Branch:** `feat/HLW-002-rise-dam-releases`
 - **PR:** (opened from this branch)

@@ -1,9 +1,9 @@
 # HLW-010: PWA "update available — refresh" toast
 
-- **Status:** in-progress
+- **Status:** done (deployed + verified 2026-08-20)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/11
-- **Branch:** `feat/HLW-010-update-toast`
-- **PR:** (opened from this branch)
+- **Branch:** `feat/HLW-010-update-toast` (merged)
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/30 (merged)
 - **Created:** 2026-08-20
 
 ## Summary
@@ -41,10 +41,19 @@ silently — which is the point of the toast, and better than the current invisi
 
 ## Acceptance criteria
 
-- [ ] Deploying a new SW version surfaces the toast for already-installed users.
-- [ ] Tapping Refresh activates the waiting worker and reloads once (no reload loop).
-- [ ] First-ever install does **not** show the toast.
-- [ ] Works on both `/` and `/water`; 0 console errors.
+- [x] Deploying a new SW version surfaces the toast for already-installed users.
+- [x] Tapping Refresh activates the waiting worker and reloads once (no reload loop).
+- [x] First-ever install does **not** show the toast.
+- [x] Works on both `/` and `/water`; 0 console errors.
+
+## Verified in a real browser (Playwright)
+
+First install silent → simulated deploy showed the toast → Refresh activated the waiting
+worker, reloaded once, purged the old cache (only `havasu-wx-v19` remained), toast cleared.
+Deployed to prod: `sw.js` v18 + `sw-register.js` live, both pages wired.
+
+**Note:** the transition from live v17 (which still had `skipWaiting`) applies silently;
+the toast takes effect for the next update (v18 → v19+).
 
 ## Out of scope
 

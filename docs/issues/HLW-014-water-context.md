@@ -1,6 +1,6 @@
 # HLW-014: Water context (normal/low/high) + warnings + level correlation
 
-- **Status:** in-progress (built + previewed locally)
+- **Status:** done (deployed — seasonal context + warnings + 30-day chart live)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/20
 - **Branch:** `feat/HLW-014-water-context` (stacked on `feat/HLW-013-water-page`)
 - **PR:** (opened from this branch)

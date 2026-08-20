@@ -1,6 +1,6 @@
 # HLW-011: Normalize "raining now" (rate-based + debounce)
 
-- **Status:** in-progress (built + verified by replay)
+- **Status:** done (deployed — rain normalized: rate-based + 15-min debounce)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/13
 - **Branch:** `feat/HLW-011-normalize-raining`
 - **PR:** (opened from this branch)

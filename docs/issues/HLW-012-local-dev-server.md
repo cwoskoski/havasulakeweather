@@ -1,6 +1,6 @@
 # HLW-012: Local dev — run the read API locally against real data
 
-- **Status:** in-progress (built + verified locally)
+- **Status:** done (dev server: `npm run dev` → localhost against the real read API)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/14
 - **Branch:** `feat/HLW-012-local-dev-server`
 - **PR:** (opened from this branch)

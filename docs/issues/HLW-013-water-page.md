@@ -1,6 +1,6 @@
 # HLW-013: Dedicated /water page (lake, dams, flow animation)
 
-- **Status:** in-progress (built + previewed locally)
+- **Status:** done (deployed — /water page live)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/18
 - **Branch:** `feat/HLW-013-water-page` (stacked on `feat/HLW-002-rise-dam-releases`)
 - **PR:** (opened from this branch)
