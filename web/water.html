@@ -76,6 +76,15 @@
   .lk-elev-label{font-size:.72rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;}
   .lk-elev-note{font-size:.72rem;font-weight:600;color:var(--ink-faint);margin-top:3px;line-height:1.35;}
   .lk-elev-note b{color:var(--ink-soft);}
+  /* vs-history callout + decades sparkline (HLW-018) */
+  .lk-history{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);}
+  .lk-history[hidden]{display:none;}
+  .lk-hist-txt{display:flex;align-items:baseline;gap:7px;font-size:.86rem;font-weight:750;line-height:1.35;flex-wrap:wrap;}
+  .lk-hist-txt .ico{font-size:1rem;}
+  .lk-hist-txt .lo{color:var(--coral-deep);} .lk-hist-txt .hi{color:var(--teal-deep);} .lk-hist-txt .mid{color:var(--ink-soft);}
+  .lk-hist-txt .yrs{font-weight:600;font-size:.72rem;color:var(--ink-faint);}
+  .lk-spark{width:100%;height:46px;display:block;margin-top:9px;overflow:visible;}
+  .lk-spark-cap{display:flex;justify-content:space-between;font-size:.64rem;font-weight:600;color:var(--ink-faint);margin-top:3px;}
   .pill{font-size:.68rem;font-weight:800;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;}
   .pill-full,.pill-normal{background:rgba(47,185,196,.2);color:var(--teal-deep);}
   .pill-low{background:rgba(255,122,77,.2);color:var(--coral-deep);}
@@ -160,6 +169,11 @@
         <div class="metric"><div class="k">Storage (volume)</div><div class="v"><span id="lakeStorage">--</span><small> acre-ft</small></div></div>
         <div class="metric"><div class="k">Water temp</div><div class="v"><span id="lakeTemp">--</span><small>&deg;F</small></div></div>
       </div>
+      <div class="lk-history" id="lakeHistory" hidden>
+        <div class="lk-hist-txt" id="lakeHistTxt"></div>
+        <svg class="lk-spark" id="lakeSpark" viewBox="0 0 300 46" preserveAspectRatio="none" role="img" aria-label="Lake Havasu storage by year"></svg>
+        <div class="lk-spark-cap" id="lakeSparkCap"></div>
+      </div>
     </section>
 
     <section class="card">
@@ -218,6 +232,30 @@
     return '<div class="flow-row"><div class="flow-top"><span class="flow-label">'+label+'</span>'+
       '<span class="flow-val">'+fmt(o.cfs)+' <small>cfs'+arrow+'</small></span>'+chip+'</div>'+body+'</div>';
   }
+  function ordinal(n){var s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+  // "vs history" callout + decades sparkline (HLW-018)
+  function renderHistory(h){
+    var box=$("lakeHistory");
+    if(!h||h.percentile==null||!h.sparkline||h.sparkline.length<3){box.hidden=true;return;}
+    box.hidden=false;
+    var p=h.percentile, mo=h.monthName||MONTHS[new Date().getUTCMonth()+1], cls,ico,txt;
+    if(p<=25){cls="lo";ico="📉";txt="Lower than "+(100-p)+"% of past "+mo+"s";}
+    else if(p>=75){cls="hi";ico="📈";txt="Higher than "+p+"% of past "+mo+"s";}
+    else{cls="mid";ico="≈";txt="Around typical for "+mo+" ("+ordinal(p)+" percentile)";}
+    $("lakeHistTxt").innerHTML='<span class="ico">'+ico+'</span><span class="'+cls+'">'+txt+'</span><span class="yrs">'+h.nYears+' yrs on record</span>';
+    var svg=$("lakeSpark"), pts=h.sparkline, n=pts.length, W=300,H=46,pad=4;
+    var vals=pts.map(function(x){return x[1];});
+    var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),span=Math.max(1,mx-mn);
+    var X=function(i){return pad+(W-2*pad)*(n<2?0.5:i/(n-1));};
+    var Y=function(v){return H-pad-(H-2*pad)*((v-mn)/span);};
+    var d="";for(var i=0;i<n;i++){d+=(i?"L":"M")+X(i).toFixed(1)+" "+Y(vals[i]).toFixed(1);}
+    var lx=X(n-1).toFixed(1),ly=Y(vals[n-1]).toFixed(1),medY=Y(h.median).toFixed(1);
+    var dot=p<=25?"#ff8f68":p>=75?"#7fe6e2":"#eaf6f8";
+    svg.innerHTML='<line x1="'+pad+'" y1="'+medY+'" x2="'+(W-pad)+'" y2="'+medY+'" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="3 3"/>'+
+      '<path d="'+d+'" fill="none" stroke="#2fb9c4" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'+
+      '<circle cx="'+lx+'" cy="'+ly+'" r="3.3" fill="'+dot+'"/>';
+    $("lakeSparkCap").innerHTML='<span>'+pts[0][0]+'</span><span>median '+fmt(h.median)+' af (dashed)</span><span>'+pts[n-1][0]+'</span>';
+  }
   function renderWarnings(ws){
     $("warnings").innerHTML=(ws||[]).map(function(w){
       var cls=w.severity==="warning"?"warn":"info";
@@ -258,6 +296,7 @@
     pill.textContent={full:"Full pool",normal:"Normal",low:"Low",unknown:"—"}[st]||"—";
     $("lakeTemp").textContent=lake.waterTempF!=null?lake.waterTempF.toFixed(1):"--";
     $("lakeStorage").textContent=lake.storageAf!=null?fmt(lake.storageAf):"--";
+    renderHistory(lake.history);
     $("mohElev").textContent=up.elevationFt!=null?up.elevationFt.toFixed(1):"--";
     $("mohTemp").textContent=up.waterTempF!=null?up.waterTempF.toFixed(1):"--";
 
