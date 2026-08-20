@@ -1,13 +1,20 @@
 /* Havasu Lake Weather — service worker (installability + offline shell) */
-const CACHE = "havasu-wx-v17";
+const CACHE = "havasu-wx-v18";
 const SHELL = [
-  "/", "/index.html", "/water.html", "/manifest.json",
+  "/", "/index.html", "/water.html", "/manifest.json", "/sw-register.js",
   "/assets/icon-192.png", "/assets/icon-512.png", "/assets/icon-180.png",
   "/assets/venmo-qr.png", "/assets/cashapp-qr.png",
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // No skipWaiting() here — a new version parks in the "waiting" state so the page can
+  // surface an "update available" toast (HLW-010) and activate it on the user's tap.
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
+});
+
+// The page posts SKIP_WAITING when the user taps Refresh → activate this worker now.
+self.addEventListener("message", (e) => {
+  if (e.data === "SKIP_WAITING" || (e.data && e.data.type === "SKIP_WAITING")) self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {

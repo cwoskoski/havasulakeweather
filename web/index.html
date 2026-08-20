@@ -807,7 +807,7 @@
 <script>
 /* PWA: service worker + install affordance */
 (function(){
-  if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}
+  // SW registration + "update available" toast now live in /sw-register.js (HLW-010).
   var ua=navigator.userAgent;
   var isIos=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
   var iosOther=isIos&&/crios|fxios|edgios|opios/i.test(ua); // Chrome/Firefox/Edge/Opera on iOS
@@ -845,5 +845,6 @@
   }
 })();
 </script>
+<script src="/sw-register.js" defer></script>
 </body>
 </html>
