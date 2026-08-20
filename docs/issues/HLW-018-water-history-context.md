@@ -1,9 +1,9 @@
 # HLW-018: "Compared to history" context on /water (percentile + multi-year trend)
 
-- **Status:** in-progress (approved scope: callout + decades sparkline)
+- **Status:** done (deployed + prod-verified 2026-08-20)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/28
-- **Branch:** `feat/HLW-018-water-history-context`
-- **PR:** —
+- **Branch:** `feat/HLW-018-water-history-context` (merged)
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/29 (merged)
 - **Created:** 2026-08-19
 
 ## Summary
@@ -61,13 +61,23 @@ These are strong, legible statements — exactly the "is this normal?" question 
 
 ## Acceptance criteria
 
-- [ ] `build-history-stats.mjs` produces `water-history.json` (monthly per-year distributions
+- [x] `build-history-stats.mjs` produces `water-history.json` (monthly per-year distributions
       + per-year series) from the stored record; fill-period start years applied.
-- [ ] `/api/water` returns a `history` block with the current value's percentile for the month.
-- [ ] `/water` shows a clear "vs history" callout (real: "lower than ~93% of past Augusts").
-- [ ] (v2, optional) decades sparkline on the card.
-- [ ] Mock/preview path (`?mockWater=`) exercises the callout; local verify + Chad preview.
-- [ ] No new secrets; no request-time DynamoDB scan.
+- [x] `/api/water` returns a `history` block with the current value's percentile for the month.
+- [x] `/water` shows a clear "vs history" callout — live: **"Lower than 98% of past Augusts ·
+      82 yrs on record"** (storage 538,184 af = 2nd percentile).
+- [x] Decades sparkline on the card (1945→2026, dashed all-years median, current-year dot).
+- [x] Mock path exercises all callout branches (lower/higher/typical); verified against prod
+      data locally (byte-identical to a direct DynamoDB read) before deploy.
+- [x] No new secrets; no request-time DynamoDB scan (static `water-history.json` lookup).
+- [x] Bonus: `water-normals.json` release bands regenerated from full ~90yr record
+      (Davis Aug typical now 10,300–18,700 cfs, was 8,027–13,390 from the ~7yr sample).
+
+## Deployed
+
+- Ingest stack (us-west-2): read Lambda now bundles `water.js` + `water-history.json` +
+  regenerated `water-normals.json`. Site (us-east-1): `water.html` + `sw.js` v17; CF invalidated.
+- Prod verified via Playwright — callout + sparkline render, 0 console errors.
 
 ## Out of scope
 
