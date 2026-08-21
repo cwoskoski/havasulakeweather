@@ -294,6 +294,19 @@
   .fc-hour .t{font-size:1rem;font-weight:800;font-variant-numeric:tabular-nums;}
   .fc-hour .p{font-size:.7rem;font-weight:800;color:var(--teal);}
   .fc-hour .p.dim{color:var(--ink-faint);font-weight:600;}
+  /* ---- 7-day strip (HLW-019) ---- */
+  .fc-days-lbl{margin-top:14px;font-size:.7rem;font-weight:800;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
+  .fc-days-lbl[hidden]{display:none;}
+  .fc-days{display:flex;gap:6px;margin-top:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .fc-days::-webkit-scrollbar{display:none;}
+  .fc-day{flex:none;width:52px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px;border-radius:14px;background:var(--glass-bg-2);border:1px solid var(--glass-brd);}
+  .fc-day.today{background:rgba(15,127,143,.12);border-color:rgba(15,127,143,.3);}
+  .fc-day .d{font-size:.7rem;font-weight:800;color:var(--ink-soft);}
+  .fc-day .g{font-size:1.15rem;line-height:1.1;margin:1px 0;}
+  .fc-day .hi{font-size:.92rem;font-weight:800;font-variant-numeric:tabular-nums;}
+  .fc-day .lo{font-size:.78rem;font-weight:700;color:var(--ink-faint);font-variant-numeric:tabular-nums;}
+  .fc-day .p{font-size:.66rem;font-weight:800;color:var(--teal);}
+  .fc-day .p.dim{color:var(--ink-faint);font-weight:600;}
 
   /* ---- station check (our station vs a nearby PWS) ---- */
   .compare{margin-top:14px;padding:16px;}
@@ -429,6 +442,8 @@
       <div class="fc-chip" id="fcRain" hidden></div>
       <div class="fc-today" id="fcToday"></div>
       <div class="fc-hours" id="fcHours" aria-label="Next hours"></div>
+      <div class="fc-days-lbl" id="fcDaysLbl" hidden>Next 7 days</div>
+      <div class="fc-days" id="fcDays" aria-label="7-day forecast"></div>
     </section>
 
     <!-- TILES -->
@@ -749,6 +764,20 @@
       cell.innerHTML='<span class="h">'+esc(hourLbl(x.time))+'</span><span class="t">'+(x.tempF!=null?Math.round(x.tempF)+"°":"--")+'</span>'+pp;
       h.appendChild(cell);
     });
+    var days=d.days||[],dd=$("fcDays"),ddl=$("fcDaysLbl");
+    if(dd){
+      dd.innerHTML="";
+      days.forEach(function(x,i){
+        var cell=document.createElement("div");cell.className="fc-day"+(i===0?" today":"");
+        var pp=(x.precipProb!=null&&x.precipProb>0)?('<span class="p">'+x.precipProb+'%</span>'):'<span class="p dim">·</span>';
+        cell.innerHTML='<span class="d">'+(i===0?"Today":esc(x.weekday))+'</span>'+
+          '<span class="g">'+esc(x.glyph||"")+'</span>'+
+          '<span class="hi">'+(x.hiF!=null?Math.round(x.hiF)+"°":"--")+'</span>'+
+          '<span class="lo">'+(x.loF!=null?Math.round(x.loF)+"°":"--")+'</span>'+pp;
+        dd.appendChild(cell);
+      });
+      if(ddl)ddl.hidden=!days.length;
+    }
     $("fcSrc").textContent=d.source==="mock"?"demo data":"via NWS";
   }
 
