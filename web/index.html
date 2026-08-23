@@ -940,9 +940,11 @@
     if(isNaN(rise.valueOf())||isNaN(set.valueOf())){card.hidden=true;return;}
     $("sunriseT").textContent=fmt(rise);
     $("sunsetT").textContent=fmt(set);
-    var mins=Math.max(0,Math.round((set-rise)/60000));
-    $("sunDaylight").textContent=Math.floor(mins/60)+"h "+(mins%60)+"m of daylight";
     var frac=(now-rise)/(set-rise), day=frac>=0&&frac<=1, tc=Math.max(0,Math.min(1,frac));
+    var hm=function(ms){var m=Math.max(0,Math.round(ms/60000));return Math.floor(m/60)+"h "+(m%60)+"m";};
+    $("sunDaylight").textContent = now<rise ? ("Sunrise in "+hm(rise-now))
+      : now>set ? (hm(set-rise)+" of daylight today")
+      : (hm(set-now)+" of daylight left");
     var x=bez(tc,24,150,276), y=bez(tc,78,-58,78);
     var dot=$("sunDot"), halo=$("sunDotHalo");
     dot.setAttribute("cx",x.toFixed(1)); dot.setAttribute("cy",y.toFixed(1));
