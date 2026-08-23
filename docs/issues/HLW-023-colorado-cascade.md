@@ -1,6 +1,6 @@
 # HLW-023: Extend /water to the full Colorado cascade (Powell → Grand Canyon → Mead) + history
 
-- **Status:** in-progress — Phase 1+2 deployed 2026-08-23 (PR #37); Phase 3 backfill next
+- **Status:** done — all 3 phases deployed + prod-verified 2026-08-23 (PRs #37, #38)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/36
 - **Branch:** `feat/HLW-023-colorado-cascade`
 - **PR:** —
@@ -73,8 +73,12 @@ USGS gages (waterservices.usgs.gov, param 00060 cfs) for the Grand Canyon reach:
       Powell 21% · Mead 27% · Mohave 97% · Havasu 86%; Grand Canyon 70°F.
 - [x] Deploy: ingest + read Lambda + site (SW v21); ran one ingest so `/api/water` serves
       `source: stored` with the upstream fields.
-- [ ] **Phase 3 (next):** backfill decades of history (Mead/Powell/Lees Ferry) + vs-history
-      context for the new reservoirs.
+- [x] **Phase 3 done:** backfilled 38,312 rows (Mead ~1935, Powell ~1963, Lees Ferry canyon
+      1921, canyon temp 1986) merged onto existing rows; vs-history context for Mead/Powell
+      (+ Mohave) via regenerated stats. Added a **rise/drain indicator** per reservoir
+      (net = inflow − release; Powell's inflow = RISE 511, the Upper Colorado).
+- [x] Prod-verified: Powell/Mead/Havasu at their **lowest August storage on record**; Mohave p99.
+      Rise/drain + vs-history live on every cascade card. SW v22.
 
 ## Notes
 
