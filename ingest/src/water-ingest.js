@@ -18,6 +18,7 @@ const TABLE = process.env.TABLE_NAME;
 export const handler = async () => {
   const w = await getLive();
   const lake = w.lake || {}, up = w.upstream || {};
+  const c = Object.fromEntries((w.cascade || []).map((n) => [n.key, n])); // upstream cascade by key
   const date = new Date().toISOString().slice(0, 10); // UTC day; upsert keeps one/day
 
   const item = {
@@ -33,6 +34,14 @@ export const handler = async () => {
     mohaveTempF: up.waterTempF ?? null,
     davisCfs: w.inflow ? w.inflow.cfs : null,
     parkerCfs: w.outflow ? w.outflow.cfs : null,
+    // HLW-023 — upstream cascade (Powell / Grand Canyon / Mead / Hoover)
+    powellElevFt: c.powell ? c.powell.elevationFt : null,
+    powellStorageAf: c.powell ? c.powell.storageAf : null,
+    canyonCfs: c.grandcanyon ? c.grandcanyon.cfs : null,
+    canyonTempF: c.grandcanyon ? c.grandcanyon.waterTempF : null,
+    meadElevFt: c.mead ? c.mead.elevationFt : null,
+    meadStorageAf: c.mead ? c.mead.storageAf : null,
+    hooverCfs: c.hoover ? c.hoover.cfs : null,
   };
 
   // Skip writing an all-null snapshot (e.g. every upstream source hiccupped).

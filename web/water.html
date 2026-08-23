@@ -128,6 +128,34 @@
   .lg::before{content:"";width:12px;height:3px;border-radius:2px;}
   .lg-in::before{background:#2fb9c4;} .lg-out::before{background:#ff7a4d;}
   #flowChart{width:100%;height:130px;display:block;}
+  /* ---- Colorado cascade (HLW-023) ---- */
+  .cascade{display:flex;flex-direction:column;}
+  .casc-res{position:relative;display:flex;background:var(--glass);border:1px solid var(--brd);border-radius:var(--radius);padding:14px 16px 14px 18px;overflow:hidden;box-shadow:var(--shadow);}
+  .casc-res.star{border-color:rgba(127,230,226,.55);box-shadow:0 0 0 1px rgba(127,230,226,.22),var(--shadow);}
+  .casc-fill-bg{position:absolute;left:0;top:0;bottom:0;width:6px;background:rgba(255,255,255,.1);}
+  .casc-fill{position:absolute;left:0;bottom:0;width:6px;background:linear-gradient(180deg,#7fe6e2,#2fb9c4);}
+  .casc-fill.low{background:linear-gradient(180deg,#ffbf5c,#ff7a4d);}
+  .casc-body{flex:1;min-width:0;}
+  .casc-name{font-weight:800;font-size:1.06rem;display:flex;align-items:center;gap:7px;}
+  .casc-name .ico{font-size:1.05rem;}
+  .casc-dam{font-size:.66rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+  .casc-nums{display:flex;align-items:baseline;gap:13px;margin-top:7px;flex-wrap:wrap;}
+  .casc-pct{font-weight:800;font-size:1.55rem;line-height:1;color:var(--teal-deep);font-variant-numeric:tabular-nums;}
+  .casc-pct.low{color:var(--coral-deep);}
+  .casc-pct small{font-size:.66rem;font-weight:700;color:var(--ink-soft);}
+  .casc-elev{font-weight:700;font-size:.95rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .casc-meta{font-size:.78rem;font-weight:600;color:var(--ink-faint);margin-top:4px;}
+  .casc-meta b{color:var(--ink-soft);font-weight:800;}
+  .casc-flow{display:flex;flex-direction:column;align-items:center;}
+  .casc-flow .line{width:2px;height:11px;background:linear-gradient(180deg,rgba(127,230,226,.45),rgba(47,185,196,.55));}
+  .casc-flow .pill{display:flex;align-items:center;gap:9px;background:var(--glass-2);border:1px solid var(--brd);border-radius:999px;padding:5px 13px;font-size:.8rem;margin:1px 0;}
+  .casc-flow .pill .fn{color:var(--ink-faint);font-weight:700;}
+  .casc-flow .pill .fv{font-weight:800;font-variant-numeric:tabular-nums;}
+  .casc-flow .pill .ft{color:var(--teal-deep);font-weight:700;font-size:.74rem;}
+  .casc-flow .pill .cc{font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:1px 7px;border-radius:999px;}
+  .cc.chip-low{background:rgba(255,191,92,.22);color:var(--gold);} .cc.chip-normal{background:rgba(47,185,196,.2);color:var(--teal-deep);} .cc.chip-high{background:rgba(255,122,77,.24);color:var(--coral-deep);}
+  .casc-intro{font-size:.84rem;font-weight:650;color:var(--ink-soft);line-height:1.4;margin:2px 2px 4px;}
+  .casc-note{font-size:.72rem;font-weight:600;color:var(--ink-faint);text-align:center;margin-top:2px;}
   @media (min-width:560px){ .lbl .cfs{font-size:1.5rem;} }
 </style>
 </head>
@@ -157,43 +185,22 @@
 
   <main class="wpage">
     <div id="warnings"></div>
-    <section class="card">
-      <h2>Lake Havasu <span class="src" id="lakeSrc"></span></h2>
-      <div class="lk-elev-label">Surface elevation</div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <div class="lk-elev"><span id="lakeElev">--</span><small> ft</small></div>
-        <span class="pill pill-full" id="lakePill">&mdash;</span>
-      </div>
-      <div class="lk-elev-note">height of the water above sea level &mdash; <b>not depth</b> (full pool &asymp; 450 ft)</div>
-      <div class="metrics">
-        <div class="metric"><div class="k">Storage (volume)</div><div class="v"><span id="lakeStorage">--</span><small> acre-ft</small></div></div>
-        <div class="metric"><div class="k">Water temp</div><div class="v"><span id="lakeTemp">--</span><small>&deg;F</small></div></div>
-      </div>
-      <div class="lk-history" id="lakeHistory" hidden>
+    <div class="casc-intro">The Colorado, top to bottom — every drop that reaches Lake Havasu passes through these first.</div>
+    <div id="cascade" class="cascade" aria-label="Colorado River — Lake Powell down to Lake Havasu"></div>
+
+    <section class="card" id="histCard" hidden>
+      <h2>Lake Havasu · vs history <span class="src">USBR RISE</span></h2>
+      <div class="lk-history" id="lakeHistory">
         <div class="lk-hist-txt" id="lakeHistTxt"></div>
         <svg class="lk-spark" id="lakeSpark" viewBox="0 0 300 46" preserveAspectRatio="none" role="img" aria-label="Lake Havasu storage by year"></svg>
         <div class="lk-spark-cap" id="lakeSparkCap"></div>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Dam releases <span class="src">USBR RISE · daily</span></h2>
-      <div id="flowRows"></div>
-      <div class="flow-net" id="flowNetRow"></div>
-    </section>
-
     <section class="card" id="chartCard" hidden>
       <h2>Recent flow <span class="src">last 30 days · cfs</span></h2>
       <div class="chart-legend"><span class="lg lg-in">Davis in</span><span class="lg lg-out">Parker out</span></div>
       <svg id="flowChart" viewBox="0 0 320 130" preserveAspectRatio="none" role="img" aria-label="Recent dam releases"></svg>
-    </section>
-
-    <section class="card">
-      <h2>Lake Mohave <span class="src">upstream</span></h2>
-      <div class="metrics">
-        <div class="metric"><div class="k">Surface elev</div><div class="v"><span id="mohElev">--</span><small> ft</small></div></div>
-        <div class="metric"><div class="k">Water temp</div><div class="v"><span id="mohTemp">--</span><small>&deg;F</small></div></div>
-      </div>
     </section>
 
     <div id="notes"></div>
@@ -234,10 +241,43 @@
   }
   function ordinal(n){var s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
   // "vs history" callout + decades sparkline (HLW-018)
+  // ---- Colorado cascade (HLW-023) ----
+  var CASC_ICON={powell:"🏔️",mead:"🏞️",mohave:"🏞️",havasu:"⭐"};
+  function resHTML(n){
+    var pf=n.pctFull, low=pf!=null&&pf<40;
+    var meta=[];
+    if(n.storageAf!=null)meta.push('<b>'+fmt(n.storageAf)+'</b> acre-ft');
+    if(n.waterTempF!=null)meta.push('<b>'+n.waterTempF.toFixed(1)+'°F</b> water');
+    var pct=pf!=null?'<span class="casc-pct'+(low?" low":"")+'">'+pf+'<small>% full</small></span>':'';
+    var elev=n.elevationFt!=null?'<span class="casc-elev">'+fmt(n.elevationFt)+' ft</span>':'';
+    return '<div class="casc-res'+(n.star?" star":"")+'">'+
+      '<div class="casc-fill-bg"></div><div class="casc-fill'+(low?" low":"")+'" style="height:'+(pf!=null?Math.max(3,Math.min(100,pf)):0)+'%"></div>'+
+      '<div class="casc-body">'+
+        '<div class="casc-name"><span class="ico">'+(CASC_ICON[n.key]||"🏞️")+'</span>'+esc(n.name)+'</div>'+
+        '<div class="casc-dam">'+esc(n.dam)+'</div>'+
+        '<div class="casc-nums">'+pct+elev+'</div>'+
+        (meta.length?'<div class="casc-meta">'+meta.join(" · ")+'</div>':'')+
+      '</div></div>';
+  }
+  function flowHTML(n){
+    var arrow=n.trend==="rising"?" ▲":n.trend==="falling"?" ▼":"";
+    var lvl=n.context&&n.context.level;
+    var chip=(lvl&&lvl!=="unknown")?'<span class="cc chip-'+lvl+'">'+lvl+'</span>':"";
+    var temp=n.waterTempF!=null?'<span class="ft">'+Math.round(n.waterTempF)+'°F</span>':"";
+    var sub=n.sub?' · '+esc(n.sub):"";
+    return '<div class="casc-flow"><div class="line"></div>'+
+      '<div class="pill"><span class="fn">'+esc(n.name)+sub+'</span><span class="fv">'+fmt(n.cfs)+' cfs'+arrow+'</span>'+temp+chip+'</div>'+
+      '<div class="line"></div></div>';
+  }
+  function renderCascade(c){
+    var host=$("cascade"); if(!host)return;
+    host.innerHTML=(c||[]).map(function(n){return n.type==="reservoir"?resHTML(n):flowHTML(n);}).join("");
+  }
+
   function renderHistory(h){
-    var box=$("lakeHistory");
-    if(!h||h.percentile==null||!h.sparkline||h.sparkline.length<3){box.hidden=true;return;}
-    box.hidden=false;
+    var box=$("histCard");
+    if(!h||h.percentile==null||!h.sparkline||h.sparkline.length<3){if(box)box.hidden=true;return;}
+    if(box)box.hidden=false;
     var p=h.percentile, mo=h.monthName||MONTHS[new Date().getUTCMonth()+1], cls,ico,txt;
     if(p<=25){cls="lo";ico="📉";txt="Lower than "+(100-p)+"% of past "+mo+"s";}
     else if(p>=75){cls="hi";ico="📈";txt="Higher than "+p+"% of past "+mo+"s";}
@@ -287,35 +327,16 @@
   }
   function render(d){
     if(!d)return;
-    var lake=d.lake||{}, up=d.upstream||{}, inf=d.inflow, out=d.outflow;
-    $("lakeSrc").textContent=d.source==="mock"?"demo data":"USGS";
-    $("lakeElev").textContent=lake.elevationFt!=null?lake.elevationFt.toFixed(1):"--";
-    var st=lake.status||"unknown";
-    var pill=$("lakePill");
-    pill.className="pill pill-"+(st==="low"?"low":st==="unknown"?"normal":st);
-    pill.textContent={full:"Full pool",normal:"Normal",low:"Low",unknown:"—"}[st]||"—";
-    $("lakeTemp").textContent=lake.waterTempF!=null?lake.waterTempF.toFixed(1):"--";
-    $("lakeStorage").textContent=lake.storageAf!=null?fmt(lake.storageAf):"--";
-    renderHistory(lake.history);
-    $("mohElev").textContent=up.elevationFt!=null?up.elevationFt.toFixed(1):"--";
-    $("mohTemp").textContent=up.waterTempF!=null?up.waterTempF.toFixed(1):"--";
-
-    var inCfs=inf&&inf.cfs!=null?inf.cfs:null, outCfs=out&&out.cfs!=null?out.cfs:null;
-    if($("inCfs"))$("inCfs").textContent=fmt(inCfs);   // hidden animation-hero labels
-    if($("outCfs"))$("outCfs").textContent=fmt(outCfs);
-
     renderWarnings(d.warnings||[]);
-    $("flowRows").innerHTML=flowRow("Davis Dam in",inf)+flowRow("Parker Dam out",out);
-    if(inCfs!=null&&outCfs!=null){
-      var net=inCfs-outCfs;
-      $("flowNetRow").innerHTML='<span class="net-dot" style="background:'+(net>=0?"#7fe6e2":"#ff7a4d")+'"></span><span>'+(net>=0?"Filling":"Draining")+' <b>'+(net>=0?"+":"")+fmt(net)+' cfs</b></span> <span class="net-sub">(inflow − outflow)</span>';
-      if($("netTxt"))$("netTxt").innerHTML=(net>=0?"Filling ":"Draining ")+"<b>"+(net>=0?"+":"")+fmt(net)+" cfs</b>";
-    }else{ $("flowNetRow").innerHTML='<span class="net-sub">Dam release data pending (USBR).</span>'; }
+    renderCascade(d.cascade||[]);
+    renderHistory(d.lake&&d.lake.history);
     renderChart(d.series);
-
     $("notes").innerHTML=(d.notes||[]).map(function(n){return '<div class="note">'+esc(n)+'</div>';}).join("");
-
-    // drive the animation (fall back to a gentle flow if releases are pending)
+    // hidden flow-hero fallback (animation markup kept for a later pass)
+    var c={};(d.cascade||[]).forEach(function(n){c[n.key]=n;});
+    var inCfs=c.davis?c.davis.cfs:null, outCfs=c.parker?c.parker.cfs:null;
+    if($("inCfs"))$("inCfs").textContent=fmt(inCfs);
+    if($("outCfs"))$("outCfs").textContent=fmt(outCfs);
     setFlow(inCfs!=null?inCfs:11000, outCfs!=null?outCfs:9000);
   }
 

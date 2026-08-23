@@ -41,6 +41,23 @@ const RISE_HAVASU_TEMP = process.env.RISE_HAVASU_TEMP || "6127"; // Lake Havasu 
 const RISE_MOHAVE_TEMP = process.env.RISE_MOHAVE_TEMP || "6132"; // Lake Mohave water temp (DegF)
 const RISE_HAVASU_STORAGE = process.env.RISE_HAVASU_STORAGE || "6129"; // Lake Havasu storage (acre-ft)
 const RISE_MOHAVE_STORAGE = process.env.RISE_MOHAVE_STORAGE || "6134"; // Lake Mohave storage (acre-ft)
+// HLW-023 — upstream cascade: Lake Powell (Glen Canyon) + Lake Mead (Hoover) via RISE, and the
+// Grand Canyon reach via USGS Lees Ferry (09380000 — flow 00060 + water temp 00010, cold below
+// the dam). One connector flow per reservoir gap. No RISE water-temp exists for Powell/Mead.
+const RISE_POWELL_ELEV = process.env.RISE_POWELL_ELEV || "508";
+const RISE_POWELL_STORAGE = process.env.RISE_POWELL_STORAGE || "509";
+const RISE_MEAD_ELEV = process.env.RISE_MEAD_ELEV || "6123";
+const RISE_MEAD_STORAGE = process.env.RISE_MEAD_STORAGE || "6124";
+const RISE_HOOVER_RELEASE = process.env.RISE_HOOVER_RELEASE || "6125";
+const USGS_GRANDCANYON = "09380000"; // Colorado R. at Lees Ferry, below Glen Canyon Dam
+// Full-pool reference (elevation ft / live-storage capacity acre-ft) for a coarse "% full".
+// Approximate published capacities — for the % readout only, not authoritative accounting.
+const POOL = {
+  powell: { fullElevFt: 3700, capacityAf: 24322000 },
+  mead:   { fullElevFt: 1229, capacityAf: 26120000 },
+  mohave: { fullElevFt: 647,  capacityAf: 1810000 },
+  havasu: { fullElevFt: 450,  capacityAf: 619000 },
+};
 
 const now = () => new Date().toISOString();
 
@@ -187,10 +204,44 @@ function warningsFor(lake, inflow, outflow) {
   return w;
 }
 
+// --- Colorado cascade (HLW-023): ordered Powell → Havasu ---
+function pctFull(storageAf, capacityAf) {
+  return storageAf != null && capacityAf ? Math.round((100 * storageAf) / capacityAf) : null;
+}
+function reservoirNode(key, name, dam, o) {
+  if (o.elevFt == null && o.storageAf == null) return null;
+  const pool = POOL[key] || {};
+  return {
+    type: "reservoir", key, name, dam,
+    elevationFt: o.elevFt ?? null, storageAf: o.storageAf ?? null,
+    fullElevFt: pool.fullElevFt ?? null, fullStorageAf: pool.capacityAf ?? null,
+    pctFull: pctFull(o.storageAf, pool.capacityAf),
+    waterTempF: o.tempF ?? null, star: !!o.star, observedAt: o.observedAt ?? null,
+  };
+}
+function flowNode(key, name, sub, o) {
+  if (o.cfs == null) return null;
+  return { type: "flow", key, name, sub, cfs: Math.round(o.cfs), trend: o.trend ?? null, context: o.context ?? null, waterTempF: o.tempF ?? null, observedAt: o.observedAt ?? null };
+}
+// Assemble the ordered cascade from primitive values, dropping any node we have no data for.
+function buildCascade(v) {
+  return [
+    reservoirNode("powell", "Lake Powell", "Glen Canyon Dam", { elevFt: v.powellElevFt, storageAf: v.powellStorageAf, observedAt: v.powellAt }),
+    flowNode("grandcanyon", "Grand Canyon", "below Glen Canyon Dam", { cfs: v.canyonCfs, tempF: v.canyonTempF, observedAt: v.canyonAt }),
+    reservoirNode("mead", "Lake Mead", "Hoover Dam", { elevFt: v.meadElevFt, storageAf: v.meadStorageAf, observedAt: v.meadAt }),
+    flowNode("hoover", "Hoover Dam", "into Lake Mohave", { cfs: v.hooverCfs, observedAt: v.hooverAt }),
+    reservoirNode("mohave", "Lake Mohave", "Davis Dam", { elevFt: v.mohaveElevFt, storageAf: v.mohaveStorageAf, tempF: v.mohaveTempF, observedAt: v.mohaveAt }),
+    flowNode("davis", "Davis Dam", "into Lake Havasu", { cfs: v.davisCfs, trend: v.davisTrend, context: v.davisCtx, observedAt: v.davisAt }),
+    reservoirNode("havasu", "Lake Havasu", "Parker Dam", { elevFt: v.havasuElevFt, storageAf: v.havasuStorageAf, tempF: v.havasuTempF, star: true, observedAt: v.havasuAt }),
+    flowNode("parker", "Parker Dam", "downstream to Parker", { cfs: v.parkerCfs, trend: v.parkerTrend, context: v.parkerCtx, observedAt: v.parkerAt }),
+  ].filter(Boolean);
+}
+
 export async function getLive() {
   const settle = async (p) => { try { return await p; } catch { return null; } };
   const month = new Date().getUTCMonth() + 1;
-  const [hav, moh, davisS, parkerS, havTemp, mohTemp, havStore, mohStore] = await Promise.all([
+  const [hav, moh, davisS, parkerS, havTemp, mohTemp, havStore, mohStore,
+         pElev, pStore, mElev, mStore, hoov, canyonF, canyonT] = await Promise.all([
     settle(usgsLatest("iv", "09427500", "00065", 8000)),  // Lake Havasu gage height
     settle(usgsLatest("dv", "09422500", "62614", 8000)),  // Lake Mohave elevation (NGVD29)
     settle(riseSeries(RISE_DAVIS_ID, 30)),                 // Davis release (current + chart)
@@ -199,6 +250,13 @@ export async function getLive() {
     settle(riseNum(RISE_MOHAVE_TEMP)),
     settle(riseNum(RISE_HAVASU_STORAGE)),                  // acre-ft
     settle(riseNum(RISE_MOHAVE_STORAGE)),                  // acre-ft
+    settle(riseNum(RISE_POWELL_ELEV)),                     // Lake Powell elevation (ft)
+    settle(riseNum(RISE_POWELL_STORAGE)),                  // Lake Powell storage (af)
+    settle(riseNum(RISE_MEAD_ELEV)),                       // Lake Mead elevation (ft)
+    settle(riseNum(RISE_MEAD_STORAGE)),                    // Lake Mead storage (af)
+    settle(riseNum(RISE_HOOVER_RELEASE)),                  // Hoover Dam release (cfs)
+    settle(usgsLatest("iv", USGS_GRANDCANYON, "00060", 8000)), // Grand Canyon flow (cfs)
+    settle(usgsLatest("iv", USGS_GRANDCANYON, "00010", 8000)), // Grand Canyon water temp (°C)
   ]);
   const elev = hav ? +(hav.value + HAVASU_DATUM).toFixed(2) : null;
   const lake = hav ? {
@@ -214,9 +272,19 @@ export async function getLive() {
   } : null;
   const inflow = seriesToRelease(davisS, "Davis Dam release", NORMALS.davisRelease, month);
   const outflow = seriesToRelease(parkerS, "Parker Dam release", NORMALS.parkerRelease, month);
+  const cascade = buildCascade({
+    powellElevFt: pElev ? +pElev.value.toFixed(2) : null, powellStorageAf: pStore ? Math.round(pStore.value) : null, powellAt: (pElev || pStore || {}).at,
+    canyonCfs: canyonF ? canyonF.value : null, canyonTempF: canyonT ? +(canyonT.value * 9 / 5 + 32).toFixed(1) : null, canyonAt: (canyonF || {}).at,
+    meadElevFt: mElev ? +mElev.value.toFixed(2) : null, meadStorageAf: mStore ? Math.round(mStore.value) : null, meadAt: (mElev || mStore || {}).at,
+    hooverCfs: hoov ? hoov.value : null, hooverAt: (hoov || {}).at,
+    mohaveElevFt: upstream ? upstream.elevationFt : null, mohaveStorageAf: upstream ? upstream.storageAf : null, mohaveTempF: upstream ? upstream.waterTempF : null, mohaveAt: upstream ? upstream.observedAt : null,
+    davisCfs: inflow ? inflow.cfs : null, davisTrend: inflow ? inflow.trend : null, davisCtx: inflow ? inflow.context : null, davisAt: inflow ? inflow.observedAt : null,
+    havasuElevFt: lake ? lake.elevationFt : null, havasuStorageAf: lake ? lake.storageAf : null, havasuTempF: lake ? lake.waterTempF : null, havasuAt: lake ? lake.observedAt : null,
+    parkerCfs: outflow ? outflow.cfs : null, parkerTrend: outflow ? outflow.trend : null, parkerCtx: outflow ? outflow.context : null, parkerAt: outflow ? outflow.observedAt : null,
+  });
   const notes = [];
   if (!inflow && !outflow) notes.push("Dam release rates (USBR) coming soon.");
-  return { source: "live", lake, upstream, inflow, outflow, series: buildSeries(davisS, parkerS), warnings: warningsFor(lake, inflow, outflow), notes };
+  return { source: "live", lake, upstream, inflow, outflow, cascade, series: buildSeries(davisS, parkerS), warnings: warningsFor(lake, inflow, outflow), notes };
 }
 
 // Read the latest stored snapshot (+ recent series) from DynamoDB — populated by the
@@ -256,7 +324,17 @@ function snapshotsToResponse(items) {
   const parkerSeries = asc.filter((s) => s.parkerCfs != null).map((s) => ({ date: s.date, value: s.parkerCfs }));
   const inflow = seriesToRelease(davisSeries, "Davis Dam release", NORMALS.davisRelease, month);
   const outflow = seriesToRelease(parkerSeries, "Parker Dam release", NORMALS.parkerRelease, month);
-  return { source: "stored", lake, upstream, inflow, outflow, series: buildSeries(davisSeries, parkerSeries), warnings: warningsFor(lake, inflow, outflow), notes: [] };
+  const cascade = buildCascade({
+    powellElevFt: latest.powellElevFt ?? null, powellStorageAf: latest.powellStorageAf ?? null, powellAt: latest.date,
+    canyonCfs: latest.canyonCfs ?? null, canyonTempF: latest.canyonTempF ?? null, canyonAt: latest.date,
+    meadElevFt: latest.meadElevFt ?? null, meadStorageAf: latest.meadStorageAf ?? null, meadAt: latest.date,
+    hooverCfs: latest.hooverCfs ?? null, hooverAt: latest.date,
+    mohaveElevFt: latest.mohaveElevFt ?? null, mohaveStorageAf: latest.mohaveStorageAf ?? null, mohaveTempF: latest.mohaveTempF ?? null, mohaveAt: latest.date,
+    davisCfs: inflow ? inflow.cfs : latest.davisCfs, davisTrend: inflow ? inflow.trend : null, davisCtx: inflow ? inflow.context : null, davisAt: latest.date,
+    havasuElevFt: latest.havasuElevFt ?? null, havasuStorageAf: latest.havasuStorageAf ?? null, havasuTempF: latest.havasuTempF ?? null, havasuAt: latest.date,
+    parkerCfs: outflow ? outflow.cfs : latest.parkerCfs, parkerTrend: outflow ? outflow.trend : null, parkerCtx: outflow ? outflow.context : null, parkerAt: latest.date,
+  });
+  return { source: "stored", lake, upstream, inflow, outflow, cascade, series: buildSeries(davisSeries, parkerSeries), warnings: warningsFor(lake, inflow, outflow), notes: [] };
 }
 
 export async function getWater(mock) {
@@ -296,11 +374,23 @@ function mockSeries(dCur, pCur) {
   }
   return { dates, davisIn, parkerOut };
 }
+function mockCascade(lake, upstream, dCfs, pCfs) {
+  return buildCascade({
+    powellElevFt: 3519, powellStorageAf: 5203670, powellAt: now(),
+    canyonCfs: 7970, canyonTempF: 69.4, canyonAt: now(),
+    meadElevFt: 1039.3, meadStorageAf: 6930260, meadAt: now(),
+    hooverCfs: 4871, hooverAt: now(),
+    mohaveElevFt: upstream.elevationFt, mohaveStorageAf: upstream.storageAf, mohaveTempF: upstream.waterTempF, mohaveAt: now(),
+    davisCfs: dCfs, davisAt: now(),
+    havasuElevFt: lake.elevationFt, havasuStorageAf: lake.storageAf, havasuTempF: lake.waterTempF, havasuAt: now(),
+    parkerCfs: pCfs, parkerAt: now(),
+  });
+}
 function mockScenario(lake, upstream, dCfs, dTrend, pCfs, pTrend) {
   const m = new Date().getUTCMonth() + 1;
   const inflow = { name: "Davis Dam release", cfs: dCfs, trend: dTrend, observedAt: now().slice(0, 10), source: "USBR RISE", context: contextFor(NORMALS.davisRelease, dCfs, m) };
   const outflow = { name: "Parker Dam release", cfs: pCfs, trend: pTrend, observedAt: now().slice(0, 10), source: "USBR RISE", context: contextFor(NORMALS.parkerRelease, pCfs, m) };
-  return { lake, upstream, inflow, outflow, series: mockSeries(dCfs, pCfs), warnings: warningsFor(lake, inflow, outflow), notes: [] };
+  return { lake, upstream, inflow, outflow, cascade: mockCascade(lake, upstream, dCfs, pCfs), series: mockSeries(dCfs, pCfs), warnings: warningsFor(lake, inflow, outflow), notes: [] };
 }
 
 const MOCK = {
