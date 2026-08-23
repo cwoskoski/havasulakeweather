@@ -202,6 +202,13 @@
 
   .support-fab{position:fixed;right:16px;bottom:max(16px,env(safe-area-inset-bottom));z-index:20;display:inline-flex;align-items:center;gap:8px;color:#2b1810;background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:999px;padding:11px 17px;font:inherit;font-family:var(--font);font-weight:800;cursor:pointer;box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);}
   .support-fab .h{color:var(--coral-deep);}
+  /* ---- share (HLW-024) ---- */
+  .share-wrap{margin-top:12px;}
+  .btn-share{display:inline-flex;align-items:center;gap:8px;background:var(--glass-bg-2);border:1px solid var(--glass-brd);border-radius:999px;padding:9px 16px;font-family:var(--font);font-weight:800;font-size:.9rem;color:var(--ink);cursor:pointer;}
+  .btn-share .share-ico{width:17px;height:17px;color:var(--coral-deep);}
+  .share-menu{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px;}
+  .share-menu[hidden]{display:none;}
+  .share-menu button,.share-menu a{display:inline-flex;align-items:center;gap:6px;background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:12px;padding:8px 13px;font-family:var(--font);font-weight:700;font-size:.84rem;color:var(--ink);text-decoration:none;cursor:pointer;}
 
   /* ---- donation modal ---- */
   .overlay{position:fixed;inset:0;z-index:40;display:grid;place-items:end center;padding:0;background:rgba(35,15,8,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
@@ -568,6 +575,18 @@
         <svg class="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.7-10-9.2C.4 8.6 2 5 5.4 5c2 0 3.4 1.2 4.6 2.7C11.2 6.2 12.6 5 14.6 5 18 5 19.6 8.6 22 11.8 19.5 16.3 12 21 12 21z"/></svg>
         Chip in to keep it running
       </button>
+      <div class="share-wrap">
+        <button class="btn-share" id="shareBtn" type="button" aria-haspopup="true">
+          <svg class="share-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+          Share with a neighbor
+        </button>
+        <div class="share-menu" id="shareMenu" hidden>
+          <button type="button" data-s="copy">🔗 Copy link</button>
+          <a data-s="fb" target="_blank" rel="noopener">📘 Facebook</a>
+          <a data-s="sms">💬 Text</a>
+          <a data-s="email">✉️ Email</a>
+        </div>
+      </div>
     </section>
 
     <footer class="footer">
@@ -756,7 +775,11 @@
   function hourLbl(iso){try{return new Date(iso).toLocaleTimeString([],{hour:"numeric"});}catch(e){return "";}}
 
   /* -- alerts -- */
-  var alertGone={}; // session-only dismissals
+  // Dismissals persist across loads (HLW-025): { alertId: expiryMs }, pruned once expired.
+  var ALERT_KEY="havasu_alert_dismiss";
+  function alertDismissedMap(){try{return JSON.parse(localStorage.getItem(ALERT_KEY))||{};}catch(e){return {};}}
+  function pruneAlertDismissed(){var m=alertDismissedMap(),now=Date.now(),ch=false;for(var k in m){if(!(m[k]>now)){delete m[k];ch=true;}}if(ch){try{localStorage.setItem(ALERT_KEY,JSON.stringify(m));}catch(e){}}return m;}
+  function dismissAlert(id,expires){var m=alertDismissedMap();m[id]=(expires&&Date.parse(expires))||(Date.now()+864e5);try{localStorage.setItem(ALERT_KEY,JSON.stringify(m));}catch(e){}}
   function heatTone(a){return a.severity==="Extreme"?"warning":"info";} // keep routine heat calm
   function alertTone(a){return a.category==="heat"?heatTone(a):(a.tone||"info");}
   function alertIcon(a){return {flood:"🌊",heat:"🌡️",wind:"💨",thunderstorm:"⛈️",fire:"🔥",cold:"❄️"}[a.category]||"⚠️";}
@@ -765,14 +788,15 @@
   }
   function renderAlerts(list){
     var box=$("alerts");if(!box)return;box.innerHTML="";
-    list.filter(function(a){return !alertGone[a.id];}).forEach(function(a){
+    var gone=pruneAlertDismissed();
+    list.filter(function(a){return !gone[a.id];}).forEach(function(a){
       var el=document.createElement("div");
       el.className="alert alert-"+alertTone(a)+(a.category==="heat"?" is-heat":"");
       el.innerHTML='<span class="alert-ico" aria-hidden="true">'+alertIcon(a)+'</span>'+
         '<div class="alert-body"><div class="alert-event">'+esc(a.event)+'</div>'+
         '<div class="alert-head">'+esc(a.headline||"")+'</div></div>'+
         '<button class="alert-x" type="button" aria-label="Dismiss">&times;</button>';
-      el.querySelector(".alert-x").addEventListener("click",function(){alertGone[a.id]=1;el.remove();});
+      el.querySelector(".alert-x").addEventListener("click",function(){dismissAlert(a.id,a.expires);el.remove();});
       box.appendChild(el);
     });
   }
@@ -954,6 +978,42 @@
     card.classList.toggle("night",!day);
   }
   render(); setInterval(render,60000);
+})();
+</script>
+<script>
+/* Share (HLW-024) — Web Share API with a copy/Facebook/SMS/email fallback; GA-tracked. */
+(function(){
+  function ev(name,params){if(typeof window.gtag==="function")window.gtag("event",name,params||{});}
+  // Track navigating to the Lake & River page from the home teaser (HLW-024).
+  var teaser=document.getElementById("waterTeaser");
+  if(teaser)teaser.addEventListener("click",function(){ev("view_water",{source:"teaser"});});
+
+  var btn=document.getElementById("shareBtn"), menu=document.getElementById("shareMenu");
+  if(!btn||!menu)return;
+  var SHARE={title:"Havasu Lake Weather",text:"Live weather for Havasu Lake, CA",url:"https://havasulakeweather.com/"};
+  var enc=encodeURIComponent;
+  menu.querySelector('[data-s="fb"]').href="https://www.facebook.com/sharer/sharer.php?u="+enc(SHARE.url);
+  menu.querySelector('[data-s="sms"]').href="sms:?&body="+enc(SHARE.text+" "+SHARE.url);
+  menu.querySelector('[data-s="email"]').href="mailto:?subject="+enc(SHARE.title)+"&body="+enc(SHARE.text+"\n\n"+SHARE.url);
+
+  btn.addEventListener("click",function(){
+    if(navigator.share && (!navigator.canShare||navigator.canShare(SHARE))){
+      navigator.share(SHARE).then(function(){ev("share",{method:"native"});},
+        function(e){if(!e||e.name!=="AbortError")menu.hidden=false;}); // real error → show fallback
+      return;
+    }
+    menu.hidden=!menu.hidden;
+    if(!menu.hidden)ev("share_menu_open",{});
+  });
+  var copyBtn=menu.querySelector('[data-s="copy"]');
+  copyBtn.addEventListener("click",function(){
+    var done=function(){ev("share",{method:"copy"});var o=copyBtn.textContent;copyBtn.textContent="✓ Copied!";setTimeout(function(){copyBtn.textContent=o;menu.hidden=true;},1200);};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(SHARE.url).then(done).catch(function(){});
+    else done();
+  });
+  menu.querySelector('[data-s="fb"]').addEventListener("click",function(){ev("share",{method:"facebook"});});
+  menu.querySelector('[data-s="sms"]').addEventListener("click",function(){ev("share",{method:"sms"});});
+  menu.querySelector('[data-s="email"]').addEventListener("click",function(){ev("share",{method:"email"});});
 })();
 </script>
 <script src="/sw-register.js" defer></script>

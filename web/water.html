@@ -11,6 +11,22 @@
 <meta name="apple-mobile-web-app-title" content="Havasu Wx" />
 <meta name="description" content="Lake Havasu water conditions for Havasu Lake, CA — live lake level, Davis & Parker Dam releases (inflow/outflow), and water temperature." />
 <title>Lake &amp; River — Havasu Lake, CA</title>
+<!-- Google Analytics (GA4) — loads only on the live domain (page_view tracks /water visits). -->
+<script>
+  (function () {
+    var h = location.hostname;
+    if (h !== "havasulakeweather.com" && h !== "www.havasulakeweather.com") return;
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.googletagmanager.com/gtag/js?id=G-NTKCW8E330";
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag("js", new Date());
+    gtag("config", "G-NTKCW8E330");
+  })();
+</script>
 <style>
   :root{
     --ink:#eaf6f8;--ink-soft:rgba(234,246,248,.72);--ink-faint:rgba(234,246,248,.5);
