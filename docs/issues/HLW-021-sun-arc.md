@@ -1,6 +1,6 @@
 # HLW-021: Sunrise & sunset (live sun-arc, client-side)
 
-- **Status:** in-progress (approved: sun-arc strip)
+- **Status:** done (deployed + prod-verified 2026-08-23)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/34
 - **Branch:** `feat/HLW-021-sun-arc`
 - **PR:** (opened from this branch)
