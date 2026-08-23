@@ -43,20 +43,30 @@ New Ambient sensors to fix the sun-inflated temperature reading and (later) add 
 - **Page:** headline temperature = the shaded reading (the accurate one). Decide at preview
   whether to also show the in-sun array reading as a small comparison.
 
-### Phase 2 — WH31L lightning (BLOCKED on hardware)
-- Requires a GW1100/GW2000 gateway or WS-2000/WS-5000 console (a second uploader). **Decision
-  needed** (see below). Schema designed now, ingest/UI deferred until the hardware exists.
-- Fields to store (normalize distance to km; store source protocol to resolve the unit trap):
-  - Ecowitt gateway: `lightning` (km)→`lightningDistanceKm`, `lightning_num`→`lightningCountDay`,
-    `lightning_time` (epoch s)→`lightningLastStrikeAt`, `wh57batt`.
-  - WS-2000/5000 (AWN): `lightning_distance` (**miles if wind=mph**)→convert→`lightningDistanceKm`,
-    `lightning_day`→`lightningCountDay`, `lightning_time`→`lightningLastStrikeAt`, `batt_lightning`.
+### Phase 2 — WH31L lightning via a GW1100 gateway (DECIDED; hardware pending)
+Lightning path = **Ecowitt GW1100** gateway (~$40) as a second uploader. Order it; expect
+cross-brand pairing to usually work (WH31L is a Fine-Offset WH57 equivalent) — if it won't
+pair, the fallback is an Ecowitt WH57 or a WS-2000/5000 console.
 
-## Open decision
+- **Ecowitt fields (distance already in km — no unit conversion):**
+  `lightning` (km) → `lightningDistanceKm`, `lightning_num` → `lightningCountDay`,
+  `lightning_time` (epoch s) → `lightningLastStrikeAt`, `wh57batt` → battery.
+- **Second-uploader handling (the real work):** the GW1100 posts a **separate** HTTP request
+  with its **own PASSKEY** (Ecowitt = uppercase MD5 of the gateway MAC) and it will also relay
+  any other sensors it hears (main array, WH31) — risking duplicate obs.
+  - Add the gateway's PASSKEY to `ALLOWED_STATION_KEYS`.
+  - Store the gateway feed under its **own station key** (separate `pk`) so it doesn't collide
+    with the WS-2902 series; the read API pulls **lightning only** from the gateway feed while
+    temp/wind/etc. stay sourced from the WS-2902. (Alternatively point the GW1100 at a distinct
+    path.) Decide at build.
+  - Ecowitt POSTs use different field names than AWN — parse lightning defensively.
+- **Page/API:** a lightning indicator (last strike distance + time + today's count), likely a
+  tile or a transient banner when a strike is recent/close. Design when the gateway is in hand.
 
-- **Lightning path:** buy a **GW1100/GW2000 gateway** (cheapest 2nd uploader, Ecowitt fields),
-  add a **WS-2000/WS-5000 console** (Ambient-native), or **defer/return the WH31L**? This drives
-  whether Phase 2 happens at all and what field mapping we build.
+## Decision — resolved
+
+- **Lightning path: GW1100 Ecowitt gateway** (chosen over a WS-2000/5000 console for cost).
+  Order it; Phase 2 ingest is gated on it arriving + pairing the WH31L.
 
 ## Acceptance criteria
 
