@@ -65,8 +65,23 @@ pair, the fallback is an Ecowitt WH57 or a WS-2000/5000 console.
 
 ## Decision — resolved
 
-- **Lightning path: GW1100 Ecowitt gateway** (chosen over a WS-2000/5000 console for cost).
-  Order it; Phase 2 ingest is gated on it arriving + pairing the WH31L.
+- **Lightning path: GW1100 Ecowitt gateway** — **purchased, arriving Wed** (same as the WH31E).
+  (Chosen over GW1200BU/GW2000: the GW1200 adds no weather-sensor capacity — identical channel
+  counts, no display on any of them; GW2000 only matters for external-antenna range / Ethernet.
+  All upload via the same Ecowitt customized protocol, so our ingest is unchanged regardless.)
+
+## Rollout timeline
+
+| When | Arrives | Do |
+|---|---|---|
+| **Wed** | WH31E + GW1100 | WH31E → **CH1**, batteries in (console registers it → `temp1f`/`humidity1` start posting). GW1100 → power + Wi-Fi; point its **customized-server** upload at our CloudFront endpoint (Ecowitt), note its **PASSKEY**. Its posts are *rejected* until we add that key — so no accidental duplicate feed. |
+| **Fri** | WH31-SRS shield | Mount the WH31E inside it, shaded/ventilated → true air temp. Then build **Phase 1**. |
+| **Aug 31** | WH31L | Pair to the GW1100; lightning starts flowing → build **Phase 2** (add GW1100 key to allow-list, store under its own station key, surface lightning). |
+
+Note: the GW1100 will overhear the main array + WH31E and try to upload them too — but because
+its PASSKEY isn't allow-listed until Phase 2, none of that is stored, so no dedup problem exists
+before lightning is real. When we do allow it, we store its feed under a separate `pk` and pull
+**lightning only** from it.
 
 ## Acceptance criteria
 
