@@ -1,6 +1,6 @@
 # HLW-019: 7-day forecast strip on the home page
 
-- **Status:** in-progress (approved: compact strip)
+- **Status:** done (deployed + prod-verified 2026-08-23)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/31
 - **Branch:** `feat/HLW-019-seven-day-forecast`
 - **PR:** (opened from this branch)
