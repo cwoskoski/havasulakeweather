@@ -146,6 +146,10 @@
   .casc-elev{font-weight:700;font-size:.95rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
   .casc-meta{font-size:.78rem;font-weight:600;color:var(--ink-faint);margin-top:4px;}
   .casc-meta b{color:var(--ink-soft);font-weight:800;}
+  .casc-net{font-size:.74rem;font-weight:800;padding:2px 10px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .casc-net.rise{background:rgba(47,185,196,.18);color:var(--teal-deep);}
+  .casc-net.drain{background:rgba(255,122,77,.2);color:var(--coral-deep);}
+  .casc-net.steady{background:var(--glass-2);color:var(--ink-faint);}
   .casc-flow{display:flex;flex-direction:column;align-items:center;}
   .casc-flow .line{width:2px;height:11px;background:linear-gradient(180deg,rgba(127,230,226,.45),rgba(47,185,196,.55));}
   .casc-flow .pill{display:flex;align-items:center;gap:9px;background:var(--glass-2);border:1px solid var(--brd);border-radius:999px;padding:5px 13px;font-size:.8rem;margin:1px 0;}
@@ -250,12 +254,18 @@
     if(n.waterTempF!=null)meta.push('<b>'+n.waterTempF.toFixed(1)+'°F</b> water');
     var pct=pf!=null?'<span class="casc-pct'+(low?" low":"")+'">'+pf+'<small>% full</small></span>':'';
     var elev=n.elevationFt!=null?'<span class="casc-elev">'+fmt(n.elevationFt)+' ft</span>':'';
+    var net="";
+    if(n.netCfs!=null){
+      if(n.netTrend==="rising")net='<span class="casc-net rise">▲ Rising +'+fmt(n.netCfs)+' cfs</span>';
+      else if(n.netTrend==="draining")net='<span class="casc-net drain">▼ Draining '+fmt(n.netCfs)+' cfs</span>';
+      else net='<span class="casc-net steady">~ Holding steady</span>';
+    }
     return '<div class="casc-res'+(n.star?" star":"")+'">'+
       '<div class="casc-fill-bg"></div><div class="casc-fill'+(low?" low":"")+'" style="height:'+(pf!=null?Math.max(3,Math.min(100,pf)):0)+'%"></div>'+
       '<div class="casc-body">'+
         '<div class="casc-name"><span class="ico">'+(CASC_ICON[n.key]||"🏞️")+'</span>'+esc(n.name)+'</div>'+
         '<div class="casc-dam">'+esc(n.dam)+'</div>'+
-        '<div class="casc-nums">'+pct+elev+'</div>'+
+        '<div class="casc-nums">'+pct+elev+net+'</div>'+
         (meta.length?'<div class="casc-meta">'+meta.join(" · ")+'</div>':'')+
       '</div></div>';
   }

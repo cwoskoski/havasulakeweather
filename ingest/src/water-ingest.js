@@ -37,6 +37,7 @@ export const handler = async () => {
     // HLW-023 — upstream cascade (Powell / Grand Canyon / Mead / Hoover)
     powellElevFt: c.powell ? c.powell.elevationFt : null,
     powellStorageAf: c.powell ? c.powell.storageAf : null,
+    powellInflowCfs: w.powellInflowCfs ?? null,
     canyonCfs: c.grandcanyon ? c.grandcanyon.cfs : null,
     canyonTempF: c.grandcanyon ? c.grandcanyon.waterTempF : null,
     meadElevFt: c.mead ? c.mead.elevationFt : null,
