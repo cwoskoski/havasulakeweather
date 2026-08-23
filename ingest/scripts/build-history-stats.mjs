@@ -26,8 +26,9 @@ const TODAY = new Date().toISOString().slice(0, 10);
 
 // Reservoir normal-operations start year (exclude the initial fill, which isn't a "drought low").
 // Parker Dam op ~1938 (Havasu fill done ~1940); Davis Dam op 1951; Mohave fill done ~1954.
-const SINCE = { havasuStorageAf: 1945, mohaveStorageAf: 1955, davisCfs: 1952, parkerCfs: 1941 };
-const STORAGE_FIELDS = ["havasuStorageAf", "mohaveStorageAf"];
+// Mead fill done ~1941; Powell took until ~1980 to first fill, so its "vs history" starts 1981.
+const SINCE = { havasuStorageAf: 1945, mohaveStorageAf: 1955, davisCfs: 1952, parkerCfs: 1941, meadStorageAf: 1945, powellStorageAf: 1981 };
+const STORAGE_FIELDS = ["havasuStorageAf", "mohaveStorageAf", "meadStorageAf", "powellStorageAf"];
 const RELEASE_FIELDS = ["davisCfs", "parkerCfs"];
 const ALL_FIELDS = [...STORAGE_FIELDS, ...RELEASE_FIELDS];
 
@@ -52,7 +53,7 @@ async function loadAll() {
       TableName: TABLE,
       KeyConditionExpression: "pk = :p",
       ExpressionAttributeValues: { ":p": "WATER#DAILY" },
-      ProjectionExpression: "sk, havasuStorageAf, mohaveStorageAf, davisCfs, parkerCfs",
+      ProjectionExpression: "sk, havasuStorageAf, mohaveStorageAf, meadStorageAf, powellStorageAf, davisCfs, parkerCfs",
       ExclusiveStartKey: key,
     }));
     rows.push(...(r.Items || []));

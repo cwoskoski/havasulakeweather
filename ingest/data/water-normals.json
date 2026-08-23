@@ -1,14 +1,14 @@
 {
-  "computedFrom": "USBR RISE daily observations (full record via stored WATER#DAILY, through 2026-08-20)",
+  "computedFrom": "USBR RISE daily observations (full record via stored WATER#DAILY, through 2026-08-23)",
   "davisRelease": {
     "riseItem": "6135",
     "unit": "cfs",
     "sampleFrom": "1952-01-01",
-    "sampleTo": "2026-08-20",
-    "n": 27261,
+    "sampleTo": "2026-08-23",
+    "n": 27264,
     "allTime": {
       "min": 1080,
-      "p10": 6632,
+      "p10": 6630,
       "median": 12900,
       "p90": 18700,
       "max": 44106
@@ -80,13 +80,13 @@
     "riseItem": "6130",
     "unit": "cfs",
     "sampleFrom": "1941-01-01",
-    "sampleTo": "2026-08-20",
-    "n": 31276,
+    "sampleTo": "2026-08-23",
+    "n": 31279,
     "allTime": {
       "min": 30,
       "p10": 5015,
-      "median": 11011,
-      "p90": 18244,
+      "median": 11010,
+      "p90": 18242,
       "max": 40000
     },
     "byMonth": {
@@ -126,9 +126,9 @@
         "p90": 17950
       },
       "8": {
-        "p10": 8504,
+        "p10": 8501,
         "median": 12100,
-        "p90": 17348
+        "p90": 17330
       },
       "9": {
         "p10": 7501,
