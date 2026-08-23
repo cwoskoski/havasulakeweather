@@ -138,6 +138,49 @@ function rainSoonFrom(hourly = []) {
   return { likely: at != null, withinHours, at, maxProbNext12h: maxProb };
 }
 
+// Collapse the NWS day/night periods into up to 7 calendar days for the forecast strip:
+// daytime period -> high, following night -> low, precip = max of the two. A dependency-free
+// condition glyph is mapped from the forecast text (no external icon images).
+const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function glyphFor(text = "", day = true) {
+  const s = text.toLowerCase();
+  // Fully-qualified emoji (with U+FE0F where needed) so they render in color, not monochrome.
+  if (/thunder|t-?storm/.test(s)) return "⛈️";
+  if (/snow|flurr|wintry|sleet|blizzard/.test(s)) return "🌨️";
+  if (/rain|shower|drizzle/.test(s)) return "🌧️";
+  if (/fog|haze|smoke|mist/.test(s)) return "🌫️";
+  if (/(overcast|mostly cloudy|broken clouds)/.test(s)) return "☁️";
+  if (/(partly|mostly sunny|partly cloudy|few clouds|scattered clouds)/.test(s)) return day ? "🌤️" : "🌙";
+  if (/(sunny|clear|fair|hot)/.test(s)) return day ? "☀️" : "🌙";
+  return day ? "☀️" : "🌙";
+}
+function buildDays(periods = []) {
+  const byDate = new Map(); // localDate -> { day, night }
+  for (const p of periods) {
+    const date = (p.startTime || "").slice(0, 10); // NWS startTime carries the local offset
+    if (!date) continue;
+    if (!byDate.has(date)) byDate.set(date, {});
+    if (p.isDaytime) byDate.get(date).day = p; else byDate.get(date).night = p;
+  }
+  const out = [];
+  for (const [date, { day, night }] of byDate) {
+    const lead = day || night; // if today's daytime already passed, the night leads
+    const pd = pop(day), pn = pop(night);
+    out.push({
+      date,
+      weekday: WEEKDAY[new Date(`${date}T12:00:00Z`).getUTCDay()],
+      hiF: day ? day.temperature : null,
+      loF: night ? night.temperature : null,
+      precipProb: pd == null && pn == null ? null : Math.max(pd ?? 0, pn ?? 0),
+      shortForecast: (lead && lead.shortForecast) || "",
+      glyph: glyphFor(lead && lead.shortForecast, !!day),
+      isDaytime: !!day,
+    });
+    if (out.length >= 7) break;
+  }
+  return out;
+}
+
 export async function getForecast(mock) {
   const updatedAt = new Date().toISOString();
   if (mock) {
@@ -149,6 +192,7 @@ export async function getForecast(mock) {
     nwsFetch(`/gridpoints/${GRID}/forecast/hourly`),
   ]);
   const hourlyN = normHourly(hourly?.properties?.periods);
+  const periods = daily?.properties?.periods;
   return {
     updatedAt,
     location: LOCATION,
@@ -156,7 +200,8 @@ export async function getForecast(mock) {
     office: GRID.split("/")[0],
     rainSoon: rainSoonFrom(hourlyN),
     hourly: hourlyN,
-    daily: normDaily(daily?.properties?.periods),
+    daily: normDaily(periods),
+    days: buildDays(periods),
   };
 }
 
@@ -238,13 +283,31 @@ function mockDaily(wet) {
   ];
 }
 
+// Seven fake calendar days shaped like buildDays() output, for ?mockForecast=.
+function mockDays(wet) {
+  const hi = [108, 110, 107, 101, 105, 107, 109], lo = [82, 84, 81, 79, 80, 82, 83];
+  const sf = wet
+    ? ["Sunny", "Sunny", "Mostly Sunny", "Showers And Thunderstorms Likely", "Partly Sunny", "Sunny", "Sunny"]
+    : ["Sunny", "Sunny", "Sunny", "Mostly Sunny", "Sunny", "Sunny", "Sunny"];
+  const pp = wet ? [5, 5, 20, 60, 30, 10, 5] : [0, 0, 5, 10, 5, 0, 0];
+  const base = Date.now();
+  return sf.map((s, i) => {
+    const date = new Date(base + i * 86400e3).toISOString().slice(0, 10);
+    return {
+      date, weekday: WEEKDAY[new Date(`${date}T12:00:00Z`).getUTCDay()],
+      hiF: hi[i], loF: lo[i], precipProb: pp[i] || null,
+      shortForecast: s, glyph: glyphFor(s, true), isDaytime: true,
+    };
+  });
+}
+
 const MOCK_FORECAST = {
   "rain": () => {
     const hourly = mockHourly([10, 20, 40, 60, 70, 50, 30, 20, 10, 10, 5, 5], 104);
-    return { office: "VEF", rainSoon: rainSoonFrom(hourly), hourly, daily: mockDaily(true) };
+    return { office: "VEF", rainSoon: rainSoonFrom(hourly), hourly, daily: mockDaily(true), days: mockDays(true) };
   },
   "clear": () => {
     const hourly = mockHourly([0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0], 103);
-    return { office: "VEF", rainSoon: rainSoonFrom(hourly), hourly, daily: mockDaily(false) };
+    return { office: "VEF", rainSoon: rainSoonFrom(hourly), hourly, daily: mockDaily(false), days: mockDays(false) };
   },
 };
