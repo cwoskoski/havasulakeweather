@@ -150,6 +150,9 @@
   .casc-net.rise{background:rgba(47,185,196,.18);color:var(--teal-deep);}
   .casc-net.drain{background:rgba(255,122,77,.2);color:var(--coral-deep);}
   .casc-net.steady{background:var(--glass-2);color:var(--ink-faint);}
+  .casc-hist{font-size:.76rem;font-weight:750;margin-top:6px;}
+  .casc-hist.drain{color:var(--coral-deep);} .casc-hist.rise{color:var(--teal-deep);} .casc-hist.steady{color:var(--ink-soft);}
+  .casc-hist .yrs{font-weight:600;color:var(--ink-faint);font-size:.68rem;}
   .casc-flow{display:flex;flex-direction:column;align-items:center;}
   .casc-flow .line{width:2px;height:11px;background:linear-gradient(180deg,rgba(127,230,226,.45),rgba(47,185,196,.55));}
   .casc-flow .pill{display:flex;align-items:center;gap:9px;background:var(--glass-2);border:1px solid var(--brd);border-radius:999px;padding:5px 13px;font-size:.8rem;margin:1px 0;}
@@ -260,6 +263,15 @@
       else if(n.netTrend==="draining")net='<span class="casc-net drain">▼ Draining '+fmt(n.netCfs)+' cfs</span>';
       else net='<span class="casc-net steady">~ Holding steady</span>';
     }
+    var hist="";
+    var h=n.history;
+    if(h&&h.percentile!=null){
+      var p=h.percentile, mo=h.monthName, ico,hc,ht;
+      if(p<=25){ico="📉";hc="drain";ht=p===0?("Lowest "+mo+" on record"):("Lower than "+(100-p)+"% of past "+mo+"s");}
+      else if(p>=75){ico="📈";hc="rise";ht=p>=100?("Highest "+mo+" on record"):("Higher than "+p+"% of past "+mo+"s");}
+      else{ico="≈";hc="steady";ht="Typical for "+mo;}
+      hist='<div class="casc-hist '+hc+'">'+ico+' '+ht+' <span class="yrs">('+h.nYears+' yrs)</span></div>';
+    }
     return '<div class="casc-res'+(n.star?" star":"")+'">'+
       '<div class="casc-fill-bg"></div><div class="casc-fill'+(low?" low":"")+'" style="height:'+(pf!=null?Math.max(3,Math.min(100,pf)):0)+'%"></div>'+
       '<div class="casc-body">'+
@@ -267,6 +279,7 @@
         '<div class="casc-dam">'+esc(n.dam)+'</div>'+
         '<div class="casc-nums">'+pct+elev+net+'</div>'+
         (meta.length?'<div class="casc-meta">'+meta.join(" · ")+'</div>':'')+
+        hist+
       '</div></div>';
   }
   function flowHTML(n){
