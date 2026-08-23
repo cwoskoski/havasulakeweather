@@ -1,6 +1,6 @@
 # HLW-023: Extend /water to the full Colorado cascade (Powell → Grand Canyon → Mead) + history
 
-- **Status:** proposed
+- **Status:** in-progress (layout: vertical river cascade)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/36
 - **Branch:** `feat/HLW-023-colorado-cascade`
 - **PR:** —
@@ -30,7 +30,10 @@ USGS gages (waterservices.usgs.gov, param 00060 cfs) for the Grand Canyon reach:
 | Colorado R. **near Grand Canyon** | `09402500` | 7,530 cfs | ~1922 |
 | Colorado R. abv Diamond Creek nr Peach Springs | `09404200` | 8,350 cfs | recent |
 
-- **No RISE water temp** for Mead/Powell — omit temp for those two (Havasu/Mohave keep theirs).
+- **Water temp availability (verified):** Havasu ✓ (RISE 6127), Mohave ✓ (RISE 6132),
+  **Grand Canyon / Lees Ferry ✓** (USGS 09380000 param 00010, ~69°F). **Mead ✗, Powell ✗** —
+  RISE has no reservoir water-temp for those two. So the reach gage = **Lees Ferry 09380000**
+  (gives flow *and* the cold below-the-dam temp); Mead/Powell show elevation + storage only.
 - Existing (unchanged): Havasu/Mohave elevation (USGS), storage/temp (RISE 6129/6134/6127/6132),
   Davis release 6135, Parker release 6130.
 
