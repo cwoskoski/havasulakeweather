@@ -6,6 +6,17 @@
 (function () {
   if (!("serviceWorker" in navigator)) return;
 
+  // Dev: never keep a service worker on localhost — it caches the app shell and forces
+  // a fresh port between edits (the cache is scoped to scheme+host+port). Unregister any
+  // leftover worker + clear its caches, then bail. Production (havasulakeweather.com)
+  // registers as normal, so this is a no-op there.
+  var host = location.hostname;
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+    navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); }).catch(function () {});
+    if (window.caches && caches.keys) caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); }).catch(function () {});
+    return;
+  }
+
   var refreshing = false;
   navigator.serviceWorker.addEventListener("controllerchange", function () {
     if (refreshing) return;      // the waiting worker took control — reload once to pick it up
