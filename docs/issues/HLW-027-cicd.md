@@ -1,6 +1,6 @@
 # HLW-027: CI/CD with GitHub Actions — PR checks + deploy on merge to main
 
-- **Status:** in-progress (built; CI green; OIDC bootstrapped — awaiting merge of #52)
+- **Status:** done — shipped 2026-08-24. CI/CD live; #52/#53/#54 merged; OIDC bootstrapped; deploy verified on the live site (ingest deployed, keys preserved, API 200). Merge to `main` now deploys via GitHub Actions.
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/51
 - **Branch:** `feat/HLW-027-cicd`
 - **Created:** 2026-08-23
