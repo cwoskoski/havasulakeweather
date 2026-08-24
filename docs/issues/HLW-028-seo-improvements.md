@@ -1,6 +1,6 @@
 # HLW-028: SEO — get havasulakeweather.com ranking for local weather queries
 
-- **Status:** proposed
+- **Status:** in-progress — Phase 1 built + previewed (0 console errors), in PR
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/56
 - **Branch:** `feat/HLW-028-seo` (Phase 1; later phases may use their own branches)
 - **PR:** <url>
@@ -30,17 +30,17 @@ duplicate `www` host, and `/water` (extensionless) returning a raw S3 403.
 
 ### Phase 1 — quick wins (`web/` only, rides normal CI/CD)
 
-- [ ] `web/sitemap.xml`: add `/water.html` + `/radar.html`; stamp `lastmod` in the deploy
-      workflow instead of hand-maintaining it (current value is stale).
-- [ ] `web/water.html` + `web/radar.html`: add canonical, OG/Twitter tags, an `<h1>`, and
-      BreadcrumbList JSON-LD. Retitle water page around "Lake Havasu Water Level, Dam
+- [x] `web/sitemap.xml`: added `/water.html` + `/radar.html` (lastmod set to the change
+      date, 2026-08-24). Deploy-workflow auto-stamp of `lastmod` deferred.
+- [x] `web/water.html` + `web/radar.html`: canonical, OG/Twitter tags, an `<h1>`, and
+      WebPage + BreadcrumbList JSON-LD. Water page retitled "Lake Havasu Water Level, Dam
       Releases & Water Temperature — Live (Havasu Lake, CA)".
-- [ ] Add "Havasu Landing" + "Colorado River" to homepage About copy and as
-      `Place.alternateName` in the JSON-LD; add `sameAs` (Wikipedia "Havasu Lake,
-      California", GNIS) to the `Place` node.
-- [ ] Static footer nav on all three pages with keyword anchors
+- [x] "Havasu Landing" + "Colorado River" added to homepage About copy and to
+      `Place.alternateName`; `sameAs` added — Wikipedia "Havasu Lake, California" +
+      Wikidata Q14682145 (which carries GNIS 1660731).
+- [x] Static footer nav on all three pages with keyword anchors
       ("Live conditions · Radar · Lake Havasu water level") — always visible, no JS gate.
-- [ ] Bump `web/sw.js` CACHE version.
+- [x] Bumped `web/sw.js` CACHE → v32.
 - [ ] No-code: verify Google Search Console + Bing Webmaster Tools, submit sitemap (Chad).
 
 ### Phase 2 — infra (`site-template.yaml`, separate approval)

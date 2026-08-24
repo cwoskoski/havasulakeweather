@@ -47,7 +47,7 @@
     { "@type": "WebSite", "@id": "https://havasulakeweather.com/#website", "url": "https://havasulakeweather.com/", "name": "Havasu Lake Weather", "alternateName": "Havasu Lake, CA Weather", "description": "Live outdoor weather for Havasu Lake, California — temperature, wind, rain, UV and 24-hour history from a personal Ambient Weather station.", "inLanguage": "en-US", "publisher": { "@id": "https://havasulakeweather.com/#operator" } },
     { "@type": "WebPage", "@id": "https://havasulakeweather.com/#webpage", "url": "https://havasulakeweather.com/", "name": "Havasu Lake, CA Weather — Live Conditions", "isPartOf": { "@id": "https://havasulakeweather.com/#website" }, "primaryImageOfPage": "https://havasulakeweather.com/assets/og-image.png", "about": { "@id": "https://havasulakeweather.com/#place" }, "description": "Real-time temperature, wind, rain, UV, humidity and pressure for Havasu Lake, California, from a personal Ambient Weather WS-2902D station." },
     { "@type": "Person", "@id": "https://havasulakeweather.com/#operator", "name": "Chad Woskoski", "description": "Local resident who operates and maintains the Havasu Lake, CA community weather station." },
-    { "@type": "Place", "@id": "https://havasulakeweather.com/#place", "name": "Havasu Lake, California", "alternateName": "Havasu Lake, CA", "description": "Community on the California shore of Lake Havasu in San Bernardino County — distinct from Lake Havasu City, Arizona.", "geo": { "@type": "GeoCoordinates", "latitude": 34.4822, "longitude": -114.4138 }, "address": { "@type": "PostalAddress", "addressLocality": "Havasu Lake", "addressRegion": "CA", "postalCode": "92363", "addressCountry": "US" }, "containedInPlace": { "@type": "AdministrativeArea", "name": "San Bernardino County, California" } }
+    { "@type": "Place", "@id": "https://havasulakeweather.com/#place", "name": "Havasu Lake, California", "alternateName": ["Havasu Lake, CA", "Havasu Landing", "Havasu Landing, CA"], "description": "Community on the California (Colorado River) shore of Lake Havasu in San Bernardino County — home to the Havasu Landing Resort & Casino — distinct from Lake Havasu City, Arizona.", "geo": { "@type": "GeoCoordinates", "latitude": 34.4822, "longitude": -114.4138 }, "address": { "@type": "PostalAddress", "addressLocality": "Havasu Lake", "addressRegion": "CA", "postalCode": "92363", "addressCountry": "US" }, "containedInPlace": { "@type": "AdministrativeArea", "name": "San Bernardino County, California" }, "sameAs": ["https://en.wikipedia.org/wiki/Havasu_Lake,_California", "https://www.wikidata.org/wiki/Q14682145"] }
   ]
 }
 </script>
@@ -102,6 +102,8 @@
   .page{position:relative;z-index:2;max-width:720px;margin:0 auto;padding:max(26px,env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:16px;min-height:100vh;}
   .glass{background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:var(--radius);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  .ftnav{margin-top:8px;font-weight:700;}
+  .ftnav a{color:var(--ink-soft);white-space:nowrap;}
   h2.kicker{margin:0;}
   .about{padding:20px;}
   .about h2{margin:0 0 8px;font-size:1.05rem;font-weight:800;color:var(--ink);}
@@ -576,7 +578,7 @@
     <!-- ABOUT (static, indexable) -->
     <section class="glass about" aria-labelledby="about-h">
       <h2 id="about-h">About this weather station</h2>
-      <p><b>Havasu Lake Weather</b> shows live outdoor conditions for <b>Havasu Lake, California</b> — the small community in San Bernardino County on the California (west) shore of Lake Havasu, across the water from Lake Havasu City, Arizona. To be clear: this is <b>Havasu Lake, CA (ZIP 92363)</b>, not Lake Havasu City, AZ.</p>
+      <p><b>Havasu Lake Weather</b> shows live outdoor conditions for <b>Havasu Lake, California</b> — the small community in San Bernardino County, home to <b>Havasu Landing</b>, on the California (west) shore of Lake Havasu along the <b>Colorado River</b>, across the water from Lake Havasu City, Arizona. To be clear: this is <b>Havasu Lake, CA (ZIP 92363)</b>, not Lake Havasu City, AZ.</p>
       <p>Readings come from a personal <b>Ambient Weather WS-2902D</b> station in Havasu Lake and refresh about once a minute. You'll find the current <b>temperature</b> and feels-like, <b>wind</b> speed, gusts and direction, whether it's <b>raining right now</b>, plus humidity, dew point, UV index, barometric pressure and today's rainfall — with 24-hour and 7-day history charts.</p>
       <p>A local resident keeps the station running for neighbors and lake-goers planning boating, fishing and desert-summer days on the water. It's for community reference only and is <b>not an official National Weather Service observation</b>.</p>
     </section>
@@ -606,6 +608,7 @@
     <footer class="footer">
       <div>Personal WS-2902D weather station &mdash; not an official observation.</div>
       <div>Havasu Lake, CA &middot; Ambient Weather &middot; Outdoor readings only</div>
+      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a></nav>
     </footer>
   </main>
 
