@@ -21,6 +21,12 @@ plus free public data (NWS, USGS, USBR RISE, Weather Underground).
    that changes live infra or the live site: `sam deploy`, `aws s3 sync` to the site
    bucket, CloudFront invalidations, DynamoDB/schema changes, new scheduled jobs, etc.
    Building, local mocks, reads, prototypes, and artifacts are fine without asking.
+   **Approval to build, design, or fix is NOT approval to deploy.** "Let's work on X",
+   "add Y", "fix Z", or picking an option in a design question authorizes building and
+   previewing only. Build → open the PR → preview/verify, then **stop and ask "deploy?"** —
+   every time, for features and small fixes alike. Merging the PR and running the deploy
+   commands are each a separate, explicit call. The only exception is an instruction that
+   literally says to ship ("merge and deploy", "deploy it", "take it live"). When unsure, ask.
 5. **Git is not a deploy.** Committing and pushing *branches* is expected (messages end
    with the `Co-Authored-By` trailer). Merging PRs and deploying are Chad's calls.
 
