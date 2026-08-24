@@ -6,15 +6,28 @@ Description: >
   long-lived AWS keys stored in GitHub. Deploy ONCE — see infra/README.md.
 
 Parameters:
-  GitHubSubClaim:
+  GitHubRepository:
     Type: String
-    Default: "repo:cwoskoski/havasulakeweather:*"
+    Default: cwoskoski/havasulakeweather
     Description: >
-      OIDC `sub` the role trusts (StringLike). Repo-scoped by default: only workflows
-      running in THIS repo can present a matching subject (fork PRs get a different
-      repo: prefix and can't assume it). Deploys stay main-only via the workflow's
-      `on: push: branches:[main]` trigger. Tighten to
-      "repo:OWNER/REPO:ref:refs/heads/main" once the exact push subject is confirmed.
+      Matched against the token's `repository` claim. We condition on `repository`
+      (+ `ref`) rather than `sub` because this account has the ID-augmented immutable
+      subject enabled — the `sub` embeds numeric owner/repo IDs
+      (repo:cwoskoski@7571576/havasulakeweather@1332391099:...), while `repository`
+      stays the stable, readable `owner/repo`.
+  GitHubRef:
+    Type: String
+    Default: refs/heads/main
+    Description: Git ref allowed to assume the role. Deploys run on push to main.
+  GitHubSubPattern:
+    Type: String
+    Default: "repo:cwoskoski@*/havasulakeweather@*:*"
+    Description: >
+      IAM requires a GitHub OIDC trust to condition on `sub` (or job_workflow_ref).
+      This account emits the immutable-ID subject
+      (repo:cwoskoski@7571576/havasulakeweather@1332391099:ref:refs/heads/main), so the
+      `sub` match uses wildcards for the numeric IDs; the readable repo/ref pin above
+      does the real scoping.
   CreateOIDCProvider:
     Type: String
     AllowedValues: ["true", "false"]
@@ -60,8 +73,10 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:repository: !Ref GitHubRepository
+                token.actions.githubusercontent.com:ref: !Ref GitHubRef
               StringLike:
-                token.actions.githubusercontent.com:sub: !Ref GitHubSubClaim
+                token.actions.githubusercontent.com:sub: !Ref GitHubSubPattern
       Policies:
         - PolicyName: havasu-deploy
           PolicyDocument:

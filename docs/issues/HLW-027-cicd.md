@@ -57,4 +57,15 @@ path. CLAUDE.md updated to reflect this.
 - [x] `npm test` → 53/53 pass locally.
 - [x] CI workflow green on this PR (#52 — both jobs pass).
 - [x] OIDC stack deployed once (`havasu-github-oidc`, us-east-1; role + provider verified).
-- [ ] First merge deploys the ingest stack cleanly; site skipped.
+- [x] First merge (#52) deployed the ingest stack cleanly; site skipped; NoEcho keys preserved (32/32 chars); live API 200 (`/api/current` 107°F fresh, `/api/compare` source=live).
+
+## Gotcha — OIDC subject uses immutable IDs on this account
+
+The deploy first failed with `Not authorized to perform sts:AssumeRoleWithWebIdentity`
+despite a correct-looking trust. Cause: this account emits the **ID-augmented immutable
+subject**, e.g. `repo:cwoskoski@7571576/havasulakeweather@1332391099:ref:refs/heads/main`
+— so a plain `repo:OWNER/REPO:...` sub never matches. Fix: the role trust conditions on
+the stable `repository` + `ref` claims for readable scoping, plus a `sub` StringLike
+`repo:cwoskoski@*/havasulakeweather@*:*` (IAM *requires* a `sub`/`job_workflow_ref`
+condition — `repository`/`ref` alone is rejected). Diagnosed with a throwaway
+`workflow_dispatch` workflow that decoded the token claims (since removed).
