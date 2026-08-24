@@ -148,6 +148,8 @@
   .rain-lead .status{font-size:1.85rem;font-weight:800;line-height:1;letter-spacing:-.5px;color:var(--teal-deep);}
   .rain-lead .status .now{font-size:.7rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:#0f7f8f;padding:3px 8px;border-radius:999px;vertical-align:middle;margin-left:8px;}
   .rain-lead .msg{margin-top:4px;font-size:.9rem;font-weight:650;color:var(--ink-soft);}
+  .rain-radar{display:inline-flex;align-items:center;gap:5px;margin-top:9px;font-size:.84rem;font-weight:800;color:var(--coral-deep);text-decoration:none;}
+  .rain-radar:hover{text-decoration:underline;}
   .rain-facts{grid-column:1 / -1;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;padding-top:12px;border-top:1px solid rgba(43,24,16,.14);}
   .rain-fact{display:flex;justify-content:space-between;font-size:.82rem;}
   .rain-fact .k{color:var(--ink-soft);font-weight:650;}
@@ -446,6 +448,7 @@
       <div class="rain-lead">
         <div class="status" id="rainStatus">&mdash;<span class="now" id="rainPill" hidden></span></div>
         <div class="msg" id="rainMsg">Checking the gauge&hellip;</div>
+        <a class="rain-radar" id="radarLink" href="/radar.html">🌧 See the live radar &rarr;</a>
       </div>
       <div class="rain-facts">
         <div class="rain-fact"><span class="k">Today</span><span class="v" id="rainToday">--</span></div>
@@ -525,14 +528,6 @@
       <span class="wtr-t-go">Dams &amp; flow &rarr;</span>
     </a>
 
-    <!-- LIVE RADAR teaser — animated precipitation map on /radar -->
-    <a class="glass lakeriver-teaser" id="radarTeaser" href="/radar.html">
-      <span class="wtr-t-left">
-        <span class="wtr-t-k">Live radar</span>
-        <span class="wtr-t-lake" style="font-size:1rem;">🌧 Animated precipitation map</span>
-      </span>
-      <span class="wtr-t-go">Open radar &rarr;</span>
-    </a>
 
     <!-- CHART -->
     <section class="glass chart" aria-labelledby="chart-h">
@@ -1006,8 +1001,8 @@
   // Track navigating to the Lake & River page from the home teaser (HLW-024).
   var teaser=document.getElementById("waterTeaser");
   if(teaser)teaser.addEventListener("click",function(){ev("view_water",{source:"teaser"});});
-  var rteaser=document.getElementById("radarTeaser");
-  if(rteaser)rteaser.addEventListener("click",function(){ev("view_radar",{source:"teaser"});});
+  var rlink=document.getElementById("radarLink");
+  if(rlink)rlink.addEventListener("click",function(){ev("view_radar",{source:"rain_card"});});
 
   var btn=document.getElementById("shareBtn"), menu=document.getElementById("shareMenu");
   if(!btn||!menu)return;
