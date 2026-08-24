@@ -1,5 +1,6 @@
 /* Havasu Lake Weather — service worker (installability + offline shell) */
-const CACHE = "havasu-wx-v32";
+const CACHE = "havasu-wx-v34";  // bump on EVERY web/ change (cache correctness; CI-enforced)
+const RELEASE = "r1";           // bump ONLY for user-facing changes — drives the "update available" toast
 const SHELL = [
   "/", "/index.html", "/water.html", "/radar.html", "/manifest.json", "/sw-register.js",
   "/assets/icon-192.png", "/assets/icon-512.png", "/assets/icon-180.png",
@@ -14,7 +15,12 @@ self.addEventListener("install", (e) => {
 
 // The page posts SKIP_WAITING when the user taps Refresh → activate this worker now.
 self.addEventListener("message", (e) => {
-  if (e.data === "SKIP_WAITING" || (e.data && e.data.type === "SKIP_WAITING")) self.skipWaiting();
+  const data = e.data;
+  if (data === "SKIP_WAITING" || (data && data.type === "SKIP_WAITING")) self.skipWaiting();
+  // The page asks each worker for its RELEASE to decide whether to prompt (see sw-register.js).
+  if (data && data.type === "GET_RELEASE" && e.ports && e.ports[0]) {
+    e.ports[0].postMessage({ release: RELEASE });
+  }
 });
 
 self.addEventListener("activate", (e) => {

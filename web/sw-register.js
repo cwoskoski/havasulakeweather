@@ -18,11 +18,29 @@
   }
 
   var refreshing = false;
+  var userInitiatedReload = false; // only reload the page for a user-tapped update, not silent ones
   navigator.serviceWorker.addEventListener("controllerchange", function () {
-    if (refreshing) return;      // the waiting worker took control — reload once to pick it up
+    if (refreshing || !userInitiatedReload) return; // silent background activation → don't reload
     refreshing = true;
     window.location.reload();
   });
+
+  // Ask a worker for its RELEASE marker (MessageChannel round-trip). Resolves null when the
+  // worker is absent or too old to answer (the pre-HLW-042 worker) — treated as "unknown".
+  function getRelease(worker) {
+    return new Promise(function (resolve) {
+      if (!worker) return resolve(null);
+      var ch = new MessageChannel();
+      var done = false;
+      ch.port1.onmessage = function (e) {
+        if (done) return; done = true;
+        resolve((e.data && e.data.release) || null);
+      };
+      try { worker.postMessage({ type: "GET_RELEASE" }, [ch.port2]); }
+      catch (err) { return resolve(null); }
+      setTimeout(function () { if (!done) { done = true; resolve(null); } }, 1500);
+    });
+  }
 
   function showToast(onRefresh) {
     if (document.getElementById("swUpdateToast")) return; // already showing
@@ -51,21 +69,36 @@
     requestAnimationFrame(function () { wrap.style.opacity = "1"; wrap.style.transform = "translateX(-50%) translateY(0)"; });
   }
 
-  function promptUpdate(reg) {
-    if (reg.waiting) showToast(function () { reg.waiting.postMessage("SKIP_WAITING"); });
+  // Show the toast only when the RELEASE marker changed (a real user-facing update). For a
+  // cache-only change (same RELEASE — SEO, backend, infra) activate silently in the background,
+  // so those never nag the user with "New version available".
+  function handleWaiting(reg) {
+    if (!reg.waiting) return;
+    Promise.all([getRelease(reg.waiting), getRelease(navigator.serviceWorker.controller)])
+      .then(function (rels) {
+        var next = rels[0], current = rels[1];
+        if (next && current && next !== current) {
+          showToast(function () {
+            userInitiatedReload = true;
+            reg.waiting.postMessage("SKIP_WAITING");
+          });
+        } else {
+          reg.waiting.postMessage("SKIP_WAITING"); // silent: same release, or unknown/first upgrade
+        }
+      });
   }
 
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("/sw.js").then(function (reg) {
       // An update may already be waiting (installed on a prior visit / another tab).
-      if (reg.waiting && navigator.serviceWorker.controller) promptUpdate(reg);
+      if (reg.waiting && navigator.serviceWorker.controller) handleWaiting(reg);
       // Or one starts installing now — prompt once it finishes (and only if this isn't the
       // first-ever install, i.e. a controller already exists).
       reg.addEventListener("updatefound", function () {
         var nw = reg.installing;
         if (!nw) return;
         nw.addEventListener("statechange", function () {
-          if (nw.state === "installed" && navigator.serviceWorker.controller) promptUpdate(reg);
+          if (nw.state === "installed" && navigator.serviceWorker.controller) handleWaiting(reg);
         });
       });
     }).catch(function () {});
