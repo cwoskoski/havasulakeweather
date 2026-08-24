@@ -346,6 +346,10 @@
   .wtr-t-k{font-size:.7rem;font-weight:800;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
   .wtr-t-lake{font-size:1.15rem;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px;}
   .wtr-t-lake b{color:var(--teal-deep);}
+  .wtr-t-pct{font-weight:800;color:var(--teal-deep);}
+  .wtr-t-pct.low{color:var(--coral-deep);}
+  .wtr-t-trend{font-size:.95rem;font-weight:800;}
+  .wtr-t-trend.up{color:var(--teal-deep);} .wtr-t-trend.down{color:var(--coral-deep);}
   .wtr-t-go{font-size:.82rem;font-weight:800;color:var(--coral-deep);white-space:nowrap;}
   .wtr-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;}
   .wtr-head h2{margin:0;font-size:1.05rem;font-weight:800;}
@@ -516,7 +520,7 @@
     <a class="glass lakeriver-teaser" id="waterTeaser" href="/water.html" hidden>
       <span class="wtr-t-left">
         <span class="wtr-t-k">Lake &amp; river</span>
-        <span class="wtr-t-lake"><b id="teaserLake">--</b> ft <span class="wtr-pill wtr-full" id="teaserPill">&mdash;</span></span>
+        <span class="wtr-t-lake"><b id="teaserLake">--</b> ft <span class="wtr-t-pct" id="teaserPct"></span> <span class="wtr-t-trend" id="teaserTrend"></span></span>
       </span>
       <span class="wtr-t-go">Dams &amp; flow &rarr;</span>
     </a>
@@ -870,14 +874,20 @@
   }
   function renderWater(d){
     var t=$("waterTeaser");if(!t||!d)return;
-    var lake=d.lake;
-    if(!lake||lake.elevationFt==null){t.hidden=true;return;}
+    // Source the teaser from the same cascade node the /water page uses, so % full + trend match.
+    var hav=null,casc=d.cascade||[];for(var i=0;i<casc.length;i++){if(casc[i].key==="havasu")hav=casc[i];}
+    var lake=d.lake||{};
+    var elev=hav&&hav.elevationFt!=null?hav.elevationFt:lake.elevationFt;
+    if(elev==null){t.hidden=true;return;}
     t.hidden=false;
-    $("teaserLake").textContent=lake.elevationFt.toFixed(1);
-    var st=lake.status||"unknown";
-    var pill=$("teaserPill");
-    pill.className="wtr-pill wtr-"+(st==="low"?"low":st==="unknown"?"unknown":st);
-    pill.textContent={full:"Full",normal:"Normal",low:"Low",unknown:"—"}[st]||"—";
+    $("teaserLake").textContent=elev.toFixed(1);
+    var pct=hav?hav.pctFull:null, trend=hav?hav.netTrend:null;
+    var pctEl=$("teaserPct");
+    if(pct!=null){pctEl.textContent="· "+pct+"% full";pctEl.className="wtr-t-pct"+(pct<40?" low":"");}
+    else pctEl.textContent="";
+    var trEl=$("teaserTrend");
+    trEl.textContent=trend==="rising"?"▲":trend==="draining"?"▼":"";
+    trEl.className="wtr-t-trend "+(trend==="rising"?"up":trend==="draining"?"down":"");
   }
 
   /* ---------- go ---------- */
