@@ -10,7 +10,33 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Havasu Wx" />
 <meta name="description" content="Live weather radar for Havasu Lake, CA and the Colorado River — animated precipitation from RainViewer (past 2 hours + short-term nowcast)." />
-<title>Radar — Havasu Lake, CA</title>
+<title>Weather Radar — Havasu Lake, CA &amp; the Colorado River (Live Precipitation)</title>
+<link rel="canonical" href="https://havasulakeweather.com/radar.html" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Havasu Lake Weather" />
+<meta property="og:title" content="Weather Radar — Havasu Lake, CA (Live Precipitation)" />
+<meta property="og:description" content="Live animated weather radar for Havasu Lake, California and the Colorado River — past 2 hours of precipitation plus a short-term nowcast, from RainViewer." />
+<meta property="og:url" content="https://havasulakeweather.com/radar.html" />
+<meta property="og:image" content="https://havasulakeweather.com/assets/og-image.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Weather Radar — Havasu Lake, CA (Live Precipitation)" />
+<meta name="twitter:description" content="Live animated precipitation radar for Havasu Lake, CA and the Colorado River." />
+<meta name="twitter:image" content="https://havasulakeweather.com/assets/og-image.png" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "WebPage", "@id": "https://havasulakeweather.com/radar.html#webpage", "url": "https://havasulakeweather.com/radar.html", "name": "Weather Radar — Havasu Lake, CA (Live Precipitation)", "isPartOf": { "@id": "https://havasulakeweather.com/#website" }, "about": { "@id": "https://havasulakeweather.com/#place" }, "description": "Live animated weather radar centered on Havasu Lake, California and the Colorado River, showing the past two hours of precipitation and a short-term nowcast." },
+    { "@type": "BreadcrumbList", "@id": "https://havasulakeweather.com/radar.html#breadcrumb", "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Havasu Lake, CA Weather", "item": "https://havasulakeweather.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Weather Radar" }
+    ] }
+  ]
+}
+</script>
 <!-- Google Analytics (GA4) — loads only on the live domain (page_view tracks /radar visits). -->
 <script>
   (function () {
@@ -55,6 +81,9 @@
   .rlegend .sw{width:16px;height:9px;border-radius:2px;display:inline-block;}
   .foot{text-align:center;font-size:.72rem;color:var(--ink-faint);line-height:1.5;}
   .foot a{color:var(--ink-soft);}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  .ftnav{margin-top:8px;font-weight:700;}
+  .ftnav a{color:var(--ink-soft);white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -64,6 +93,7 @@
   </header>
 
   <main class="rpage">
+    <h1 class="sr-only">Havasu Lake, CA Weather Radar — Live Precipitation over the Colorado River</h1>
     <div id="map" aria-label="Live precipitation radar centered on Havasu Lake"></div>
     <div class="rctrl">
       <button class="rplay" id="rPlay" type="button" aria-label="Play/pause radar">&#9208;</button>
@@ -78,6 +108,7 @@
       Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> &middot;
       map &copy; OpenStreetMap / CARTO &middot; community reference, not an official product.
       <a href="/water.html">Lake &amp; river &rarr;</a>
+      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/radar.html">Radar</a></nav>
     </div>
   </main>
 
