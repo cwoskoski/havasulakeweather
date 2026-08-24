@@ -1,6 +1,6 @@
 # HLW-028: SEO — get havasulakeweather.com ranking for local weather queries
 
-- **Status:** in-progress — Phase 1 built + previewed (0 console errors), in PR
+- **Status:** in-progress — Phase 1 shipped 2026-08-24; Phase 2 built, pending manual site-stack deploy (this PR)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/56
 - **Branch:** `feat/HLW-028-seo` (Phase 1; later phases may use their own branches)
 - **PR:** <url>
@@ -45,11 +45,12 @@ duplicate `www` host, and `/water` (extensionless) returning a raw S3 403.
 
 ### Phase 2 — infra (`site-template.yaml`, separate approval)
 
-- [ ] CloudFront Function on default behavior: 301 `www` → apex; rewrite extensionless
-      paths (`/water` → `/water.html`); standardize canonicals/sitemap/internal links on
-      clean URLs.
-- [ ] `CustomErrorResponses`: 403 → `/404.html` with response code 404; add a simple
-      404 page.
+- [x] CloudFront Function (viewer-request, default behavior only): 301 `www` → apex;
+      rewrite extensionless paths (`/water` → `/water.html`). Canonicals/sitemap/nav kept
+      on `.html` for now (they resolve and are canonical) — clean-URL standardization deferred.
+- [x] `CustomErrorResponses`: 403 → `/404.html` (response code 404) + a branded
+      `web/404.html`. **Deploy = a manual `cloudformation deploy` of `havasu-weather-site`
+      (us-east-1); the auto-pipeline does not deploy this stack.**
 
 ### Phase 3 — content (one PR per page/section)
 
