@@ -66,6 +66,23 @@ jobs:
         run: aws s3 sync web/ s3://havasu-weather-site-648581682379/ --delete --region us-east-1
       - name: Invalidate CloudFront
         run: aws cloudfront create-invalidation --distribution-id E1FK70K9FGVU2M --paths "/*"
+      - name: Ping IndexNow (Bing / Yandex instant recrawl — Google ignores it)
+        run: |
+          KEY="23b65e54-7ebe-45ca-aff4-d9fbe16c00e8"
+          # Submit the sitemap's canonical URLs (parsed from the just-deployed file, not the
+          # possibly-cached live copy). Best-effort — never fail the deploy on a bad ping.
+          urls=$(grep -oE '<loc>[^<]*</loc>' web/sitemap.xml | sed 's/<[^>]*>//g')
+          if [ -z "$urls" ]; then echo "::warning::no sitemap URLs found; skipping IndexNow"; exit 0; fi
+          list=$(printf '%s\n' "$urls" | sed 's/.*/"&"/' | paste -sd, -)
+          body=$(printf '{"host":"havasulakeweather.com","key":"%s","keyLocation":"https://havasulakeweather.com/%s.txt","urlList":[%s]}' "$KEY" "$KEY" "$list")
+          echo "IndexNow urlList: $list"
+          code=$(curl -sS -o /tmp/indexnow.out -w '%{http_code}' -X POST "https://api.indexnow.org/indexnow" \
+                   -H "Content-Type: application/json; charset=utf-8" -d "$body" || echo "000")
+          echo "IndexNow HTTP $code — $(cat /tmp/indexnow.out 2>/dev/null)"
+          case "$code" in
+            200|202) echo "IndexNow accepted." ;;
+            *) echo "::warning::IndexNow returned $code (non-fatal; Bing still crawls via the sitemap)." ;;
+          esac
 
   deploy-ingest:
     name: ingest/data stack (SAM, us-west-2)
