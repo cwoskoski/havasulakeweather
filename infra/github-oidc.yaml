@@ -6,16 +6,15 @@ Description: >
   long-lived AWS keys stored in GitHub. Deploy ONCE — see infra/README.md.
 
 Parameters:
-  GitHubOwner:
+  GitHubSubClaim:
     Type: String
-    Default: cwoskoski
-  GitHubRepo:
-    Type: String
-    Default: havasulakeweather
-  GitHubBranch:
-    Type: String
-    Default: main
-    Description: Only this branch may assume the role (deploys run on push to main).
+    Default: "repo:cwoskoski/havasulakeweather:*"
+    Description: >
+      OIDC `sub` the role trusts (StringLike). Repo-scoped by default: only workflows
+      running in THIS repo can present a matching subject (fork PRs get a different
+      repo: prefix and can't assume it). Deploys stay main-only via the workflow's
+      `on: push: branches:[main]` trigger. Tighten to
+      "repo:OWNER/REPO:ref:refs/heads/main" once the exact push subject is confirmed.
   CreateOIDCProvider:
     Type: String
     AllowedValues: ["true", "false"]
@@ -62,7 +61,7 @@ Resources:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
-                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOwner}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+                token.actions.githubusercontent.com:sub: !Ref GitHubSubClaim
       Policies:
         - PolicyName: havasu-deploy
           PolicyDocument:
