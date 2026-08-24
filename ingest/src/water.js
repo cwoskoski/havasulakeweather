@@ -120,7 +120,7 @@ function lakeStatus(elev) {
 }
 
 // --- seasonal context + warnings (HLW-014) ---
-function contextFor(norm, value, month) {
+export function contextFor(norm, value, month) {
   if (value == null || !norm) return null;
   const b = norm.byMonth[String(month)];
   const level = !b ? "unknown" : value < b.p10 ? "low" : value > b.p90 ? "high" : "normal";
@@ -206,12 +206,12 @@ function warningsFor(lake, inflow, outflow) {
 }
 
 // --- Colorado cascade (HLW-023): ordered Powell → Havasu ---
-function pctFull(storageAf, capacityAf) {
+export function pctFull(storageAf, capacityAf) {
   return storageAf != null && capacityAf ? Math.round((100 * storageAf) / capacityAf) : null;
 }
 // Net flow (in − out) → rising / draining. ±200 cfs deadband so run-of-river lakes
 // (Mohave/Havasu, which pass water through) don't flicker around zero.
-function netFlow(inCfs, outCfs) {
+export function netFlow(inCfs, outCfs) {
   if (inCfs == null || outCfs == null) return null;
   const n = Math.round(inCfs - outCfs);
   return { netCfs: n, trend: n > 200 ? "rising" : n < -200 ? "draining" : "steady" };

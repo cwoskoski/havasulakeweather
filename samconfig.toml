@@ -23,3 +23,14 @@ disable_rollback = false
 
 [default.local_invoke.parameters]
 profile = "havasu"
+
+# CI deploy env (GitHub Actions). Same stack/region as default, but NO `profile`
+# so it uses the ambient OIDC credentials from the assumed havasu-github-deploy role.
+# The workflow calls: sam deploy --config-env ci --parameter-overrides "AllowedStationKeys=..." "WuApiKey=..."
+[ci.deploy.parameters]
+stack_name = "havasu-weather-ingest"
+region = "us-west-2"
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+disable_rollback = false

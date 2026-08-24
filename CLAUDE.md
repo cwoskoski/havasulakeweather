@@ -27,6 +27,9 @@ plus free public data (NWS, USGS, USBR RISE, Weather Underground).
    every time, for features and small fixes alike. Merging the PR and running the deploy
    commands are each a separate, explicit call. The only exception is an instruction that
    literally says to ship ("merge and deploy", "deploy it", "take it live"). When unsure, ask.
+   **As of HLW-027 the deploy is executed by GitHub Actions on merge to `main`** (see the
+   CI/CD section) — so "the deploy" is now the *merge itself*, which is Chad's call. The
+   manual `sam deploy` / `s3 sync` commands below remain the fallback/bootstrap path.
 5. **Git is not a deploy.** Committing and pushing *branches* is expected (messages end
    with the `Co-Authored-By` trailer). Merging PRs and deploying are Chad's calls.
 
@@ -45,9 +48,31 @@ plus free public data (NWS, USGS, USBR RISE, Weather Underground).
 1. Discuss the idea → gather info → **present a plan** (no code yet).
 2. On approval → create `HLW-###.md` + gh issue + a `feat/HLW-###-slug` branch.
 3. Build on the branch — mock-first where a preview helps (see mock params below).
-4. Push the branch and **open a PR** that references the ticket. Chad reviews + merges.
-5. **Ask before deploying.** After merge, on approval → deploy + verify live.
+4. Push the branch and **open a PR** that references the ticket. **CI runs the PR checks**
+   (tests, syntax, secret-scan, SW-bump, `sam validate`). Chad reviews + merges.
+5. **Merging to `main` deploys** (GitHub Actions, path-filtered — site and/or ingest).
+   So propose the merge and let Chad make the call; that merge is the deploy. Verify live
+   after the workflow finishes.
 6. Close: set the ticket to `done`, note what shipped.
+
+## CI/CD (GitHub Actions — HLW-027)
+
+- **PR checks** (`.github/workflows/ci.yml`, on every PR to `main`, no AWS creds): unit
+  tests (`npm test` → `node --test`, 53 tests over the pure logic), `node --check` syntax
+  on all JS, a **secret scan** (fails if an added line has a 30+ hex-char run), a
+  **service-worker cache-bump** check (fails if `web/` changed but `havasu-wx-vN` wasn't
+  bumped), and `sam validate --lint`.
+- **Deploy on merge to `main`** (`.github/workflows/deploy.yml`), path-filtered:
+  - site job → `aws s3 sync web/` + CloudFront invalidation, only if `web/` changed;
+  - ingest job → `sam build && sam deploy --config-env ci`, only if
+    `ingest/src`/`template.yaml`/`samconfig.toml` changed.
+  - The NoEcho station + WU keys are read back from the live read Lambda in-job and passed
+    to `--parameter-overrides`, so they never live in GitHub and a redeploy can't wipe them.
+- **Auth = OIDC, no stored keys.** Actions assume `havasu-github-deploy` (trust locked to
+  this repo's `main`). Bootstrapped once from `infra/github-oidc.yaml` (see `infra/README.md`);
+  the role ARN is hardcoded in the workflow.
+- **Tests live in `ingest/test/*.test.mjs`**; run locally with `npm test`. Add a case when
+  you touch the pure helpers in `ingest/src/{nws,water,read}.js`.
 
 ## Infra quick-reference (non-secret)
 
@@ -62,6 +87,7 @@ plus free public data (NWS, USGS, USBR RISE, Weather Underground).
 | Site bucket | `havasu-weather-site-648581682379` |
 | Site CloudFront | `E1FK70K9FGVU2M` → havasulakeweather.com |
 | Lambdas | `havasu-weather-ingest`, `havasu-weather-read`, `havasu-weather-pws-ingest` |
+| CI/CD deploy role | `havasu-github-deploy` (OIDC, main-only) — `arn:aws:iam::648581682379:role/havasu-github-deploy`, from `infra/github-oidc.yaml` |
 | Secrets (never commit) | station PASSKEY + WU read key — NoEcho SAM params `AllowedStationKeys`, `WuApiKey` |
 
 ## API endpoints (read Lambda, served under CloudFront `/api/*`)
