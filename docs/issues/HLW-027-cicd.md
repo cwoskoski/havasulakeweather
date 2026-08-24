@@ -1,6 +1,6 @@
 # HLW-027: CI/CD with GitHub Actions — PR checks + deploy on merge to main
 
-- **Status:** in-progress (built on branch; awaiting review + one-time OIDC bootstrap)
+- **Status:** in-progress (built; CI green; OIDC bootstrapped — awaiting merge of #52)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/51
 - **Branch:** `feat/HLW-027-cicd`
 - **Created:** 2026-08-23
@@ -56,5 +56,5 @@ path. CLAUDE.md updated to reflect this.
 
 - [x] `npm test` → 53/53 pass locally.
 - [x] CI workflow green on this PR (#52 — both jobs pass).
-- [ ] OIDC stack deployed once (gated).
+- [x] OIDC stack deployed once (`havasu-github-oidc`, us-east-1; role + provider verified).
 - [ ] First merge deploys the ingest stack cleanly; site skipped.
