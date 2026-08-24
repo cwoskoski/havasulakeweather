@@ -55,6 +55,6 @@ path. CLAUDE.md updated to reflect this.
 ## Acceptance
 
 - [x] `npm test` → 53/53 pass locally.
-- [ ] CI workflow green on this PR.
+- [x] CI workflow green on this PR (#52 — both jobs pass).
 - [ ] OIDC stack deployed once (gated).
 - [ ] First merge deploys the ingest stack cleanly; site skipped.
