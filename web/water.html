@@ -179,6 +179,19 @@
   .casc-flow .pill .cc{font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:1px 7px;border-radius:999px;}
   .cc.chip-low{background:rgba(255,191,92,.22);color:var(--gold);} .cc.chip-normal{background:rgba(47,185,196,.2);color:var(--teal-deep);} .cc.chip-high{background:rgba(255,122,77,.24);color:var(--coral-deep);}
   .casc-intro{font-size:.84rem;font-weight:650;color:var(--ink-soft);line-height:1.4;margin:2px 2px 4px;}
+  /* where Havasu's water goes (HLW-026) */
+  .wgoes-lead{font-size:.86rem;font-weight:650;color:var(--ink-soft);line-height:1.42;margin:2px 0 12px;}
+  .wgoes-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid rgba(255,255,255,.08);}
+  .wgoes-row:first-of-type{border-top:0;padding-top:2px;}
+  .wgoes-dir{flex:none;width:104px;font-weight:800;font-size:.82rem;color:var(--teal-deep);}
+  .wgoes-body{flex:1;min-width:0;}
+  .wgoes-name{font-weight:800;font-size:.95rem;}
+  .wgoes-sub{font-size:.76rem;font-weight:600;color:var(--ink-faint);margin-top:2px;line-height:1.35;}
+  .wgoes-vol{flex:none;text-align:right;}
+  .wgoes-vol b{font-size:1.15rem;font-weight:800;color:var(--teal-deep);font-variant-numeric:tabular-nums;}
+  .wgoes-vol small{display:block;font-size:.62rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;}
+  .wgoes-note{margin-top:12px;font-size:.77rem;font-weight:600;color:var(--ink-faint);line-height:1.42;}
+  .wgoes-note b{color:var(--ink-soft);}
   .casc-note{font-size:.72rem;font-weight:600;color:var(--ink-faint);text-align:center;margin-top:2px;}
   @media (min-width:560px){ .lbl .cfs{font-size:1.5rem;} }
 </style>
@@ -212,6 +225,7 @@
     <div class="casc-intro">The Colorado, top to bottom — every drop that reaches Lake Havasu passes through these first.</div>
     <div id="cascade" class="cascade" aria-label="Colorado River — Lake Powell down to Lake Havasu"></div>
 
+
     <section class="card" id="histCard" hidden>
       <h2>Lake Havasu · vs history <span class="src">USBR RISE</span></h2>
       <div class="lk-history" id="lakeHistory">
@@ -228,6 +242,29 @@
     </section>
 
     <div id="notes"></div>
+
+    <!-- Where Havasu's water goes — static explainer (HLW-026) -->
+    <section class="card" aria-label="Where Lake Havasu's water goes">
+      <h2>Where Havasu's water goes <span class="src">annual &middot; USBR / MWD</span></h2>
+      <p class="wgoes-lead">At Lake Havasu the Colorado splits: most keeps flowing downstream through Parker Dam, but two big aqueducts pump water out right here.</p>
+      <div class="wgoes-row">
+        <span class="wgoes-dir">&rarr; So. California</span>
+        <div class="wgoes-body">
+          <div class="wgoes-name">MWD Colorado River Aqueduct</div>
+          <div class="wgoes-sub">Whitsett Intake, ~2 mi above Parker Dam &rarr; 242 mi of pumps, tunnels &amp; canals to the LA / San Diego area.</div>
+        </div>
+        <div class="wgoes-vol"><b>~0.9M</b><small>acre-ft/yr</small></div>
+      </div>
+      <div class="wgoes-row">
+        <span class="wgoes-dir">&rarr; Central Arizona</span>
+        <div class="wgoes-body">
+          <div class="wgoes-name">Central Arizona Project (CAP)</div>
+          <div class="wgoes-sub">Mark Wilmer Pumping Plant &rarr; 336 mi to Phoenix &amp; Tucson.</div>
+        </div>
+        <div class="wgoes-vol"><b>~0.95M</b><small>acre-ft/yr</small></div>
+      </div>
+      <div class="wgoes-note">Between them these aqueducts serve close to <b>19 million</b> Southern Californians (MWD) plus much of Arizona's cities and farms &mdash; a big draw on the lower river.</div>
+    </section>
 
     <div class="foot">
       Lake level: USGS · Dam releases &amp; water temp: USBR RISE · updates ~hourly.<br>
