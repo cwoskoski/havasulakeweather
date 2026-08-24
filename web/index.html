@@ -142,14 +142,17 @@
   #windArrow{transition:transform .6s cubic-bezier(.2,.8,.2,1);transform-box:view-box;transform-origin:30px 30px;}
 
   /* ---- rain ---- */
-  .rain{padding:16px 18px;display:grid;grid-template-columns:auto 1fr;gap:14px 16px;align-items:center;background:linear-gradient(160deg,rgba(90,205,225,.30),rgba(255,255,255,.14)),var(--glass-bg-2);border:1px solid rgba(255,255,255,.55);}
+  .rain{position:relative;padding:16px 18px;display:grid;grid-template-columns:auto 1fr;gap:14px 16px;align-items:center;background:linear-gradient(160deg,rgba(90,205,225,.30),rgba(255,255,255,.14)),var(--glass-bg-2);border:1px solid rgba(255,255,255,.55);}
   .rain.raining{background:linear-gradient(160deg,rgba(60,130,246,.34),rgba(255,255,255,.14)),var(--glass-bg-2);}
   .rain-badge{width:62px;height:62px;flex:none;display:grid;place-items:center;border-radius:18px;color:#fff;background:linear-gradient(160deg,#22b8c9,#0f7f8f);box-shadow:0 10px 22px -10px rgba(15,127,143,.8),inset 0 1px 0 rgba(255,255,255,.4);}
   .rain-lead .status{font-size:1.85rem;font-weight:800;line-height:1;letter-spacing:-.5px;color:var(--teal-deep);}
   .rain-lead .status .now{font-size:.7rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:#0f7f8f;padding:3px 8px;border-radius:999px;vertical-align:middle;margin-left:8px;}
   .rain-lead .msg{margin-top:4px;font-size:.9rem;font-weight:650;color:var(--ink-soft);}
-  .rain-radar{display:inline-flex;align-items:center;gap:5px;margin-top:9px;font-size:.84rem;font-weight:800;color:var(--coral-deep);text-decoration:none;}
-  .rain-radar:hover{text-decoration:underline;}
+  .rain-radar{position:absolute;top:14px;right:14px;z-index:2;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(150deg,#ff9463,#ff6a3d);color:#fff;border-radius:999px;padding:10px 17px;font-size:.92rem;font-weight:800;text-decoration:none;box-shadow:0 8px 20px -8px rgba(232,69,31,.6);transition:transform .15s ease;}
+  .rain-radar:hover{transform:translateY(-1px);}
+  .rain-radar .ico{width:18px;height:18px;}
+  .rain-lead{padding-right:104px;}
+  @media (max-width:430px){ .rain-radar{top:12px;right:12px;padding:8px 13px;font-size:.85rem;} .rain-radar .ico{width:16px;height:16px;} .rain-lead{padding-right:92px;} .rain-lead .status{font-size:1.5rem;} }
   .rain-facts{grid-column:1 / -1;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;padding-top:12px;border-top:1px solid rgba(43,24,16,.14);}
   .rain-fact{display:flex;justify-content:space-between;font-size:.82rem;}
   .rain-fact .k{color:var(--ink-soft);font-weight:650;}
@@ -448,8 +451,11 @@
       <div class="rain-lead">
         <div class="status" id="rainStatus">&mdash;<span class="now" id="rainPill" hidden></span></div>
         <div class="msg" id="rainMsg">Checking the gauge&hellip;</div>
-        <a class="rain-radar" id="radarLink" href="/radar.html">🌧 See the live radar &rarr;</a>
       </div>
+      <a class="rain-radar" id="radarLink" href="/radar.html" aria-label="Open live radar">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12 3.5 7.5"/><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>
+        Radar
+      </a>
       <div class="rain-facts">
         <div class="rain-fact"><span class="k">Today</span><span class="v" id="rainToday">--</span></div>
         <div class="rain-fact"><span class="k">Last rain</span><span class="v" id="lastRain">--</span></div>
