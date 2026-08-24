@@ -117,6 +117,8 @@ aws cloudfront create-invalidation --distribution-id E1FK70K9FGVU2M --paths "/*"
 
 - **Node 24** (`nodejs24.x`), ESM modules; AWS SDK v3 ships in the runtime.
 - **PWA:** bump `web/sw.js` `CACHE` (`havasu-wx-vN`) on any `web/` change so installed
-  users pick up the update.
+  users pick up the update. Bump **`RELEASE`** (`web/sw.js`) **only** for user-facing changes —
+  that alone triggers the "New version available" toast; cache-only changes (SEO, backend,
+  infra, docs) activate silently with no prompt (HLW-042).
 - **Outdoor data only** — never store indoor readings.
 - **Secrets** are NoEcho SAM params, passed via `--parameter-overrides`, never committed.
