@@ -1,6 +1,16 @@
 # HLW-020: Radar overlay (research parked — free feeds)
 
-- **Status:** proposed (research done; build deferred)
+- **Status:** done (built + prod-verified 2026-08-24) — interactive Leaflet + RainViewer /radar page
+
+## What shipped
+
+`/radar` page: self-hosted **Leaflet 1.9.4** map (CARTO dark basemap) centered on Havasu, with
+**RainViewer** animated precipitation — past ~2h + short-term nowcast, play/pause + frame
+slider + time label, intensity legend, and full attribution. Fully client-side (no Lambda);
+external map/radar **tiles** only (images, SW-bypassed). Havasu marked with a `circleMarker`
+(no image deps). Radar teaser added to the home page (`view_radar` GA event); gtag on the
+page for /radar page_views. SW → v28 (radar.html precached; leaflet vendor runtime-cached).
+Verified: basemap + 100+ radar tiles render, animation loops, 0 console errors.
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/32
 - **Branch:** —
 - **PR:** —

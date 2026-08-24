@@ -525,6 +525,15 @@
       <span class="wtr-t-go">Dams &amp; flow &rarr;</span>
     </a>
 
+    <!-- LIVE RADAR teaser — animated precipitation map on /radar -->
+    <a class="glass lakeriver-teaser" id="radarTeaser" href="/radar.html">
+      <span class="wtr-t-left">
+        <span class="wtr-t-k">Live radar</span>
+        <span class="wtr-t-lake" style="font-size:1rem;">🌧 Animated precipitation map</span>
+      </span>
+      <span class="wtr-t-go">Open radar &rarr;</span>
+    </a>
+
     <!-- CHART -->
     <section class="glass chart" aria-labelledby="chart-h">
       <h2 class="sr-only" id="chart-h">Havasu Lake temperature history</h2>
@@ -997,6 +1006,8 @@
   // Track navigating to the Lake & River page from the home teaser (HLW-024).
   var teaser=document.getElementById("waterTeaser");
   if(teaser)teaser.addEventListener("click",function(){ev("view_water",{source:"teaser"});});
+  var rteaser=document.getElementById("radarTeaser");
+  if(rteaser)rteaser.addEventListener("click",function(){ev("view_radar",{source:"teaser"});});
 
   var btn=document.getElementById("shareBtn"), menu=document.getElementById("shareMenu");
   if(!btn||!menu)return;
