@@ -1,0 +1,83 @@
+name: CI
+
+# PR checks — fast, and require NO AWS credentials. Runs on every PR into main.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: tests · syntax · secret-scan · sw-bump
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need base history for the diff-based checks
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Unit tests (node --test)
+        run: npm test
+
+      - name: Syntax check (all JS/MJS)
+        run: git ls-files '*.js' '*.mjs' | xargs -r -n1 node --check
+
+      - name: Fetch base branch
+        run: git fetch --no-tags origin "${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+
+      - name: Secret scan (added lines only)
+        run: |
+          base="origin/${{ github.base_ref }}"
+          # Added lines only; a line tagged `ci-allow-hex` is an intentional, reviewed
+          # constant (e.g. a public OIDC thumbprint) and is exempt.
+          added="$(git diff "$base...HEAD" | grep -E '^\+' | grep -Ev '^\+\+\+' | grep -Ev 'ci-allow-hex' || true)"
+          hits="$(printf '%s\n' "$added" | grep -cE '[0-9a-fA-F]{30,}' || true)"
+          if [ "${hits:-0}" -ne 0 ]; then
+            echo "::error::Possible secret: ${hits} added line(s) contain a 30+ hex-char run (API key / PASSKEY?)."
+            printf '%s\n' "$added" | grep -nE '[0-9a-fA-F]{30,}' || true
+            exit 1
+          fi
+          echo "Secret scan clean — no long hex runs in added lines."
+
+      - name: Service-worker cache bump (when web/ changed)
+        run: |
+          base="origin/${{ github.base_ref }}"
+          if git diff --name-only "$base...HEAD" | grep -q '^web/'; then
+            old="$(git show "$base:web/sw.js" | grep -oE 'havasu-wx-v[0-9]+' | head -1)"
+            new="$(grep -oE 'havasu-wx-v[0-9]+' web/sw.js | head -1)"
+            echo "web/ changed — sw.js CACHE old=${old:-none} new=${new:-none}"
+            if [ -z "$new" ]; then
+              echo "::error::could not read a havasu-wx-vN CACHE version from web/sw.js"; exit 1
+            fi
+            if [ "$old" = "$new" ]; then
+              echo "::error::web/ changed but web/sw.js CACHE ($new) was not bumped — installed PWAs won't pick up the update."
+              exit 1
+            fi
+            echo "SW cache bumped OK: $old -> $new"
+          else
+            echo "No web/ changes — SW cache check skipped."
+          fi
+
+  sam-validate:
+    name: sam validate --lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      - name: Validate template (offline cfn-lint — no AWS creds)
+        run: sam validate --lint --region us-west-2

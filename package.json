@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Havasu Lake Weather — local dev runner for the read API + static site",
   "scripts": {
-    "dev": "node dev/server.mjs"
+    "dev": "node dev/server.mjs",
+    "test": "node --test"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3",

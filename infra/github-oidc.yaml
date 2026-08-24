@@ -1,0 +1,154 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  GitHub Actions OIDC provider + a scoped deploy role for havasulakeweather.
+  Lets ONLY this repo's `main` branch assume a role to deploy the static site
+  (S3 + CloudFront, us-east-1) and the ingest/data SAM stack (us-west-2) with NO
+  long-lived AWS keys stored in GitHub. Deploy ONCE — see infra/README.md.
+
+Parameters:
+  GitHubOwner:
+    Type: String
+    Default: cwoskoski
+  GitHubRepo:
+    Type: String
+    Default: havasulakeweather
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Only this branch may assume the role (deploys run on push to main).
+  CreateOIDCProvider:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: >
+      "true" creates the token.actions.githubusercontent.com OIDC provider. If the
+      account already has one, set "false" and pass its ARN in ExistingOIDCProviderArn.
+  ExistingOIDCProviderArn:
+    Type: String
+    Default: ""
+    Description: ARN of an existing GitHub OIDC provider (only used when CreateOIDCProvider=false).
+
+Conditions:
+  MakeProvider: !Equals [!Ref CreateOIDCProvider, "true"]
+
+Resources:
+  GitHubOIDCProvider:
+    Condition: MakeProvider
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      # GitHub's OIDC thumbprints. Modern IAM validates GitHub via its own trust
+      # store, but the resource still requires a non-empty ThumbprintList.
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1 # ci-allow-hex: public GitHub OIDC thumbprint
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fca # ci-allow-hex: public GitHub OIDC thumbprint
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: havasu-github-deploy
+      MaxSessionDuration: 3600
+      Description: Assumed by GitHub Actions (main branch) to deploy the site + ingest stack.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If [MakeProvider, !Ref GitHubOIDCProvider, !Ref ExistingOIDCProviderArn]
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOwner}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+      Policies:
+        - PolicyName: havasu-deploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # ---- Site deploy: S3 sync to the site bucket ----
+              - Sid: SiteBucket
+                Effect: Allow
+                Action: [s3:ListBucket, s3:GetBucketLocation]
+                Resource: arn:aws:s3:::havasu-weather-site-648581682379
+              - Sid: SiteObjects
+                Effect: Allow
+                Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
+                Resource: arn:aws:s3:::havasu-weather-site-648581682379/*
+              # ---- Site deploy: CloudFront invalidation ----
+              - Sid: CloudFrontInvalidate
+                Effect: Allow
+                Action: [cloudfront:CreateInvalidation, cloudfront:GetInvalidation, cloudfront:GetDistribution]
+                Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/E1FK70K9FGVU2M"
+              # ---- Ingest deploy: read the live NoEcho keys before sam deploy ----
+              - Sid: ReadLambdaKeys
+                Effect: Allow
+                Action: lambda:GetFunctionConfiguration
+                Resource: !Sub "arn:aws:lambda:us-west-2:${AWS::AccountId}:function:havasu-weather-*"
+              # ---- Ingest deploy: SAM / CloudFormation ----
+              - Sid: CloudFormation
+                Effect: Allow
+                Action: [cloudformation:*]
+                Resource: "*"
+              - Sid: ListBuckets
+                Effect: Allow
+                Action: s3:ListAllMyBuckets
+                Resource: "*"
+              - Sid: SamManagedArtifactBucket
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:PutBucketVersioning
+                  - s3:PutEncryptionConfiguration
+                  - s3:GetEncryptionConfiguration
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:PutBucketTagging
+                Resource:
+                  - arn:aws:s3:::aws-sam-cli-managed-*
+                  - arn:aws:s3:::aws-sam-cli-managed-*/*
+              - Sid: SamManagedResources
+                Effect: Allow
+                Action:
+                  - lambda:*
+                  - apigateway:*
+                  - dynamodb:*
+                  - logs:*
+                  - events:*
+                  - scheduler:*
+                  - cloudfront:*
+                Resource: "*"
+              - Sid: ManageStackServiceRoles
+                Effect: Allow
+                Action:
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:PassRole
+                  - iam:UpdateAssumeRolePolicy
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/havasu-weather-*"
+
+Outputs:
+  DeployRoleArn:
+    Description: role-to-assume for .github/workflows/deploy.yml (already hardcoded there).
+    Value: !GetAtt DeployRole.Arn
+  OIDCProviderArn:
+    Description: The GitHub OIDC provider ARN.
+    Value: !If [MakeProvider, !Ref GitHubOIDCProvider, !Ref ExistingOIDCProviderArn]

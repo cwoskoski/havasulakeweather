@@ -1,0 +1,109 @@
+name: Deploy
+
+# Merge to main = deploy. Path-filtered: the site job runs only when web/ changed;
+# the ingest (SAM) job runs only when ingest/src, template.yaml or samconfig.toml changed.
+# Auth is via GitHub OIDC assuming arn:aws:iam::648581682379:role/havasu-github-deploy
+# (created once from infra/github-oidc.yaml) — NO long-lived AWS keys are stored in GitHub.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write # required for OIDC
+  contents: read
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+env:
+  AWS_DEPLOY_ROLE: arn:aws:iam::648581682379:role/havasu-github-deploy
+
+jobs:
+  detect:
+    name: detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.filter.outputs.site }}
+      ingest: ${{ steps.filter.outputs.ingest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        run: |
+          before="${{ github.event.before }}"
+          # First push (zero SHA) or a rewritten history: git cat-file -e fails → treat all as changed.
+          if [ -z "$before" ] || ! git cat-file -e "${before}^{commit}" 2>/dev/null; then
+            echo "No usable base commit — treating all paths as changed."
+            changed="$(git ls-files)"
+          else
+            changed="$(git diff --name-only "$before" "${{ github.sha }}")"
+          fi
+          echo "Changed files:"; printf '%s\n' "$changed"
+          site=false; ingest=false
+          printf '%s\n' "$changed" | grep -qE '^web/' && site=true || true
+          printf '%s\n' "$changed" | grep -qE '^(ingest/src/|template\.yaml$|samconfig\.toml$)' && ingest=true || true
+          echo "site=$site"   >> "$GITHUB_OUTPUT"
+          echo "ingest=$ingest" >> "$GITHUB_OUTPUT"
+          echo "Deploy plan → site=$site ingest=$ingest"
+
+  deploy-site:
+    name: site (S3 + CloudFront, us-east-1)
+    needs: detect
+    if: needs.detect.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
+          aws-region: us-east-1
+      - name: Sync web/ to the site bucket
+        run: aws s3 sync web/ s3://havasu-weather-site-648581682379/ --delete --region us-east-1
+      - name: Invalidate CloudFront
+        run: aws cloudfront create-invalidation --distribution-id E1FK70K9FGVU2M --paths "/*"
+
+  deploy-ingest:
+    name: ingest/data stack (SAM, us-west-2)
+    needs: detect
+    if: needs.detect.outputs.ingest == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
+          aws-region: us-west-2
+      - name: sam build
+        run: sam build
+      - name: Deploy — preserving the NoEcho station + WU keys
+        run: |
+          # The station PASSKEY + WU key are NoEcho SAM params. They live ONLY in the
+          # deployed read Lambda's env — read them back here so a redeploy can't reset
+          # them to empty. Kept in a shell var within this one step (never in outputs).
+          key="$(aws lambda get-function-configuration --function-name havasu-weather-read \
+                   --region us-west-2 --query 'Environment.Variables.STATION_KEY' --output text)"
+          wu="$(aws lambda get-function-configuration --function-name havasu-weather-read \
+                   --region us-west-2 --query 'Environment.Variables.WU_API_KEY' --output text)"
+          if [ -z "$key" ] || [ "$key" = "None" ]; then
+            echo "::error::STATION_KEY is empty on the live read Lambda — aborting so we don't wipe it."; exit 1
+          fi
+          if [ -z "$wu" ] || [ "$wu" = "None" ]; then
+            echo "::error::WU_API_KEY is empty on the live read Lambda — aborting so we don't wipe it."; exit 1
+          fi
+          echo "::add-mask::$key"; echo "::add-mask::$wu"
+          sam deploy --config-env ci --no-confirm-changeset --no-fail-on-empty-changeset \
+            --parameter-overrides "AllowedStationKeys=$key" "WuApiKey=$wu"
