@@ -54,32 +54,6 @@
   .wnav .title{font-weight:800;font-size:1.02rem;letter-spacing:.01em;}
   .wnav .title small{display:block;font-weight:600;font-size:.68rem;color:var(--ink-faint);}
 
-  /* ---- flow animation hero ---- */
-  .flow-hero{position:relative;height:clamp(360px,54vh,560px);overflow:hidden;
-    border-bottom:1px solid rgba(255,255,255,.08);}
-  .flow-hero[hidden]{display:none;}
-  #flow{position:absolute;inset:0;width:100%;height:100%;display:block;}
-  .lbl{position:absolute;left:50%;transform:translateX(-50%);z-index:3;text-align:center;
-    background:rgba(6,26,32,.62);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
-    border:1px solid var(--brd);border-radius:15px;padding:9px 14px;min-width:150px;box-shadow:var(--shadow);}
-  .lbl-top{top:12px;border-top:3px solid var(--teal-deep);}
-  .lbl-bot{bottom:12px;border-bottom:3px solid var(--coral);}
-  .lbl .dam{font-weight:800;font-size:.88rem;}
-  .lbl .dir{font-weight:700;font-size:.66rem;}
-  .lbl-top .dir{color:var(--teal-deep);} .lbl-bot .dir{color:var(--coral-deep);}
-  .lbl .cfs{font-weight:800;font-size:1.35rem;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:1px;}
-  .lbl .cfs span{font-size:.66rem;font-weight:700;opacity:.7;}
-  .lbl .sub{font-size:.64rem;font-weight:600;opacity:.6;margin-top:1px;}
-  .place{position:absolute;z-index:3;font-weight:800;font-size:.7rem;letter-spacing:.02em;
-    text-shadow:0 1px 6px rgba(0,0,0,.8);display:flex;align-items:center;gap:5px;opacity:.9;}
-  .place::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(255,191,92,.3);}
-  .place-w{left:12px;top:50%;}
-  .place-e{right:12px;top:42%;flex-direction:row-reverse;}
-  .net{position:absolute;left:12px;top:94px;z-index:3;background:rgba(6,26,32,.62);
-    border:1px solid var(--brd);border-radius:999px;padding:5px 11px;font-weight:800;font-size:.74rem;
-    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;gap:6px;align-items:center;}
-  .net .dot{width:8px;height:8px;border-radius:50%;background:var(--teal-deep);}
-
   /* ---- data cards ---- */
   .wpage{max-width:640px;margin:0 auto;padding:16px 16px calc(28px + env(safe-area-inset-bottom));
     display:flex;flex-direction:column;gap:12px;}
@@ -193,7 +167,6 @@
   .wgoes-note{margin-top:12px;font-size:.77rem;font-weight:600;color:var(--ink-faint);line-height:1.42;}
   .wgoes-note b{color:var(--ink-soft);}
   .casc-note{font-size:.72rem;font-weight:600;color:var(--ink-faint);text-align:center;margin-top:2px;}
-  @media (min-width:560px){ .lbl .cfs{font-size:1.5rem;} }
 </style>
 </head>
 <body>
@@ -201,24 +174,6 @@
     <a class="back" href="/">&larr; Conditions</a>
     <div class="title">Lake &amp; River<small>Havasu Lake, CA · Colorado River</small></div>
   </header>
-
-  <!-- flow animation hidden for now (HLW-013) — needs polish; markup + JS kept so it's a one-line un-hide -->
-  <section class="flow-hero" aria-label="Lake Havasu flow" hidden>
-    <canvas id="flow"></canvas>
-    <div class="lbl lbl-top">
-      <div class="dam">Davis Dam <span class="dir">&darr; INFLOW</span></div>
-      <div class="cfs"><span id="inCfs">--</span> <span>cfs</span></div>
-      <div class="sub">from Lake Mohave &mdash; upstream</div>
-    </div>
-    <div class="place place-w">Havasu Lake, CA</div>
-    <div class="place place-e">Lake Havasu City, AZ</div>
-    <div class="net" id="net"><span class="dot"></span><span id="netTxt">&mdash;</span></div>
-    <div class="lbl lbl-bot">
-      <div class="dam">Parker Dam <span class="dir">&darr; OUTFLOW</span></div>
-      <div class="cfs"><span id="outCfs">--</span> <span>cfs</span></div>
-      <div class="sub">downstream to Parker</div>
-    </div>
-  </section>
 
   <main class="wpage">
     <div id="warnings"></div>
@@ -409,88 +364,8 @@
     renderHistory(d.lake&&d.lake.history);
     renderChart(d.series);
     $("notes").innerHTML=(d.notes||[]).map(function(n){return '<div class="note">'+esc(n)+'</div>';}).join("");
-    // hidden flow-hero fallback (animation markup kept for a later pass)
-    var c={};(d.cascade||[]).forEach(function(n){c[n.key]=n;});
-    var inCfs=c.davis?c.davis.cfs:null, outCfs=c.parker?c.parker.cfs:null;
-    if($("inCfs"))$("inCfs").textContent=fmt(inCfs);
-    if($("outCfs"))$("outCfs").textContent=fmt(outCfs);
-    setFlow(inCfs!=null?inCfs:11000, outCfs!=null?outCfs:9000);
   }
 
-  /* ---------- flow animation ---------- */
-  var canvas=$("flow"), ctx=canvas.getContext("2d");
-  var W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
-  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var target={inflow:11000,outflow:9000}, cur={inflow:11000,outflow:9000};
-  function setFlow(i,o){target.inflow=i;target.outflow=o;}
-
-  var base=document.createElement("canvas"), bctx=base.getContext("2d");
-  function resize(){
-    var r=canvas.getBoundingClientRect(); W=r.width; H=r.height;
-    canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
-    buildStatic(); seed();
-  }
-  window.addEventListener("resize",resize);
-  function lerp(a,b,t){return a+(b-a)*t;}
-  function clamp(v,a,b){return v<a?a:v>b?b:v;}
-  function centerX(t){return W*(0.5+0.07*Math.sin(t*Math.PI*1.7-0.4));}
-  function halfW(t){
-    var river=W*0.05,mouth=W*0.11,lake=W*0.30;
-    if(t<0.15)return lerp(river,mouth,(t/0.15));
-    if(t<0.82){var u=(t-0.15)/0.67;return mouth+(lake-mouth)*Math.sin(u*Math.PI);}
-    return lerp(W*0.13,river,(t-0.82)/0.18);
-  }
-  function buildStatic(){
-    base.width=canvas.width; base.height=canvas.height; bctx.setTransform(DPR,0,0,DPR,0,0);
-    var sand=bctx.createLinearGradient(0,0,W,H);
-    sand.addColorStop(0,"#caa877");sand.addColorStop(.5,"#b6884f");sand.addColorStop(1,"#8f6a3d");
-    bctx.fillStyle=sand; bctx.fillRect(0,0,W,H);
-    bctx.globalAlpha=.45;
-    for(var i=0;i<22;i++){var side=i%2?1:-1,t=i/22,cx=centerX(t)+side*(halfW(t)+(16+(i*13%54)));
-      bctx.fillStyle=i%3?"#8f6a3d":"#a87c46"; var yy=t*H,s=22+(i*17%36);
-      bctx.beginPath();bctx.moveTo(cx,yy);bctx.lineTo(cx+side*s,yy-s*.7);bctx.lineTo(cx+side*s*1.6,yy+s*.4);bctx.closePath();bctx.fill();}
-    bctx.globalAlpha=1;
-    var steps=80,lft=[],rgt=[];
-    for(var k=0;k<=steps;k++){var tt=k/steps,cxx=centerX(tt),hw=halfW(tt);lft.push([cxx-hw,tt*H]);rgt.push([cxx+hw,tt*H]);}
-    bctx.beginPath();bctx.moveTo(lft[0][0],lft[0][1]);
-    for(var a=1;a<lft.length;a++)bctx.lineTo(lft[a][0],lft[a][1]);
-    for(var b=rgt.length-1;b>=0;b--)bctx.lineTo(rgt[b][0],rgt[b][1]);
-    bctx.closePath();
-    var wg=bctx.createLinearGradient(0,0,0,H);
-    wg.addColorStop(0,"#0f7f95");wg.addColorStop(.4,"#1a97a6");wg.addColorStop(.65,"#127f93");wg.addColorStop(1,"#0b4a5e");
-    bctx.fillStyle=wg;bctx.fill();
-    bctx.save();bctx.clip();bctx.lineWidth=Math.max(9,W*0.045);bctx.strokeStyle="rgba(127,230,226,.3)";
-    bctx.beginPath();bctx.moveTo(lft[0][0],lft[0][1]);for(var c=1;c<lft.length;c++)bctx.lineTo(lft[c][0],lft[c][1]);bctx.stroke();
-    bctx.beginPath();bctx.moveTo(rgt[0][0],rgt[0][1]);for(var e=1;e<rgt.length;e++)bctx.lineTo(rgt[e][0],rgt[e][1]);bctx.stroke();
-    bctx.restore();
-  }
-  var parts=[];
-  function seed(){parts.length=0;for(var i=0;i<200;i++)parts.push({t:Math.random(),off:(Math.random()*2-1)*.72,len:8+Math.random()*15,a:.5+Math.random()*.5,w:.8+Math.random()*1.6});}
-  function cfsAt(t){return lerp(cur.inflow,cur.outflow,t);}
-  function speedAt(t){return clamp(cfsAt(t)/(halfW(t)*2)*0.9,24,210);}
-  var last=0,spawnAcc=0;
-  function frame(ts){
-    if(!last)last=ts;var dt=Math.min((ts-last)/1000,.05);last=ts;
-    cur.inflow=lerp(cur.inflow,target.inflow,1-Math.pow(.002,dt));
-    cur.outflow=lerp(cur.outflow,target.outflow,1-Math.pow(.002,dt));
-    ctx.clearRect(0,0,W,H);ctx.drawImage(base,0,0,W,H);
-    spawnAcc+=(reduce?.35:1)*(cur.inflow/900)*dt*28;
-    while(spawnAcc>=1&&parts.length<460){parts.push({t:0,off:(Math.random()*2-1)*.72,len:8+Math.random()*15,a:.5+Math.random()*.5,w:.8+Math.random()*1.6});spawnAcc-=1;}
-    for(var i=parts.length-1;i>=0;i--){var p=parts[i];var v=speedAt(p.t)*(reduce?.4:1);p.t+=(v/H)*dt;
-      if(p.t>=1){parts.splice(i,1);continue;}
-      var cx=centerX(p.t),hw=halfW(p.t),x=cx+p.off*hw*.94,y=p.t*H,y2=y-Math.min(p.len*(v/90),p.len);
-      var fade=p.t<.06?p.t/.06:(p.t>.94?(1-p.t)/.06:1);
-      var g=ctx.createLinearGradient(x,y,x,y2);
-      g.addColorStop(0,"rgba(234,255,254,"+(p.a*fade)+")");g.addColorStop(1,"rgba(127,230,226,0)");
-      ctx.strokeStyle=g;ctx.lineWidth=p.w;ctx.lineCap="round";
-      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y2);ctx.stroke();}
-    dam(0.006);dam(0.994);
-    requestAnimationFrame(frame);
-  }
-  function dam(t){var cx=centerX(t),hw=halfW(t);ctx.fillStyle="#e9d9b8";ctx.fillRect(cx-hw-6,t*H-4,hw*2+12,8);}
-
-  var hero=document.querySelector(".flow-hero");
-  if(hero&&!hero.hasAttribute("hidden")){ resize(); requestAnimationFrame(frame); }
   load(); setInterval(load,300000);
 })();
 </script>
