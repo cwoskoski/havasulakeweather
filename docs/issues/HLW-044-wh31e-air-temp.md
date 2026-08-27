@@ -1,9 +1,9 @@
-# HLW-028: WH31E shaded air temp — provision, verify, dual-temp display
+# HLW-044: WH31E shaded air temp — provision, verify, dual-temp display
 
 - **Status:** in-progress — Phase 1 **DONE** 2026-08-26. Phase 2 (dual-temp UI) **built + previewed** 2026-08-26, PR open; the live deploy stays gated on the radiation shield arriving + Chad's merge.
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/79
-- **Branch:** `feat/HLW-028-wh31e-air-temp`
-- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/80 (draft — merge/deploy gated on the shield)
+- **Branch:** `feat/HLW-044-wh31e-air-temp`
+- **PR:** _(renumbered from HLW-028; new draft PR below)_
 - **Created:** 2026-08-26
 
 ## Summary
@@ -46,7 +46,7 @@ deploy**. Nothing live reads those fields, so pairing can't break anything.
 
 ### Phase 2 — dual temp (gated on radiation shield arriving + Phase 1 good)
 
-Normal `feat/HLW-028` branch → PR → Chad merges (merge = deploy).
+Normal `feat/HLW-044` branch → PR → Chad merges (merge = deploy).
 
 - [x] `handler.js`: `temp1f`/`humidity1`/`batt1` added to `NUMERIC` (future writes store as
       numbers; `read.js` coerces old string items via `toNum`).
@@ -54,7 +54,7 @@ Normal `feat/HLW-028` branch → PR → Chad merges (merge = deploy).
       (array `temperatureF` kept as "Full Sun"); `shadeTempF` also added to `/api/history` and `/api/compare`.
 - [x] `index.html`: hero = **Solar Shielded** primary + smaller **Full Sun** secondary; 24h Range
       keyed to the shielded series; **dual-line** history chart (Shielded + Full Sun) with legend +
-      single-line fallback; Station check shows Temp (shade) + Temp (sun), both vs the neighbor. SW → `v31`.
+      single-line fallback; Station check shows Temp (shade) + Temp (sun), both vs the neighbor. SW → `v38` + `RELEASE` r2 (user-facing → update toast).
 - [x] Decisions: feels-like follows the shielded primary; dew point + humidity stay on the array
       (shielded/array humidity match closely); history chart got the second line. Primary caption: "SOLAR SHIELDED".
 - [x] Tests: `ingest/test/read.test.mjs` covers `toNum` coercion; `npm test` 57/57 green.
@@ -75,3 +75,7 @@ Normal `feat/HLW-028` branch → PR → Chad merges (merge = deploy).
   (no `f`), not `humidity1f`; temp is `temp1f`, battery `batt1`. All three currently land
   as **strings** (not in the ingest `NUMERIC` set) — harmless (nothing live reads them),
   and Phase 2 will number-cast them and coerce old string items defensively on read.
+- **Renumbered HLW-028 → HLW-044:** the branch was first opened off a stale local `main`
+  and given HLW-028, which was already the merged SEO ticket (`HLW-028-seo-improvements.md`).
+  Rebased onto the real `origin/main` (HLW-043 was the latest; 044 is the next free number),
+  the ticket/branch/issue/PR renumbered to HLW-044, and SW re-bumped over the real `v37`.
