@@ -14,6 +14,7 @@ import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { getAlerts, getForecast } from "./nws.js";
 import { getCompare } from "./compare.js";
 import { getWater } from "./water.js";
+import { getRadar } from "./radar.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.TABLE_NAME;
@@ -241,7 +242,17 @@ export const handler = async (event) => {
       }
     }
 
-    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water"] }, 15);
+    // Radar manifest: observed (RainViewer) + HRRR "future radar" frames (IEM). Keyless.
+    if (path.endsWith("/api/radar")) {
+      try {
+        return res(200, await getRadar(), 300);
+      } catch (e) {
+        console.error(JSON.stringify({ msg: "radar-upstream", error: String(e?.message || e) }));
+        return res(200, { observed: { host: null, past: [], nowcast: [] }, forecast: null, error: "upstream" }, 30);
+      }
+    }
+
+    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar"] }, 15);
   } catch (e) {
     console.error(JSON.stringify({ msg: "read-error", error: String(e?.message || e), path }));
     return res(500, { error: "internal" }, 5);
