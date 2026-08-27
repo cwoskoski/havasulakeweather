@@ -3,7 +3,7 @@
 - **Status:** in-progress — Phase 1 **DONE** 2026-08-26. Phase 2 (dual-temp UI) **built + previewed** 2026-08-26, PR open; the live deploy stays gated on the radiation shield arriving + Chad's merge.
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/79
 - **Branch:** `feat/HLW-028-wh31e-air-temp`
-- **PR:** _(opens with Phase 2 code)_
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/80 (draft — merge/deploy gated on the shield)
 - **Created:** 2026-08-26
 
 ## Summary
