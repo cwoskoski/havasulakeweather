@@ -140,6 +140,13 @@
   .big.teal .deg{color:var(--teal);}
   .head-sub{margin-top:5px;font-size:.92rem;font-weight:650;color:var(--ink-soft);}
   .head-sub b{color:var(--ink);font-weight:800;}
+  /* Dual temperature: shade (primary) + full sun (secondary) */
+  .temp-row{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+  .temp-primary{display:flex;flex-direction:column;}
+  .sun-temp{display:flex;flex-direction:column;padding-bottom:3px;}
+  .big-sun{font-size:1.85rem;font-weight:800;line-height:.95;letter-spacing:-.5px;color:var(--teal-deep);}
+  .big-sun .deg-sun{font-size:1rem;color:var(--teal);vertical-align:top;}
+  .temp-cap{margin-top:3px;font-size:.66rem;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-soft);}
   .compass{width:58px;height:58px;flex:none;}
   #windArrow{transition:transform .6s cubic-bezier(.2,.8,.2,1);transform-box:view-box;transform-origin:30px 30px;}
 
@@ -195,6 +202,11 @@
   .range-tabs button{border:1px solid var(--glass-brd);background:rgba(255,255,255,.28);color:var(--ink-soft);font:inherit;font-family:var(--font);font-weight:800;font-size:.72rem;padding:5px 11px;border-radius:999px;cursor:pointer;}
   .range-tabs button.on{background:linear-gradient(160deg,rgba(255,122,69,.3),rgba(255,255,255,.2));border-color:var(--coral);color:var(--coral-deep);}
   .chart svg{display:block;width:100%;height:auto;}
+  .chart-legend{display:flex;gap:16px;padding:0 4px 10px;}
+  .chart-legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:800;color:var(--ink-soft);}
+  .chart-legend .lg i{width:15px;height:3px;border-radius:2px;display:inline-block;}
+  .chart-legend .lg-shade i{background:var(--coral-deep);}
+  .chart-legend .lg-sun i{background:var(--teal-deep);}
 
   /* ---- support / donate ---- */
   .support{padding:18px 18px 16px;text-align:center;background:linear-gradient(160deg,rgba(255,180,90,.28),rgba(255,255,255,.12)),var(--glass-bg-2);border:1px solid rgba(255,255,255,.55);}
@@ -421,7 +433,16 @@
           </span>
           <div class="head-main">
             <div class="head-label">Temperature</div>
-            <div class="big"><span id="temp">--</span><span class="deg">&deg;F</span></div>
+            <div class="temp-row">
+              <div class="temp-primary">
+                <div class="big"><span id="temp">--</span><span class="deg">&deg;F</span></div>
+                <div class="temp-cap" id="tempCap" hidden>Solar Shielded</div>
+              </div>
+              <div class="sun-temp" id="sunTemp" hidden>
+                <div class="big-sun"><span id="tempSun">--</span><span class="deg-sun">&deg;</span></div>
+                <div class="temp-cap">Full Sun</div>
+              </div>
+            </div>
             <div class="head-sub">Feels like <b id="feels">--&deg;F</b></div>
           </div>
         </div>
@@ -547,6 +568,10 @@
           <button type="button" data-hours="168">7d</button>
         </div>
       </div>
+      <div class="chart-legend" id="chartLegend" hidden>
+        <span class="lg lg-shade"><i></i>Solar Shielded</span>
+        <span class="lg lg-sun"><i></i>Full Sun</span>
+      </div>
       <svg id="chartSvg" viewBox="0 0 700 262" role="img" aria-label="Temperature over time">
         <defs>
           <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
@@ -560,6 +585,7 @@
         </defs>
         <g id="chartGrid" stroke="rgba(43,24,16,0.12)" stroke-width="1"></g>
         <path id="chartArea" fill="url(#tempFill)" d=""/>
+        <path id="chartLine2" fill="none" stroke="#0f7f8f" stroke-width="2.2" stroke-opacity="0.85" stroke-linejoin="round" stroke-linecap="round" d=""/>
         <path id="chartLine" fill="none" stroke="url(#tempLine)" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" d=""/>
         <g id="chartLabels" fill="rgba(43,24,16,0.55)" font-size="11" font-weight="700" font-family="sans-serif"></g>
       </svg>
@@ -665,8 +691,16 @@
       var r=await fetch(API+"/api/current",{cache:"no-store"});
       var d=await r.json();
       if(!d||d.temperatureF==null){$("freshText").textContent="Waiting for data…";return;}
-      set("temp",Math.round(d.temperatureF));
-      set("feels",Math.round(d.feelsLikeF)+"°F");
+      /* Shaded WH31E is the primary "air temp" when present; the array becomes "Full Sun". */
+      var hasShade=d.shadeTempF!=null;
+      var primaryTemp=hasShade?d.shadeTempF:d.temperatureF;
+      var primaryFeels=(hasShade&&d.shadeFeelsLikeF!=null)?d.shadeFeelsLikeF:d.feelsLikeF;
+      set("temp",Math.round(primaryTemp));
+      set("feels",Math.round(primaryFeels)+"°F");
+      $("tempCap").hidden=!hasShade;
+      var sun=$("sunTemp");
+      if(hasShade){set("tempSun",Math.round(d.temperatureF));sun.hidden=false;}
+      else{sun.hidden=true;}
       set("wind",Math.round(d.wind.speedMph));
       set("gust",Math.round(d.wind.gustMph)+" mph");
       set("windDir",(d.wind.compass||"—")+" ("+Math.round(d.wind.directionDeg)+"°)");
@@ -714,13 +748,16 @@
       var r=await fetch(API+"/api/history?hours="+hours,{cache:"no-store"});
       var d=await r.json();
       var pts=(d.points||[]).filter(function(p){return typeof p.tempF==="number";});
-      drawChart(pts,hours);
-      if(pts.length){
-        var temps=pts.map(function(p){return p.tempF;});
-        set("hi",Math.round(Math.max.apply(null,temps)));
-        set("lo",Math.round(Math.min.apply(null,temps)));
-        trend(pts);
+      var shadePts=pts.filter(function(p){return typeof p.shadeTempF==="number";});
+      drawChart(pts,shadePts,hours);
+      /* 24h Range keys to the shielded series (matches the headline) when we have it. */
+      var rangeVals=shadePts.length?shadePts.map(function(p){return p.shadeTempF;})
+                                   :pts.map(function(p){return p.tempF;});
+      if(rangeVals.length){
+        set("hi",Math.round(Math.max.apply(null,rangeVals)));
+        set("lo",Math.round(Math.min.apply(null,rangeVals)));
       }
+      if(pts.length){trend(pts);}
     }catch(e){}
   }
   function trend(pts){
@@ -732,22 +769,38 @@
     else if(dp<-0.02){el.textContent="▼ Falling";el.className="chip falling";el.style.color="";el.style.background="";}
     else{el.textContent="Steady";el.className="chip";el.style.color="var(--ink-soft)";el.style.background="rgba(43,24,16,.1)";}
   }
-  function drawChart(pts,hours){
-    var grid=$("chartGrid"),labels=$("chartLabels");
+  function drawChart(sunPts,shadePts,hours){
+    var grid=$("chartGrid"),labels=$("chartLabels"),legend=$("chartLegend");
+    var line=$("chartLine"),line2=$("chartLine2"),area=$("chartArea");
     grid.innerHTML="";labels.innerHTML="";
-    if(pts.length<2){$("chartLine").setAttribute("d","");$("chartArea").setAttribute("d","");return;}
-    var temps=pts.map(function(p){return p.tempF;});
-    var lo=Math.min.apply(null,temps),hi=Math.max.apply(null,temps);
+    if(sunPts.length<2){line.setAttribute("d","");line2.setAttribute("d","");area.setAttribute("d","");legend.hidden=true;return;}
+    var dual=shadePts.length>=2;
+    /* Y-scale spans whichever series are shown. */
+    var vals=sunPts.map(function(p){return p.tempF;});
+    if(dual){vals=vals.concat(shadePts.map(function(p){return p.shadeTempF;}));}
+    var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
     var pad=Math.max(2,(hi-lo)*0.12);lo-=pad;hi+=pad;
-    var t0=Date.parse(pts[0].t),t1=Date.parse(pts[pts.length-1].t);
+    /* X domain from the full (sun) series so the time axis is always complete. */
+    var t0=Date.parse(sunPts[0].t),t1=Date.parse(sunPts[sunPts.length-1].t);
     var span=Math.max(1,t1-t0);
     function X(t){return 10+((Date.parse(t)-t0)/span)*(W-20);}
     function Y(v){return PAD_T+(1-(v-lo)/Math.max(1,(hi-lo)))*(H-PAD_T-PAD_B);}
-    var dLine="",dArea="";
-    pts.forEach(function(p,i){var x=X(p.t).toFixed(1),y=Y(p.tempF).toFixed(1);dLine+=(i?"L":"M")+x+","+y+" ";});
-    dArea=dLine+"L"+X(pts[pts.length-1].t).toFixed(1)+","+(H-PAD_B)+" L"+X(pts[0].t).toFixed(1)+","+(H-PAD_B)+" Z";
-    $("chartLine").setAttribute("d",dLine.trim());
-    $("chartArea").setAttribute("d",dArea);
+    function path(arr,key){var d="";arr.forEach(function(p,i){d+=(i?"L":"M")+X(p.t).toFixed(1)+","+Y(p[key]).toFixed(1)+" ";});return d.trim();}
+    var sunLine=path(sunPts,"tempF");
+    if(dual){
+      /* Primary = shielded (coral, drawn on top); secondary = full sun (teal); no fill. */
+      line.setAttribute("d",path(shadePts,"shadeTempF"));line.setAttribute("stroke","#e8451f");
+      line2.setAttribute("d",sunLine);
+      area.setAttribute("d","");
+      legend.hidden=false;
+    }else{
+      /* Fallback: single full-sun line in the original gradient + fill. */
+      line.setAttribute("d",sunLine);line.setAttribute("stroke","url(#tempLine)");
+      line2.setAttribute("d","");
+      var last=sunPts[sunPts.length-1];
+      area.setAttribute("d",sunLine+"L"+X(last.t).toFixed(1)+","+(H-PAD_B)+" L"+X(sunPts[0].t).toFixed(1)+","+(H-PAD_B)+" Z");
+      legend.hidden=true;
+    }
     /* gridlines at hi/mid/lo */
     [hi-pad,(hi+lo)/2,lo+pad].forEach(function(v){
       var y=Y(v);
@@ -868,16 +921,21 @@
     if(d.configured===false||!mine||!near){sec.hidden=true;return;} // hidden until WU key is set
     sec.hidden=false;
     $("cmpSrc").textContent=d.source==="mock"?"demo data":"vs "+(near.id||"nearby");
-    var rows=[
-      ["Temp",fnum(mine.tempF,"°"),fnum(near.tempF,"°"),fdelta(d.deltas.tempF)+"°"],
-      ["Wind",fnum(mine.windMph,""),fnum(near.windMph,""),fdelta(d.deltas.windMph)],
-      ["Humidity",fnum(mine.humidity,"%"),fnum(near.humidity,"%"),fdelta(d.deltas.humidity)],
-      ["Pressure",fnum(mine.pressureInHg,"",2),fnum(near.pressureInHg,"",2),fdelta(d.deltas.pressureInHg,2)],
-    ];
+    var rows=[];
+    /* Both our temps vs the neighbor's single (unshielded) reading. */
+    if(mine.shadeTempF!=null){
+      var shadeD=(near.tempF!=null)?(mine.shadeTempF-near.tempF):null;
+      rows.push(["Temp (shade)",fnum(mine.shadeTempF,"°"),fnum(near.tempF,"°"),fdelta(shadeD)+"°"]);
+    }
+    rows.push(["Temp (sun)",fnum(mine.tempF,"°"),fnum(near.tempF,"°"),fdelta(d.deltas.tempF)+"°"]);
+    rows.push(["Wind",fnum(mine.windMph,""),fnum(near.windMph,""),fdelta(d.deltas.windMph)]);
+    rows.push(["Humidity",fnum(mine.humidity,"%"),fnum(near.humidity,"%"),fdelta(d.deltas.humidity)]);
+    rows.push(["Pressure",fnum(mine.pressureInHg,"",2),fnum(near.pressureInHg,"",2),fdelta(d.deltas.pressureInHg,2)]);
     var html='<div class="cmp-row cmp-hdr"><span></span><span>Mine</span><span>'+esc(near.id||"Nearby")+'</span><span>&Delta;</span></div>';
     rows.forEach(function(r){html+='<div class="cmp-row"><span class="k">'+r[0]+'</span><span>'+r[1]+'</span><span>'+r[2]+'</span><span class="d">'+r[3]+'</span></div>';});
     $("cmpGrid").innerHTML=html;
-    var notes=d.notes||[];
+    var notes=(d.notes||[]).slice();
+    notes.push((near.id||"The neighbor")+" is unshielded, so Full Sun is the like-for-like drift check; the Shaded row's gap is mostly the shade effect, not station drift.");
     $("cmpNotes").innerHTML=notes.map(function(n){return '<div class="cmp-note">'+esc(n)+'</div>';}).join("");
   }
 
