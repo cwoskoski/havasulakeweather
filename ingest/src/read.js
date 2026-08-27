@@ -40,6 +40,9 @@ function res(status, body, cacheSeconds = 15) {
 
 const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
 const compass = (deg) => (deg == null ? null : COMPASS[Math.round((deg % 360) / 22.5) % 16]);
+// Extra-sensor fields (WH31E CH1) currently store as strings — coerce, null if absent/bad.
+// Note null/undefined/"" -> null (not 0, which Number() would give for null/"").
+export const toNum = (v) => { if (v == null || v === "") return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 function dewPointF(tf, rh) {
   if (tf == null || rh == null || rh <= 0) return null;
@@ -87,7 +90,7 @@ async function series(hours) {
         TableName: TABLE,
         KeyConditionExpression: "pk = :pk AND sk >= :s",
         ExpressionAttributeValues: { ":pk": obsPk(mm), ":s": startISO },
-        ProjectionExpression: "sk, tempf, windspeedmph, windgustmph, winddir, humidity, baromrelin, uv, solarradiation, dailyrainin",
+        ProjectionExpression: "sk, tempf, temp1f, windspeedmph, windgustmph, winddir, humidity, baromrelin, uv, solarradiation, dailyrainin",
         ExclusiveStartKey: ek,
       }));
       items.push(...(r.Items || []));
@@ -141,6 +144,10 @@ export const handler = async (event) => {
       const it = await newest();
       if (!it) return res(200, { station: STATION, reading: null }, 15);
       const tf = it.tempf, rh = it.humidity;
+      // WH31E shaded thermo-hygrometer (CH1). Primary "air temp" on the page when it's
+      // reporting; the all-in-one array (tf) becomes the "Full Sun" reading. Null when
+      // the extra sensor drops out, so the page can fall back to the array.
+      const shadeTf = toNum(it.temp1f), shadeRh = toNum(it.humidity1);
       const ageSec = it.receivedAt ? (Date.now() - Date.parse(it.receivedAt)) / 1000 : null;
       const rain = rainState(await rainWindow(RAIN_DEBOUNCE_MIN), it);
       return res(200, {
@@ -152,6 +159,10 @@ export const handler = async (event) => {
         feelsLikeF: feelsLikeF(tf, rh, it.windspeedmph),
         humidity: rh,
         dewPointF: dewPointF(tf, rh),
+        shadeTempF: shadeTf,
+        shadeHumidity: shadeRh,
+        shadeFeelsLikeF: shadeTf != null ? feelsLikeF(shadeTf, shadeRh, it.windspeedmph) : null,
+        shadeDewPointF: shadeTf != null ? dewPointF(shadeTf, shadeRh) : null,
         wind: { speedMph: it.windspeedmph, gustMph: it.windgustmph, maxDailyGustMph: it.maxdailygust, directionDeg: it.winddir, compass: compass(it.winddir) },
         pressureInHg: it.baromrelin,
         uv: it.uv,
@@ -168,7 +179,7 @@ export const handler = async (event) => {
       return res(200, {
         station: STATION, hours, count: its.length,
         points: its.map((r) => ({
-          t: r.sk, tempF: r.tempf, windMph: r.windspeedmph, gustMph: r.windgustmph,
+          t: r.sk, tempF: r.tempf, shadeTempF: toNum(r.temp1f), windMph: r.windspeedmph, gustMph: r.windgustmph,
           dirDeg: r.winddir, humidity: r.humidity, pressureInHg: r.baromrelin,
           uv: r.uv, solarWm2: r.solarradiation, rainTodayIn: r.dailyrainin,
         })),
@@ -206,7 +217,7 @@ export const handler = async (event) => {
             const ageSec = it.receivedAt ? (Date.now() - Date.parse(it.receivedAt)) / 1000 : null;
             mine = {
               id: STATION, label: "Havasu Lake (mine)",
-              tempF: it.tempf, windMph: it.windspeedmph, humidity: it.humidity,
+              tempF: it.tempf, shadeTempF: toNum(it.temp1f), windMph: it.windspeedmph, humidity: it.humidity,
               pressureInHg: it.baromrelin, rainTodayIn: it.dailyrainin,
               observedAt: it.dateutc, stale: ageSec != null && ageSec > 600,
             };

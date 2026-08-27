@@ -32,6 +32,8 @@ const NUMERIC = new Set([
   "uv", "solarradiation", "hourlyrainin", "eventrainin", "dailyrainin",
   "weeklyrainin", "monthlyrainin", "yearlyrainin", "totalrainin",
   "baromrelin", "baromabsin", "battout",
+  // WH31E extra thermo-hygrometer, CH1 (shaded air temp). battN: 1 = OK, 0 = low.
+  "temp1f", "humidity1", "batt1",
 ]);
 
 // In-memory watermark, survives across warm invocations (~1/min keeps us warm):

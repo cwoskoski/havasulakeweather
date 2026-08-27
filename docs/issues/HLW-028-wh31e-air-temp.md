@@ -1,6 +1,6 @@
 # HLW-028: WH31E shaded air temp — provision, verify, dual-temp display
 
-- **Status:** in-progress — Phase 1 (provision & verify) **DONE** 2026-08-26; Phase 2 waiting on the radiation shield.
+- **Status:** in-progress — Phase 1 **DONE** 2026-08-26. Phase 2 (dual-temp UI) **built + previewed** 2026-08-26, PR open; the live deploy stays gated on the radiation shield arriving + Chad's merge.
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/79
 - **Branch:** `feat/HLW-028-wh31e-air-temp`
 - **PR:** _(opens with Phase 2 code)_
@@ -48,19 +48,21 @@ deploy**. Nothing live reads those fields, so pairing can't break anything.
 
 Normal `feat/HLW-028` branch → PR → Chad merges (merge = deploy).
 
-- [ ] `handler.js`: add `temp1f`/`humidity1`/`batt1` to `NUMERIC` (store as numbers;
-      old string-typed items coerced defensively on read).
-- [ ] `read.js` `/api/current`: keep `temperatureF` (array), add `shadeTempF` (WH31E).
-- [ ] `index.html`: primary big number = shaded air temp, "in the sun" chip = array temp;
-      bump SW cache (`havasu-wx-vN`).
-- [ ] Decide with the Phase 2 plan: does feels-like / dew point switch to the shaded
-      sensor's temp+humidity? Does the history chart get a second line?
-- [ ] Tests for the numeric parsing + read shaping.
+- [x] `handler.js`: `temp1f`/`humidity1`/`batt1` added to `NUMERIC` (future writes store as
+      numbers; `read.js` coerces old string items via `toNum`).
+- [x] `read.js`: `/api/current` adds `shadeTempF`/`shadeHumidity`/`shadeFeelsLikeF`/`shadeDewPointF`
+      (array `temperatureF` kept as "Full Sun"); `shadeTempF` also added to `/api/history` and `/api/compare`.
+- [x] `index.html`: hero = **Solar Shielded** primary + smaller **Full Sun** secondary; 24h Range
+      keyed to the shielded series; **dual-line** history chart (Shielded + Full Sun) with legend +
+      single-line fallback; Station check shows Temp (shade) + Temp (sun), both vs the neighbor. SW → `v31`.
+- [x] Decisions: feels-like follows the shielded primary; dew point + humidity stay on the array
+      (shielded/array humidity match closely); history chart got the second line. Primary caption: "SOLAR SHIELDED".
+- [x] Tests: `ingest/test/read.test.mjs` covers `toNum` coercion; `npm test` 57/57 green.
 
 ## Acceptance criteria
 
 - [x] Phase 1: WH31E data is visible in DynamoDB and reads sensibly vs the array.
-- [ ] Phase 2: the site shows both a shaded air temp and an "in the sun" temp; `npm test` green.
+- [x] Phase 2 (built): the page shows both a shielded air temp and a Full Sun temp; `npm test` 57/57 green. Live cutover pends the shield + merge.
 
 ## Notes
 
