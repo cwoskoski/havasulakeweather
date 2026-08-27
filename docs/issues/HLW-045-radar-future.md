@@ -1,9 +1,9 @@
 # HLW-045: Radar future frames — HRRR simulated reflectivity nowcast (+6h)
 
-- **Status:** in-progress — built + previewed locally 2026-08-27; ready for PR. Deploy gated on Chad's merge.
+- **Status:** **done** — shipped 2026-08-27 (PR #83 merged, deployed, verified live). `/radar` animates past → now → +6h with observed (RainViewer/NEXRAD) flowing into HRRR future radar; NOW divider + two-tone scrubber; CARTO basemap fixed (authenticated key).
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/82
 - **Branch:** `feat/HLW-045-radar-future`
-- **PR:** _(opens after local preview)_
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/83 (merged 2026-08-27)
 - **Created:** 2026-08-27
 
 ## Summary
