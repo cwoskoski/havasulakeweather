@@ -72,8 +72,18 @@
   /* controls */
   .rctrl{display:flex;align-items:center;gap:12px;background:var(--glass);border:1px solid var(--brd);border-radius:999px;padding:8px 14px;box-shadow:var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
   .rplay{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid var(--brd);background:var(--glass-2);color:var(--ink);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-  .rslider{flex:1;accent-color:var(--teal);cursor:pointer;}
-  .rtime{flex:none;min-width:132px;text-align:right;font-weight:800;font-size:.86rem;font-variant-numeric:tabular-nums;}
+  .rslider-wrap{position:relative;flex:1;display:flex;align-items:center;}
+  /* Two-tone track: observed (teal) up to NOW, forecast (gold) after — split at --now. */
+  .rslider{-webkit-appearance:none;appearance:none;width:100%;height:7px;border-radius:999px;cursor:pointer;background:transparent;}
+  .rslider:focus{outline:none;}
+  .rslider::-webkit-slider-runnable-track{height:7px;border-radius:999px;background:linear-gradient(90deg,var(--teal) 0 var(--now,50%),var(--gold) var(--now,50%) 100%);}
+  .rslider::-moz-range-track{height:7px;border-radius:999px;background:linear-gradient(90deg,var(--teal) 0 var(--now,50%),var(--gold) var(--now,50%) 100%);}
+  .rslider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;margin-top:-4px;border-radius:50%;background:#fff;border:2px solid var(--teal-deep);box-shadow:0 1px 4px rgba(0,0,0,.45);}
+  .rslider::-moz-range-thumb{width:15px;height:15px;border:2px solid var(--teal-deep);border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.45);}
+  /* "now" divider between observed (left) and forecast (right) frames */
+  .rnow{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--teal-deep);border-radius:2px;pointer-events:none;transform:translateX(-1px);box-shadow:0 0 6px rgba(127,230,226,.7);}
+  .rnow::after{content:"NOW";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:.55rem;font-weight:800;letter-spacing:.5px;color:var(--teal-deep);}
+  .rtime{text-align:center;font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums;color:var(--ink);}
   .rtime .tag{font-weight:700;font-size:.72rem;color:var(--ink-faint);}
   .rtime .tag.fc{color:var(--gold);} .rtime .tag.now{color:var(--teal-deep);}
   .rnote{font-size:.78rem;font-weight:600;color:var(--ink-faint);text-align:center;line-height:1.4;}
@@ -97,15 +107,16 @@
     <div id="map" aria-label="Live precipitation radar centered on Havasu Lake"></div>
     <div class="rctrl">
       <button class="rplay" id="rPlay" type="button" aria-label="Play/pause radar">&#9208;</button>
-      <input class="rslider" id="rSlider" type="range" min="0" max="0" value="0" step="1" aria-label="Radar frame" />
-      <span class="rtime" id="rTime">&mdash;</span>
+      <span class="rslider-wrap"><input class="rslider" id="rSlider" type="range" min="0" max="0" value="0" step="1" aria-label="Radar frame" /><span class="rnow" id="rNow" hidden></span></span>
     </div>
+    <div class="rtime" id="rTime">&mdash;</div>
     <div class="rlegend">
-      Light <span class="sw" style="background:#57b9ff"></span><span class="sw" style="background:#4be04b"></span><span class="sw" style="background:#f2f229"></span><span class="sw" style="background:#ff9e2b"></span><span class="sw" style="background:#ff4d4d"></span> Heavy
+      Light <span class="sw" style="background:#8ff08f"></span><span class="sw" style="background:#2fb62f"></span><span class="sw" style="background:#f2f229"></span><span class="sw" style="background:#ff9e2b"></span><span class="sw" style="background:#ff4d4d"></span> Heavy
     </div>
-    <div class="rnote" id="rNote">Animating the last ~2 hours of radar. A short-term forecast appears when rain is nearby.</div>
+    <div class="rnote" id="rNote">Past ~2 hours of observed radar, then the next 6 hours forecast. Future frames are an <b>HRRR model</b> simulation, not live radar.</div>
     <div class="foot">
-      Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> &middot;
+      Observed radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> &middot;
+      future radar (HRRR): <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &middot;
       map &copy; OpenStreetMap / CARTO &middot; community reference, not an official product.
       <a href="/water.html">Lake &amp; river &rarr;</a>
       <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/radar.html">Radar</a></nav>
@@ -118,65 +129,94 @@
   var HAVASU=[34.4822,-114.4138];
   var $=function(id){return document.getElementById(id);};
   var map=L.map("map",{center:HAVASU,zoom:7,minZoom:4,maxZoom:9,zoomControl:true,attributionControl:true,worldCopyJump:true});
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2dzm_1_674318b44e9de52c84e5cab5",{
     subdomains:"abcd",maxZoom:19,
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> &middot; Radar <a href="https://www.rainviewer.com/">RainViewer</a>'
   }).addTo(map);
   L.circleMarker(HAVASU,{radius:6,color:"#ffd24a",weight:2,fillColor:"#ffd24a",fillOpacity:.9})
     .addTo(map).bindTooltip("Havasu Lake, CA",{direction:"top",offset:[0,-6]});
 
-  var RV_HOST="", frames=[], layers={}, pos=0, playing=false, timer=null, pastCount=0;
-  var SIZE=256, COLOR=4, SMOOTH=1, SNOW=1, OPACITY=0.72;
-  var playBtn=$("rPlay"), slider=$("rSlider"), timeEl=$("rTime");
+  var frames=[], layers={}, pos=0, playing=false, timer=null, boundary=0, shownKey=null;
+  var RV_HOST=null, FC_TEMPLATE=null;
+  var SIZE=256, COLOR=6, SMOOTH=1, SNOW=1, OPACITY=0.72; // RainViewer scheme 6 = NEXRAD L-III, matches HRRR's NWS ramp
+  var playBtn=$("rPlay"), slider=$("rSlider"), timeEl=$("rTime"), nowMark=$("rNow");
 
-  function tileUrl(path){ return RV_HOST+path+"/"+SIZE+"/{z}/{x}/{y}/"+COLOR+"/"+SMOOTH+"_"+SNOW+".png"; }
+  function fkey(f){ return f.kind+":"+(f.kind==="fc"?f.fmin:f.path); }
+  function tileUrl(f){
+    return f.kind==="fc"
+      ? FC_TEMPLATE.replace("{fmin}",f.fmin)                       // IEM HRRR simulated reflectivity
+      : RV_HOST+f.path+"/"+SIZE+"/{z}/{x}/{y}/"+COLOR+"/"+SMOOTH+"_"+SNOW+".png"; // RainViewer observed
+  }
   function ensureLayer(f){
-    if(!layers[f.path]) layers[f.path]=L.tileLayer(tileUrl(f.path),{tileSize:SIZE,opacity:0,maxNativeZoom:7,zIndex:100});
-    if(!map.hasLayer(layers[f.path])) layers[f.path].addTo(map);
-    return layers[f.path];
+    var k=fkey(f);
+    if(!layers[k]) layers[k]=L.tileLayer(tileUrl(f),{tileSize:256,opacity:0,maxNativeZoom:7,zIndex:100});
+    if(!map.hasLayer(layers[k])){
+      layers[k].addTo(map);
+      var c=layers[k].getContainer&&layers[k].getContainer();
+      if(c) c.style.transition="opacity .4s ease"; // cross-fade between frames/providers
+    }
+    return layers[k];
   }
   function label(f){
     var mins=Math.round((f.time*1000-Date.now())/60000);
     var t=new Date(f.time*1000).toLocaleTimeString("en-US",{timeZone:"America/Los_Angeles",hour:"numeric",minute:"2-digit"});
-    var tag = mins<=-1 ? '<span class="tag">'+Math.abs(mins)+" min ago</span>"
-      : mins>=1 ? '<span class="tag fc">+'+mins+" min · forecast</span>"
-      : '<span class="tag now">now</span>';
+    var tag;
+    if(mins<=-1){ tag='<span class="tag">'+Math.abs(mins)+" min ago</span>"; }
+    else if(mins>=1){
+      var lbl = mins>=60 ? ("+"+(Math.round(mins/60*10)/10)+"h") : ("+"+mins+" min");
+      tag='<span class="tag fc">'+lbl+" · forecast"+(f.kind==="fc"?" (model)":"")+"</span>";
+    } else { tag='<span class="tag now">now</span>'; }
     timeEl.innerHTML=t+" "+tag;
   }
   function show(i){
     if(!frames.length)return;
-    var prev=frames[pos];
     pos=(i%frames.length+frames.length)%frames.length;
-    var cur=frames[pos];
-    ensureLayer(cur);
-    ensureLayer(frames[(pos+1)%frames.length]); // preload next
-    if(prev&&layers[prev.path]&&prev.path!==cur.path) layers[prev.path].setOpacity(0);
-    layers[cur.path].setOpacity(OPACITY);
+    var cur=frames[pos], nxt=frames[(pos+1)%frames.length], ck=fkey(cur), nk=fkey(nxt);
+    ensureLayer(cur); ensureLayer(nxt); // current (shown) + next (preloaded)
+    // Throttle to a tiny window — current, next, and the outgoing frame — so IEM HRRR (renders
+    // on-demand, 503s under a full-frame burst) only ever sees a trickle. The outgoing layer
+    // lingers one beat so the CSS opacity transition cross-fades instead of hard-cutting.
+    var keep=[ck,nk]; if(shownKey) keep.push(shownKey);
+    Object.keys(layers).forEach(function(k){ if(keep.indexOf(k)<0 && map.hasLayer(layers[k])) map.removeLayer(layers[k]); });
+    if(shownKey && shownKey!==ck && layers[shownKey]) layers[shownKey].setOpacity(0); // fade previous out
+    layers[nk].setOpacity(0);
+    layers[ck].setOpacity(OPACITY);                                                    // fade current in
+    shownKey=ck;
     slider.value=pos; label(cur);
   }
-  function play(){ playing=true; playBtn.innerHTML="&#9208;"; clearInterval(timer);
-    timer=setInterval(function(){ var next=pos+1; show(next); if(next>=frames.length){/*loop*/} }, next_delay()); }
-  function next_delay(){ return (pos===frames.length-1)?1100:520; } // linger on the newest frame
-  function pause(){ playing=false; playBtn.innerHTML="&#9654;"; clearInterval(timer); }
+  function next_delay(){ return pos===frames.length-1?1100:(pos===boundary-1?900:520); } // linger at +6h end and at "now"
+  function step(){ show(pos+1); if(playing) timer=setTimeout(step,next_delay()); }
+  function play(){ playing=true; playBtn.innerHTML="&#9208;"; clearTimeout(timer); timer=setTimeout(step,next_delay()); }
+  function pause(){ playing=false; playBtn.innerHTML="&#9654;"; clearTimeout(timer); }
 
   playBtn.addEventListener("click",function(){ playing?pause():play(); });
   slider.addEventListener("input",function(){ pause(); show(+slider.value); });
 
-  fetch("https://api.rainviewer.com/public/weather-maps.json",{cache:"no-store"})
+  function placeNow(){
+    var pct = frames.length>1 ? (boundary/(frames.length-1)*100) : 0;
+    slider.style.setProperty("--now", pct+"%"); // colors the track: teal (past) | gold (future)
+    if(frames.length<2||boundary<=0||boundary>frames.length-1){ nowMark.hidden=true; return; }
+    nowMark.hidden=false; nowMark.style.left=pct+"%";
+  }
+
+  fetch("/api/radar",{cache:"no-store"})
     .then(function(r){return r.json();})
     .then(function(j){
-      RV_HOST=j.host;
-      var past=(j.radar&&j.radar.past)||[], now=(j.radar&&j.radar.nowcast)||[];
-      frames=past.concat(now); pastCount=past.length;
-      if(!frames.length){ $("rNote").textContent="No radar data available right now."; return; }
+      var obs=j.observed||{}, fc=j.forecast||null;
+      RV_HOST=obs.host; if(fc) FC_TEMPLATE=fc.tileTemplate;
+      var obsFrames=(RV_HOST?(obs.past||[]).concat(obs.nowcast||[]):[]).map(function(f){ return {time:f.time,kind:"obs",path:f.path}; });
+      var fcFrames=(fc&&fc.frames?fc.frames:[]).map(function(f){ return {time:f.time,kind:"fc",fmin:f.fmin}; });
+      frames=obsFrames.concat(fcFrames);
+      if(!frames.length){ $("rNote").textContent="Radar is temporarily unavailable — try again shortly."; return; }
+      var nowMs=Date.now();
+      boundary=frames.filter(function(f){ return f.time*1000<=nowMs; }).length; // index of the first future frame
       slider.max=frames.length-1;
-      pos=Math.max(0,past.length-1); // start on "now"
-      show(pos);
-      play();
-      if(now.length) $("rNote").textContent="Animating the last ~2 hours of radar, plus a short-term forecast (dashed future frames).";
+      pos=Math.max(0,boundary-1); // start on "now"
+      placeNow(); show(pos); play();
     })
     .catch(function(){ $("rNote").textContent="Radar is temporarily unavailable — try again shortly."; });
 
+  window.addEventListener("resize",placeNow);
   // Pause the loop when the tab is hidden (save data/battery).
   document.addEventListener("visibilitychange",function(){ if(document.hidden)pause(); });
 })();
