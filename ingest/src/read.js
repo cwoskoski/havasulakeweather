@@ -16,13 +16,17 @@ import { getCompare } from "./compare.js";
 import { getWater } from "./water.js";
 import { getRadar } from "./radar.js";
 import { getAir } from "./air.js";
+import { kmToMi, summarize, mockLightning } from "./lightning.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.TABLE_NAME;
-const STATION = (process.env.STATION_KEY || "").split(",")[0].trim();
+const KEYS = (process.env.STATION_KEY || "").split(",").map((s) => s.trim()).filter(Boolean);
+const STATION = KEYS[0] || "";
+const LIGHTNING_KEY = KEYS[1] || ""; // GW1100 gateway (WH31L lightning) — 2nd allowed key
 const RAIN_DEBOUNCE_MIN = Number(process.env.RAIN_DEBOUNCE_MIN || 15); // stay "raining" until the rate has read 0 this long
 
-const obsPk = (mm) => `OBS#${STATION}#${mm}`;
+const obsPkFor = (key, mm) => `OBS#${key}#${mm}`;
+const obsPk = (mm) => obsPkFor(STATION, mm);
 const ym = (d) => d.toISOString().slice(0, 7);
 const prevMonth = (mm) => { let [y, m] = mm.split("-").map(Number); if (--m === 0) { m = 12; y--; } return `${y}-${String(m).padStart(2, "0")}`; };
 const nextMonth = (mm) => { let [y, m] = mm.split("-").map(Number); if (++m === 13) { m = 1; y++; } return `${y}-${String(m).padStart(2, "0")}`; };
@@ -122,6 +126,51 @@ async function rainWindow(minutes) {
   return items;
 }
 
+// Lightning (WH31L via the GW1100 gateway, HLW-048): gateway readings mapped to chart
+// points; also feeds the 0–3 bolt level via summarize().
+async function lightningPoints(hours) {
+  const now = new Date();
+  const startISO = new Date(now - hours * 3600e3).toISOString().slice(0, 19) + "Z";
+  const months = [ym(new Date(now - hours * 3600e3)), ym(now)].filter((v, i, a) => a.indexOf(v) === i);
+  const items = [];
+  for (const mm of months) {
+    let ek;
+    do {
+      const r = await ddb.send(new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: "pk = :pk AND sk >= :s",
+        ExpressionAttributeValues: { ":pk": obsPkFor(LIGHTNING_KEY, mm), ":s": startISO },
+        ProjectionExpression: "sk, lightning, lightning_num, lightning_time, wh57batt",
+        ExclusiveStartKey: ek,
+      }));
+      items.push(...(r.Items || []));
+      ek = r.LastEvaluatedKey;
+    } while (ek);
+  }
+  items.sort((a, b) => (a.sk < b.sk ? -1 : 1));
+  return items.map((r) => ({
+    t: r.sk,
+    num: toNum(r.lightning_num),
+    distMi: kmToMi(toNum(r.lightning)),
+    strikeAt: toNum(r.lightning_time),
+    batt: toNum(r.wh57batt),
+  }));
+}
+
+// Current lightning summary for /api/current — null when no gateway is configured/reporting.
+async function getLightningCurrent() {
+  if (!LIGHTNING_KEY) return null;
+  const pts = await lightningPoints(1.5); // 90 min: the 60-min window + a baseline reading
+  if (!pts.length) return null;
+  const last = pts[pts.length - 1];
+  return summarize(pts, {
+    lightning_num: last.num,
+    lightning: last.distMi == null ? null : last.distMi / 0.621371, // summarize expects km
+    lightning_time: last.strikeAt,
+    wh57batt: last.batt,
+  });
+}
+
 // Normalize "raining now". This station reports `hourlyrainin` as a rain RATE (it
 // exceeds the daily/total counters and decays smoothly), so key off that instead of
 // the tipping-bucket delta — which only ticks when the 0.01" bucket tips and so flaps
@@ -151,7 +200,11 @@ export const handler = async (event) => {
       // the extra sensor drops out, so the page can fall back to the array.
       const shadeTf = toNum(it.temp1f), shadeRh = toNum(it.humidity1);
       const ageSec = it.receivedAt ? (Date.now() - Date.parse(it.receivedAt)) / 1000 : null;
-      const rain = rainState(await rainWindow(RAIN_DEBOUNCE_MIN), it);
+      const [rainRecent, lightning] = await Promise.all([
+        rainWindow(RAIN_DEBOUNCE_MIN),
+        getLightningCurrent().catch(() => null), // soft-fail: no lightning ≠ no weather
+      ]);
+      const rain = rainState(rainRecent, it);
       return res(200, {
         station: STATION,
         observedAt: it.dateutc,
@@ -170,6 +223,7 @@ export const handler = async (event) => {
         uv: it.uv,
         solarWm2: it.solarradiation,
         rain: { rainingNow: rain.rainingNow, rateInHr: rain.rateInHr, lastRainAt: rain.lastRainAt, todayIn: it.dailyrainin, monthIn: it.monthlyrainin, yearIn: it.yearlyrainin },
+        lightning,
       }, 30);
     }
 
@@ -263,7 +317,28 @@ export const handler = async (event) => {
       }
     }
 
-    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar", "/api/air"] }, 15);
+    // Lightning: current bolt-level summary + a series for the /rain page charts.
+    // ?mock=quiet|distant|close previews every level on a clear desert day.
+    if (path.endsWith("/api/lightning")) {
+      if (qs.mock) return res(200, mockLightning(qs.mock), 20);
+      try {
+        let hours = parseInt(qs.hours || "24", 10);
+        if (!Number.isFinite(hours) || hours <= 0) hours = 24;
+        hours = Math.min(hours, 72);
+        if (!LIGHTNING_KEY) return res(200, { source: "live", hours, current: null, series: [], note: "no gateway configured" }, 300);
+        const series = await lightningPoints(hours);
+        const last = series[series.length - 1] || null;
+        const current = last
+          ? summarize(series, { lightning_num: last.num, lightning: last.distMi == null ? null : last.distMi / 0.621371, lightning_time: last.strikeAt, wh57batt: last.batt })
+          : null;
+        return res(200, { source: "live", hours, current, series }, 60);
+      } catch (e) {
+        console.error(JSON.stringify({ msg: "lightning-upstream", error: String(e?.message || e) }));
+        return res(200, { source: "live", current: null, series: [], error: "upstream" }, 30);
+      }
+    }
+
+    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar", "/api/air", "/api/lightning"] }, 15);
   } catch (e) {
     console.error(JSON.stringify({ msg: "read-error", error: String(e?.message || e), path }));
     return res(500, { error: "internal" }, 5);

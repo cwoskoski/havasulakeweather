@@ -34,11 +34,16 @@ const NUMERIC = new Set([
   "baromrelin", "baromabsin", "battout",
   // WH31E extra thermo-hygrometer, CH1 (shaded air temp). battN: 1 = OK, 0 = low.
   "temp1f", "humidity1", "batt1",
+  // WH31L lightning detector via the Ecowitt GW1100 gateway (reported as "wh57"):
+  // last-strike distance (km), strikes today, last-strike epoch, battery.
+  "lightning", "lightning_num", "lightning_time", "wh57batt",
 ]);
 
-// In-memory watermark, survives across warm invocations (~1/min keeps us warm):
-// { dateutc, totalrainin, lastRainAt }. Null until the first invocation seeds it.
-let mark = null;
+// In-memory watermarks, survive across warm invocations (~1/min keeps us warm):
+// stationKey -> { dateutc, totalrainin, lastRainAt }. Per-station since HLW-048 —
+// the WS-2902 and the GW1100 gateway both post, and a single shared mark would
+// let one station's totals corrupt the other's rain detection.
+const marks = new Map();
 
 const ok = () => ({ statusCode: 200, headers: { "content-type": "text/plain" }, body: "success\n" });
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : v; };
@@ -108,7 +113,8 @@ export const handler = async (event) => {
   }
 
   try {
-    if (!mark) mark = await seedFromDb(stationKey, yyyymm); // cold start only
+    let mark = marks.get(stationKey);
+    if (!mark) { mark = await seedFromDb(stationKey, yyyymm); if (mark) marks.set(stationKey, mark); } // cold start only
 
     let rainingNow = false;
     let lastRainAt = mark?.lastRainAt ?? null;
@@ -127,9 +133,9 @@ export const handler = async (event) => {
       ConditionExpression: "attribute_not_exists(pk)",
     })).catch((e) => { if (e.name !== "ConditionalCheckFailedException") throw e; });
 
-    // Advance the watermark (forward only; ignores retries/out-of-order posts).
+    // Advance this station's watermark (forward only; ignores retries/out-of-order posts).
     if (!mark || iso > mark.dateutc) {
-      mark = { dateutc: iso, totalrainin: reading.totalrainin, lastRainAt };
+      marks.set(stationKey, { dateutc: iso, totalrainin: reading.totalrainin, lastRainAt });
     }
 
     console.log(JSON.stringify({ msg: "stored", stationKey, dateutc: iso, tempf: reading.tempf, rainingNow }));
