@@ -62,23 +62,32 @@ const POOL = {
 
 const now = () => new Date().toISOString();
 
-async function usgsLatest(service, site, pcode, timeoutMs = 4500) {
+async function usgsLatest(service, site, pcode, timeoutMs = 8000, tries = 2) {
   const url = `https://waterservices.usgs.gov/nwis/${service}/?format=json&sites=${site}&parameterCd=${pcode}&siteStatus=all`;
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const r = await fetch(url, { headers: { "user-agent": UA }, signal: ctrl.signal });
-    if (!r.ok) throw new Error(`USGS ${service} ${site} -> ${r.status}`);
-    const j = await r.json();
-    const ts = (j.value && j.value.timeSeries) || [];
-    if (!ts.length) return null;
-    const vals = ts[0].values[0].value;
-    const last = vals && vals.length ? vals[vals.length - 1] : null;
-    if (!last || last.value == null) return null;
-    return { value: parseFloat(last.value), at: last.dateTime };
-  } finally {
-    clearTimeout(t);
+  let lastErr;
+  // Retry a slow/erroring USGS once (Lambda timeout is 30s; the 3 USGS calls run in parallel,
+  // so worst case ~2×8s). A legit empty response returns null immediately — only failures retry.
+  for (let attempt = 1; attempt <= tries; attempt++) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const r = await fetch(url, { headers: { "user-agent": UA }, signal: ctrl.signal });
+      if (!r.ok) throw new Error(`USGS ${service} ${site} -> ${r.status}`);
+      const j = await r.json();
+      const ts = (j.value && j.value.timeSeries) || [];
+      if (!ts.length) return null;
+      const vals = ts[0].values[0].value;
+      const last = vals && vals.length ? vals[vals.length - 1] : null;
+      if (!last || last.value == null) return null;
+      return { value: parseFloat(last.value), at: last.dateTime };
+    } catch (e) {
+      lastErr = e;
+      if (attempt < tries) await new Promise((res) => setTimeout(res, 500)); // brief backoff, then one retry
+    } finally {
+      clearTimeout(t);
+    }
   }
+  throw lastErr;
 }
 
 // USBR RISE — latest daily value for a catalog item. RISE requires the JSON:API media
