@@ -1,9 +1,9 @@
 # HLW-047: Air Quality tile (Open-Meteo US AQI + next-24h peak)
 
-- **Status:** in-progress — built + previewed locally 2026-09-01; shipping. Deploy = Chad's merge.
+- **Status:** **done** — shipped 2026-09-01 (PR #89 merged, deployed, verified live). Full-width Air Quality panel (US AQI + PM2.5/PM10/Ozone/Dust breakdown + per-pollutant help balloons + next-24h peak), keyless `/api/air` (Open-Meteo/CAMS).
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/88
 - **Branch:** `feat/HLW-047-air-quality`
-- **PR:** _(opens after local preview)_
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/89 (merged 2026-09-01)
 - **Created:** 2026-09-01
 
 ## Summary
