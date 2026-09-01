@@ -15,6 +15,7 @@ import { getAlerts, getForecast } from "./nws.js";
 import { getCompare } from "./compare.js";
 import { getWater } from "./water.js";
 import { getRadar } from "./radar.js";
+import { getAir } from "./air.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.TABLE_NAME;
@@ -252,7 +253,17 @@ export const handler = async (event) => {
       }
     }
 
-    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar"] }, 15);
+    // Air quality: Open-Meteo (CAMS) US AQI + dominant pollutant + next-24h peak. Keyless.
+    if (path.endsWith("/api/air")) {
+      try {
+        return res(200, await getAir(), 3600); // AQI updates hourly
+      } catch (e) {
+        console.error(JSON.stringify({ msg: "air-upstream", error: String(e?.message || e) }));
+        return res(200, { source: "Open-Meteo (CAMS)", aqi: null, category: null, dominant: null, peak: null, error: "upstream" }, 60);
+      }
+    }
+
+    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar", "/api/air"] }, 15);
   } catch (e) {
     console.error(JSON.stringify({ msg: "read-error", error: String(e?.message || e), path }));
     return res(500, { error: "internal" }, 5);
