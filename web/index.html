@@ -164,6 +164,21 @@
   @media (max-width:430px){ .rain-radar{top:12px;right:12px;padding:8px 13px;font-size:.85rem;} .rain-radar .ico{width:16px;height:16px;} .rain-lead{padding-right:92px;} .rain-lead .status{font-size:1.5rem;} }
   .rain-facts{grid-column:1 / -1;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;padding-top:12px;border-top:1px solid rgba(43,24,16,.14);}
   .rain-fact{display:flex;justify-content:space-between;font-size:.82rem;}
+  /* Lightning bolt meter (0–3, WH31L via gateway) — links to /rain.html */
+  .rain-bolts{grid-column:1 / -1;display:flex;align-items:center;gap:10px;padding-top:11px;border-top:1px solid rgba(43,24,16,.14);text-decoration:none;color:inherit;}
+  .rain-bolts .bolts{display:inline-flex;gap:3px;flex:none;}
+  .rain-bolts .bolts svg{width:17px;height:17px;fill:rgba(43,24,16,.20);transition:fill .3s ease;}
+  .rain-bolts.l1 .b1{fill:#e8a20c;}
+  .rain-bolts.l2 .b1,.rain-bolts.l2 .b2{fill:#ff8a3d;}
+  .rain-bolts.l3 .b1,.rain-bolts.l3 .b2,.rain-bolts.l3 .b3{fill:#e8451f;}
+  .rain-bolts .btxt{flex:1;font-size:.82rem;font-weight:650;color:var(--ink-soft);}
+  .rain-bolts .btxt b{color:var(--ink);font-weight:800;}
+  .rain-bolts .bmore{flex:none;font-size:.8rem;font-weight:800;color:var(--teal-deep);white-space:nowrap;}
+  @media (prefers-reduced-motion: no-preference){
+    .rain-bolts.l2 .bolts,.rain-bolts.l3 .bolts{animation:boltFlicker 3.4s infinite;}
+    .rain-bolts.l3 .bolts{animation-duration:2.1s;}
+  }
+  @keyframes boltFlicker{0%,88%{opacity:1}90%{opacity:.35}92%{opacity:1}95%{opacity:.55}97%,100%{opacity:1}}
   .rain-fact .k{color:var(--ink-soft);font-weight:650;}
   .rain-fact .v{color:var(--ink);font-weight:800;}
 
@@ -508,6 +523,11 @@
         <div class="rain-fact"><span class="k">This month</span><span class="v" id="rainMonth">--</span></div>
         <div class="rain-fact"><span class="k">This year</span><span class="v" id="rainYear">--</span></div>
       </div>
+      <a class="rain-bolts" id="boltRow" href="/rain.html" hidden>
+        <span class="bolts" id="boltIcons" aria-hidden="true"><svg class="b1" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-2 8 10-13h-6l1-7z"/></svg><svg class="b2" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-2 8 10-13h-6l1-7z"/></svg><svg class="b3" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-2 8 10-13h-6l1-7z"/></svg></span>
+        <span class="btxt" id="boltText">&mdash;</span>
+        <span class="bmore">Storms &rarr;</span>
+      </a>
     </section>
 
     <!-- FORECAST (NWS) -->
@@ -666,7 +686,7 @@
     <footer class="footer">
       <div>Personal WS-2902D weather station &mdash; not an official observation.</div>
       <div>Havasu Lake, CA &middot; Ambient Weather &middot; Outdoor readings only</div>
-      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a></nav>
+      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/rain.html">Rain &amp; storms</a></nav>
     </footer>
   </main>
 
@@ -754,11 +774,38 @@
       set("rainMonth",fmtIn(d.rain.monthIn));
       set("rainYear",fmtIn(d.rain.yearIn));
       set("lastRain",d.rain.lastRainAt?rel(d.rain.lastRainAt):"none logged");
+      renderBolts(d.lightning);
       lastReceived=d.receivedAt?Date.parse(d.receivedAt):Date.now();
       isStale=!!d.stale;
       tickAgo();
     }catch(e){$("freshText").textContent="Offline — retrying…";}
   }
+  /* Lightning bolt meter (0–3). Hidden until the detector is reporting; a ?mockLightning=
+     quiet|distant|close override lets every level be previewed on a clear day. */
+  var MOCK_L=null; // sticky mock override — beats live data on every refresh
+  function renderBolts(L){
+    var row=$("boltRow");if(!row)return;
+    L=MOCK_L||L;
+    if(!L){row.hidden=true;return;}
+    row.hidden=false;
+    row.classList.remove("l1","l2","l3");
+    if(L.level>=1)row.classList.add("l"+Math.min(3,L.level));
+    if(L.level===0){
+      $("boltText").innerHTML="No lightning nearby"+(L.countToday?" &middot; "+L.countToday+" today":"");
+    }else{
+      var bits=[];
+      if(L.nearestMi!=null)bits.push("nearest ~<b>"+Math.round(L.nearestMi)+" mi</b>");
+      if(L.countToday!=null)bits.push("<b>"+L.countToday+"</b> today");
+      if(L.lastStrikeAt)bits.push("last "+rel(L.lastStrikeAt));
+      $("boltText").innerHTML="Lightning &middot; "+bits.join(" &middot; ");
+    }
+  }
+  (function(){ /* mock override so the meter is previewable without a storm */
+    var m=new URLSearchParams(location.search).get("mockLightning");
+    if(!m)return;
+    fetch(API+"/api/lightning?mock="+encodeURIComponent(m),{cache:"no-store"})
+      .then(function(r){return r.json();}).then(function(j){MOCK_L=j.current;renderBolts(null);}).catch(function(){});
+  })();
   function uvLevel(u){if(u==null)return"";if(u>=11)return"Extreme";if(u>=8)return"Very High";if(u>=6)return"High";if(u>=3)return"Moderate";return"Low";}
   function fmtIn(v){return (v==null?0:v).toFixed(2)+" in";}
   function rel(iso){var s=(Date.now()-Date.parse(iso))/1000;if(s<90)return"just now";var m=s/60;if(m<90)return Math.round(m)+" min ago";var h=m/60;if(h<36)return Math.round(h)+"h ago";return Math.round(h/24)+" days ago";}
