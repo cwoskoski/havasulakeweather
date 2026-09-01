@@ -1,9 +1,9 @@
 # HLW-046: water ingest resilience — carry-forward last-good, retry USGS
 
-- **Status:** in-progress — built + verified locally 2026-09-01; ready for PR. Deploy gated on Chad's merge.
+- **Status:** **done** — shipped 2026-09-01 (PR #86 merged, deployed, verified live). Water ingest carries forward the last-good value on a source hiccup + retries USGS once; the lake level can no longer blank for 6h from a transient USGS blip.
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/85
 - **Branch:** `fix/HLW-046-water-carry-forward`
-- **PR:** _(opens after build)_
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/86 (merged 2026-09-01)
 - **Created:** 2026-09-01
 
 ## Summary
@@ -33,7 +33,8 @@ cadence is a gentle `rate(6 hours)`; USGS was just briefly slow, and the ingest 
 - [x] **Verified locally (read-only dry run vs real DynamoDB):** prev=2026-09-01 elev 451.13;
       normal run → fresh 451.31, nothing carried; simulated USGS blip → elev/storage/mohave
       carried forward (not null), fresh RISE still wins. Exactly the 08-31 failure, fixed.
-- [ ] PR → Chad merges (deploy). Post-deploy: manual ingest run stores a full snapshot; `/api/water` lake stays populated.
+- [x] PR #86 merged → deployed (ingest job; site skipped). Post-deploy manual ingest returned
+      `{stored:"2026-09-01", carried:[]}` (full snapshot, all fresh); `/api/water` lake 451.23 ft.
 
 ## Notes
 
