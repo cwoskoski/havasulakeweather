@@ -168,7 +168,7 @@
   .rain-fact .v{color:var(--ink);font-weight:800;}
 
   /* ---- tiles ---- */
-  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;position:relative;z-index:20;}
   .tile{padding:14px 15px 15px;display:flex;flex-direction:column;gap:6px;background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:var(--radius-sm);box-shadow:inset 0 1px 0 var(--glass-hi),0 10px 26px -18px rgba(58,22,10,.5);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);}
   .tile-top{display:flex;align-items:center;gap:8px;}
   .tile-top .ico{width:26px;height:26px;flex:none;color:var(--coral-deep);}
@@ -191,6 +191,29 @@
   .chip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;}
   .chip.veryhigh{background:rgba(232,69,31,.16);color:var(--coral-deep);}
   .chip.falling{background:rgba(15,127,143,.16);color:var(--teal-deep);}
+  /* AQI category chips (US AQI colors, tuned for contrast on the light glass tiles) */
+  .chip.aqi-good{background:#3fa34d;color:#eafff0;}
+  .chip.aqi-moderate{background:#e6b800;color:#2b1c00;}
+  .chip.aqi-usg{background:#ff8c2b;color:#2b1400;}
+  .chip.aqi-unhealthy{background:#ef3b3b;color:#fff;}
+  .chip.aqi-veryunhealthy{background:#8e5bc0;color:#fff;}
+  .chip.aqi-hazardous{background:#8b2f3a;color:#fff;}
+  /* Air Quality full-width panel (spans all columns at both breakpoints → no dangling slot) */
+  .tile.aqi-panel{grid-column:1 / -1;position:relative;}
+  .aqi-row{display:flex;align-items:center;justify-content:space-between;gap:10px 12px;flex-wrap:wrap;margin-top:2px;}
+  .aqi-main{display:flex;align-items:center;gap:9px;}
+  .aqi-num{font-size:2.1rem;font-weight:800;line-height:1;letter-spacing:-1px;}
+  .aqi-break{display:flex;gap:6px;flex-wrap:wrap;}
+  .aqi-break .p{display:flex;flex-direction:column;align-items:center;line-height:1.15;cursor:pointer;background:none;border:0;font:inherit;color:inherit;padding:2px 5px;border-radius:8px;}
+  .aqi-break .p:hover,.aqi-break .p[aria-expanded="true"]{background:rgba(43,24,16,.12);}
+  .aqi-break .p b{font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .aqi-break .p span{font-size:.6rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft);margin-top:2px;border-bottom:1px dotted currentColor;}
+  /* click-to-open help balloon (dark tooltip on the light tile) */
+  .aqi-pop{position:absolute;z-index:6;max-width:min(300px,86%);background:#0c3a49;border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px;box-shadow:0 16px 36px -10px rgba(0,0,0,.55);}
+  .aqi-pop b{display:block;font-size:.86rem;font-weight:800;color:#f2fbfc;margin-bottom:3px;}
+  .aqi-pop .d{display:block;font-size:.78rem;line-height:1.42;color:rgba(234,246,248,.86);font-weight:600;}
+  .aqi-pop .s{display:block;margin-top:6px;font-size:.7rem;font-weight:800;color:#ffce7a;}
+  .aqi-pop .cx{position:absolute;top:-6px;width:11px;height:11px;transform:translateX(-50%) rotate(45deg);background:#0c3a49;border-left:1px solid rgba(255,255,255,.18);border-top:1px solid rgba(255,255,255,.18);}
   .uvbar{height:7px;border-radius:999px;margin-top:4px;background:linear-gradient(90deg,#4caf50,#cddc39,#ffc107,#ff7043,#e53935,#8e24aa);position:relative;}
   .uvbar span{content:"";position:absolute;top:-3px;width:13px;height:13px;transform:translateX(-50%);border-radius:50%;background:#fff;border:2px solid var(--coral-deep);box-shadow:0 2px 6px rgba(0,0,0,.3);}
 
@@ -522,6 +545,15 @@
         <div class="tile-top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v18M7 6h5M7 11h4M7 16h5"/><path d="M17 3v18"/></svg><span class="t">24h Range</span></div>
         <div class="tile-val"><span id="hi">--</span>&deg; <small>/ <span id="lo">--</span>&deg;F</small></div>
         <div class="tile-sub">High &middot; Low</div>
+      </div>
+      <div class="tile aqi-panel" id="aqiTile">
+        <div class="tile-top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9h13a3 3 0 1 0-3-3"/><path d="M2 14h16a3 3 0 1 1-3 3"/></svg><span class="t">Air Quality</span></div>
+        <div class="aqi-row">
+          <div class="aqi-main"><span class="aqi-num" id="aqi">--</span><span class="chip" id="aqiChip" hidden></span></div>
+          <div class="aqi-break" id="aqiBreak"></div>
+        </div>
+        <div class="tile-sub" id="aqiSub">&mdash;</div>
+        <div class="aqi-pop" id="aqiPop" role="dialog" aria-label="Pollutant info" hidden><span class="cx" id="aqiPopCx" aria-hidden="true"></span><b id="aqiPopT"></b><span class="d" id="aqiPopD"></span><span class="s" id="aqiPopS"></span></div>
       </div>
     </section>
 
@@ -961,15 +993,68 @@
     trEl.className="wtr-t-trend "+(trend==="rising"?"up":trend==="draining"?"down":"");
   }
 
+  /* -- air quality tile (Open-Meteo / CAMS, US AQI) -- */
+  var AQI_SHORT={good:"Good",moderate:"Moderate",usg:"Sensitive",unhealthy:"Unhealthy",veryunhealthy:"Very Unhealthy",hazardous:"Hazardous"};
+  async function loadAir(){
+    try{
+      var r=await fetch(API+"/api/air",{cache:"no-store"});
+      var d=await r.json();
+      var tile=$("aqiTile");
+      if(!d||d.aqi==null){if(tile)tile.hidden=true;return;}
+      if(tile)tile.hidden=false;
+      set("aqi",d.aqi);
+      var chip=$("aqiChip");chip.hidden=false;
+      chip.textContent=AQI_SHORT[d.categorySlug]||d.category||"";
+      chip.className="chip"+(d.categorySlug?" aqi-"+d.categorySlug:"");
+      closeAqiPop();
+      var p=d.pollutants||{}, items=[["pm25","PM2.5",p.pm25],["pm10","PM10",p.pm10],["ozone","Ozone",p.ozone],["dust","Dust",p.dust]];
+      $("aqiBreak").innerHTML=items.filter(function(it){return it[2]!=null;}).map(function(it){
+        return '<button type="button" class="p" data-k="'+it[0]+'" aria-expanded="false" title="'+it[1]+' — tap for info"><b>'+it[2]+'</b><span>'+it[1]+'</span></button>';
+      }).join("");
+      var sub=[];
+      if(d.dominant)sub.push(d.dominant+" driving");
+      sub.push("µg/m³ · modeled (CAMS)");
+      if(d.peak&&d.peak.aqi>d.aqi+2){ // flag only a meaningfully worse next-24h peak
+        var t=new Date(d.peak.at*1000).toLocaleTimeString("en-US",{timeZone:"America/Los_Angeles",hour:"numeric"});
+        sub.push("↑ "+d.peak.aqi+" by "+t);
+      }
+      $("aqiSub").textContent=sub.join(" · ");
+    }catch(e){}
+  }
+  /* pollutant help balloon — click a pollutant for a plain-language explainer + scale */
+  var POLL_INFO={
+    pm25:{t:"PM2.5 — fine particles",d:"Tiny particles 2.5 microns or smaller — smoke, soot and haze. Small enough to reach deep into the lungs, so it drives most health alerts.",s:"µg/m³ · ~0–12 good, 35+ unhealthy (24-hr)"},
+    pm10:{t:"PM10 — coarse particles",d:"Larger particles up to 10 microns: wind-blown dust, pollen and smoke.",s:"µg/m³ · ~0–54 good, 155+ unhealthy"},
+    ozone:{t:"Ozone (O₃)",d:"Ground-level ozone forms in sunlight from vehicle and industrial emissions; it builds on hot, sunny afternoons.",s:"µg/m³ · higher on hot, sunny days"},
+    dust:{t:"Dust",d:"Airborne mineral dust from blowing dust and haboobs — common across the desert Southwest.",s:"µg/m³ · spikes with wind"},
+  };
+  var aqiPop=$("aqiPop"), aqiActive=null;
+  function closeAqiPop(){ if(aqiActive)aqiActive.setAttribute("aria-expanded","false"); aqiActive=null; aqiPop.hidden=true; }
+  function openAqiPop(btn){
+    var info=POLL_INFO[btn.dataset.k]; if(!info)return;
+    $("aqiPopT").textContent=info.t; $("aqiPopD").textContent=info.d; $("aqiPopS").textContent=info.s;
+    aqiPop.hidden=false;
+    var pw=$("aqiTile").clientWidth, popW=aqiPop.offsetWidth, cxpx=btn.offsetLeft+btn.offsetWidth/2;
+    var left=Math.max(8,Math.min(cxpx-popW/2, pw-popW-8));
+    aqiPop.style.left=left+"px"; aqiPop.style.top=(btn.offsetTop+btn.offsetHeight+9)+"px";
+    $("aqiPopCx").style.left=(cxpx-left)+"px";
+    if(aqiActive)aqiActive.setAttribute("aria-expanded","false");
+    btn.setAttribute("aria-expanded","true"); aqiActive=btn;
+  }
+  $("aqiBreak").addEventListener("click",function(e){ var b=e.target.closest(".p"); if(!b)return; (aqiActive===b?closeAqiPop:openAqiPop)(b); });
+  document.addEventListener("click",function(e){ if(aqiActive&&!e.target.closest("#aqiPop")&&!e.target.closest("#aqiBreak"))closeAqiPop(); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape")closeAqiPop(); });
+
   /* ---------- go ---------- */
   loadCurrent();loadHistory(24);
-  loadAlerts();loadForecast();loadCompare();loadWater();
+  loadAlerts();loadForecast();loadCompare();loadWater();loadAir();
   setInterval(loadCurrent,60000);
   setInterval(function(){loadHistory(rangeHours);},300000);
   setInterval(loadAlerts,300000);
   setInterval(loadForecast,900000);
   setInterval(loadCompare,300000);
   setInterval(loadWater,1800000);
+  setInterval(loadAir,1800000);
 })();
 </script>
 <script>
