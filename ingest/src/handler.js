@@ -49,9 +49,16 @@ const prevMonth = (yyyymm) => {
   return `${y}-${String(m).padStart(2, "0")}`;
 };
 
-function parseParams(event) {
+export function parseParams(event) {
   const q = event?.queryStringParameters;
   if (q && Object.keys(q).length) return q;
+  // Ecowitt gateways (e.g. a GW1100 relaying the WH31L lightning sensor) POST the fields as
+  // urlencoded form data; the WS-2902 uses a GET query string. Parse the body too (base64-safe).
+  if (event?.body) {
+    const decoded = event.isBase64Encoded ? Buffer.from(event.body, "base64").toString("utf8") : event.body;
+    const b = Object.fromEntries(new URLSearchParams(decoded));
+    if (Object.keys(b).length) return b;
+  }
   // Fallback: some firmware jams params into the path with no '?'.
   const raw = event?.rawPath || "";
   const i = raw.search(/[?&]/);
