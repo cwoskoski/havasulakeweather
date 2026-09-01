@@ -94,7 +94,7 @@ export const handler = async (event) => {
     return ok();
   }
   if (ALLOWED.length && !ALLOWED.includes(stationKey)) {
-    console.log(JSON.stringify({ msg: "skip-unlisted", receivedAt, stationKey }));
+    console.log(JSON.stringify({ msg: "skip-unlisted", receivedAt, stationKey, keys: Object.keys(p) }));
     return ok();
   }
 
