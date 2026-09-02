@@ -1,9 +1,9 @@
 # HLW-048: Lightning (Ambient WH31L via Ecowitt GW1100) — ingest + display
 
-- **Status:** in-progress — Phase 1 shipped (#92); gateway online + WH31L paired + posting (fields captured: `lightning`, `lightning_num`, `lightning_time`, `wh57batt`). Full build (bolt meter + /rain page) previewed; pending: gateway-key deploy + PR merge.
+- **Status:** **done** — shipped 2026-09-01. PRs #92 (POST-body ingest) + #93 (bolt meter + /rain page) merged & deployed; gated key deploy added the gateway PASSKEY to `AllowedStationKeys`; gateway rows storing every 60s; live site verified (bolt meter on the rain card, /rain.html live).
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/91
 - **Branch:** `feat/HLW-048-lightning-ingest`
-- **PR:** _(opens once the gateway is posting; Phase 1 build waits on the branch)_
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/92 (Phase 1) + https://github.com/cwoskoski/havasulakeweather/pull/93 (full feature), both merged 2026-09-01
 - **Created:** 2026-09-01
 
 ## Summary
@@ -47,9 +47,11 @@ protocol)** to our existing ingest endpoint. We display strike distance / daily 
         strikes/hour + distance-trend chart (24h), rainfall totals + dry streak, 7-day rain chances, **sky-flash**
         (random while active; fires on a real counter increment; reduced-motion off). SEO head, sitemap, footers, SW v41/r5.
       - Tests 85/85 (`lightning.test.mjs` + earlier suites).
-- [ ] **Ship**: merge PR (code deploy) → then the gated **key deploy** (manual `sam deploy` adding the gateway
-      PASSKEY to `AllowedStationKeys` — read back from live per house rules) → verify gateway rows in DynamoDB →
-      bolt meter goes live on real data.
+- [x] **Shipped**: #93 merged (code deploy green) → gated key deploy (`sam deploy`, keys read back from live,
+      gateway key appended) → verified: logs flipped `skip-unlisted`→`stored`, gateway rows in DynamoDB with
+      numeric lightning fields, live `/api/current`+`/api/lightning` serving, bolt meter visible on the live rain
+      card ("No lightning nearby · 8 today"). The 8 counted strikes were mounting/handling artifacts (last at
+      4:21 PM during install); bolt level correctly stayed 0 and the counter resets at midnight.
 
 ## Notes
 
