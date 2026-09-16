@@ -737,12 +737,26 @@
   function set(id,val){var el=$(id);if(!el)return;var s=String(val);if(el.textContent!==s){el.textContent=s;el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash");}}
   var lastReceived=null, isStale=false;
 
+  /* ---------- client-side cache (HLW-049) ----------
+     Paint the last-known values from localStorage before the network responds, so a reload or
+     page-to-page navigation never flashes "--". The live fetch still runs and overwrites in place.
+     Skipped entirely in demo/mock previews so fixtures never poison (or get served from) the cache. */
+  var CACHE_NS="hlw:v1:", CACHE_MAX_AGE=864e5; // 24h — older than this, wait for the network instead
+  var MOCKING=(function(){var q=new URLSearchParams(location.search);if(q.has("demo"))return true;var m=false;q.forEach(function(_v,k){if(k.indexOf("mock")===0)m=true;});return m;})();
+  function cacheGet(k){if(MOCKING)return null;try{var r=JSON.parse(localStorage.getItem(CACHE_NS+k));if(!r||r.data==null||(Date.now()-r.savedAt)>CACHE_MAX_AGE)return null;return r.data;}catch(e){return null;}}
+  function cachePut(k,d){if(MOCKING)return;try{localStorage.setItem(CACHE_NS+k,JSON.stringify({savedAt:Date.now(),data:d}));}catch(e){}}
+
   /* ---------- current conditions ---------- */
   async function loadCurrent(){
     try{
       var r=await fetch(API+"/api/current",{cache:"no-store"});
       var d=await r.json();
-      if(!d||d.temperatureF==null){$("freshText").textContent="Waiting for data…";return;}
+      if(!renderCurrent(d)){$("freshText").textContent="Waiting for data…";return;}
+      cachePut("current",d);
+    }catch(e){$("freshText").textContent="Offline — retrying…";}
+  }
+  function renderCurrent(d){
+    if(!d||d.temperatureF==null)return false;
       /* Shaded WH31E is the primary "air temp" when present; the array becomes "Full Sun". */
       var hasShade=d.shadeTempF!=null;
       var primaryTemp=hasShade?d.shadeTempF:d.temperatureF;
@@ -778,7 +792,7 @@
       lastReceived=d.receivedAt?Date.parse(d.receivedAt):Date.now();
       isStale=!!d.stale;
       tickAgo();
-    }catch(e){$("freshText").textContent="Offline — retrying…";}
+      return true;
   }
   /* Lightning bolt meter (0–3). Hidden until the detector is reporting; a ?mockLightning=
      quiet|distant|close override lets every level be previewed on a clear day. */
@@ -826,18 +840,22 @@
     try{
       var r=await fetch(API+"/api/history?hours="+hours,{cache:"no-store"});
       var d=await r.json();
-      var pts=(d.points||[]).filter(function(p){return typeof p.tempF==="number";});
-      var shadePts=pts.filter(function(p){return typeof p.shadeTempF==="number";});
-      drawChart(pts,shadePts,hours);
-      /* 24h Range keys to the shielded series (matches the headline) when we have it. */
-      var rangeVals=shadePts.length?shadePts.map(function(p){return p.shadeTempF;})
-                                   :pts.map(function(p){return p.tempF;});
-      if(rangeVals.length){
-        set("hi",Math.round(Math.max.apply(null,rangeVals)));
-        set("lo",Math.round(Math.min.apply(null,rangeVals)));
-      }
-      if(pts.length){trend(pts);}
+      renderHistory(d,hours);
+      cachePut("history"+hours,d);
     }catch(e){}
+  }
+  function renderHistory(d,hours){
+    var pts=((d&&d.points)||[]).filter(function(p){return typeof p.tempF==="number";});
+    var shadePts=pts.filter(function(p){return typeof p.shadeTempF==="number";});
+    drawChart(pts,shadePts,hours);
+    /* 24h Range keys to the shielded series (matches the headline) when we have it. */
+    var rangeVals=shadePts.length?shadePts.map(function(p){return p.shadeTempF;})
+                                 :pts.map(function(p){return p.tempF;});
+    if(rangeVals.length){
+      set("hi",Math.round(Math.max.apply(null,rangeVals)));
+      set("lo",Math.round(Math.min.apply(null,rangeVals)));
+    }
+    if(pts.length){trend(pts);}
   }
   function trend(pts){
     if(pts.length<3){return;}
@@ -952,7 +970,7 @@
 
   /* -- forecast -- */
   async function loadForecast(){
-    try{var r=await fetch(API+"/api/forecast"+mockQ("Forecast",""),{cache:"no-store"});renderForecast(await r.json());}catch(e){}
+    try{var r=await fetch(API+"/api/forecast"+mockQ("Forecast",""),{cache:"no-store"});var d=await r.json();renderForecast(d);cachePut("forecast",d);}catch(e){}
   }
   function renderForecast(d){
     var sec=$("forecast");if(!sec||!d)return;
@@ -992,7 +1010,7 @@
   function fnum(v,suf,dec){return v==null?"--":(dec?v.toFixed(dec):Math.round(v))+suf;}
   function fdelta(v,dec){if(v==null)return "—";var n=dec?v.toFixed(dec):Math.round(v);return (v>0?"+":"")+n;}
   async function loadCompare(){
-    try{var r=await fetch(API+"/api/compare"+mockQ("Compare","drift"),{cache:"no-store"});renderCompare(await r.json());}catch(e){}
+    try{var r=await fetch(API+"/api/compare"+mockQ("Compare","drift"),{cache:"no-store"});var d=await r.json();renderCompare(d);cachePut("compare",d);}catch(e){}
   }
   function renderCompare(d){
     var sec=$("compare");if(!sec||!d)return;
@@ -1020,7 +1038,7 @@
 
   /* -- lake & river teaser (full page at /water.html) -- */
   async function loadWater(){
-    try{var r=await fetch(API+"/api/water"+mockQ("Water",""),{cache:"no-store"});renderWater(await r.json());}catch(e){}
+    try{var r=await fetch(API+"/api/water"+mockQ("Water",""),{cache:"no-store"});var d=await r.json();renderWater(d);cachePut("water",d);}catch(e){}
   }
   function renderWater(d){
     var t=$("waterTeaser");if(!t||!d)return;
@@ -1046,6 +1064,11 @@
     try{
       var r=await fetch(API+"/api/air",{cache:"no-store"});
       var d=await r.json();
+      renderAir(d);
+      cachePut("air",d);
+    }catch(e){}
+  }
+  function renderAir(d){
       var tile=$("aqiTile");
       if(!d||d.aqi==null){if(tile)tile.hidden=true;return;}
       if(tile)tile.hidden=false;
@@ -1066,7 +1089,6 @@
         sub.push("↑ "+d.peak.aqi+" by "+t);
       }
       $("aqiSub").textContent=sub.join(" · ");
-    }catch(e){}
   }
   /* pollutant help balloon — click a pollutant for a plain-language explainer + scale */
   var POLL_INFO={
@@ -1093,6 +1115,17 @@
   document.addEventListener("keydown",function(e){ if(e.key==="Escape")closeAqiPop(); });
 
   /* ---------- go ---------- */
+  /* Hydrate from cache first so a reload / navigation paints last-known values with no "--"
+     flash, then the live loads below revalidate in place. (Alerts are never cached.) */
+  (function hydrate(){
+    var c;
+    if(c=cacheGet("current"))renderCurrent(c);
+    if(c=cacheGet("history24"))renderHistory(c,24);
+    if(c=cacheGet("forecast"))renderForecast(c);
+    if(c=cacheGet("compare"))renderCompare(c);
+    if(c=cacheGet("water"))renderWater(c);
+    if(c=cacheGet("air"))renderAir(c);
+  })();
   loadCurrent();loadHistory(24);
   loadAlerts();loadForecast();loadCompare();loadWater();loadAir();
   setInterval(loadCurrent,60000);

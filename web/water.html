@@ -265,6 +265,13 @@
   var Q=new URLSearchParams(location.search);
   var mockW=Q.get("mockWater")||(Q.get("demo")?"normal":"");
   var $=function(id){return document.getElementById(id);};
+
+  /* client-side cache (HLW-049): paint the last-known water data before /api/water responds, so a
+     reload or navigation here never flashes "--". Shared "water" key with the home page teaser.
+     Skipped in demo/mock previews so fixtures never poison (or get served from) the cache. */
+  var CACHE_NS="hlw:v1:", CACHE_MAX_AGE=864e5, MOCKING=!!mockW;
+  function cacheGet(k){if(MOCKING)return null;try{var r=JSON.parse(localStorage.getItem(CACHE_NS+k));if(!r||r.data==null||(Date.now()-r.savedAt)>CACHE_MAX_AGE)return null;return r.data;}catch(e){return null;}}
+  function cachePut(k,d){if(MOCKING)return;try{localStorage.setItem(CACHE_NS+k,JSON.stringify({savedAt:Date.now(),data:d}));}catch(e){}}
   var fmt=function(n){return n==null?"--":Math.round(n).toLocaleString();};
   var esc=function(s){return String(s==null?"":s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});};
   var MONTHS=["","January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -385,7 +392,9 @@
   async function load(){
     try{
       var r=await fetch(API+"/api/water"+(mockW?("?mock="+encodeURIComponent(mockW)):""),{cache:"no-store"});
-      render(await r.json());
+      var d=await r.json();
+      render(d);
+      cachePut("water",d);
     }catch(e){/* keep last */}
   }
   function render(d){
@@ -397,6 +406,7 @@
     $("notes").innerHTML=(d.notes||[]).map(function(n){return '<div class="note">'+esc(n)+'</div>';}).join("");
   }
 
+  var _cw=cacheGet("water");if(_cw)render(_cw); // paint last-known first, then revalidate
   load(); setInterval(load,300000);
 })();
 </script>
