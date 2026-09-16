@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/95
 - **Branch:** `feat/HLW-049-client-side-cache`
-- **PR:** <url>
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/96
 - **Created:** 2026-09-16
 
 ## Summary
