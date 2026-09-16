@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/97
 - **Branch:** `feat/HLW-050-lake-river-panel`
-- **PR:** <url>
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/98
 - **Created:** 2026-09-16
 
 ## Summary
