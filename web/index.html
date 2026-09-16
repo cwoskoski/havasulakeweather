@@ -397,17 +397,27 @@
   /* ---- lake & river (USGS + USBR) ---- */
   /* NOTE: class is .lakeriver, NOT .water — .water is the background scene's lake element. */
   .lakeriver{margin-top:14px;padding:16px;}
-  .lakeriver-teaser{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:inherit;cursor:pointer;transition:transform .15s ease;}
-  .lakeriver-teaser:hover{transform:translateY(-1px);}
-  .wtr-t-left{display:flex;flex-direction:column;gap:2px;}
-  .wtr-t-k{font-size:.7rem;font-weight:800;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
-  .wtr-t-lake{font-size:1.15rem;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px;}
-  .wtr-t-lake b{color:var(--teal-deep);}
-  .wtr-t-pct{font-weight:800;color:var(--teal-deep);}
-  .wtr-t-pct.low{color:var(--coral-deep);}
-  .wtr-t-trend{font-size:.95rem;font-weight:800;}
-  .wtr-t-trend.up{color:var(--teal-deep);} .wtr-t-trend.down{color:var(--coral-deep);}
-  .wtr-t-go{font-size:.82rem;font-weight:800;color:var(--coral-deep);white-space:nowrap;}
+  /* Lake & River — prominent full-width panel (HLW-050) */
+  .lake-panel{grid-column:1 / -1;gap:2px;text-decoration:none;color:inherit;cursor:pointer;transition:transform .15s ease;
+    background:linear-gradient(158deg,rgba(15,127,143,.16),rgba(255,255,255,.10) 60%),var(--glass-bg);}
+  .lake-panel:hover{transform:translateY(-1px);}
+  .lake-panel .tile-top .ico{color:var(--teal-deep);}
+  .lake-go{margin-left:auto;font-size:.8rem;font-weight:800;color:var(--teal-deep);white-space:nowrap;}
+  .lake-main{display:flex;align-items:baseline;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-top:4px;}
+  .lake-lvl{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .lake-num{font-size:2.4rem;font-weight:800;line-height:1;letter-spacing:-1px;color:var(--teal-deep);font-variant-numeric:tabular-nums;}
+  .lake-lvl small{font-size:1rem;font-weight:700;color:var(--ink-soft);}
+  .lake-trend{font-size:.9rem;font-weight:800;}
+  .lake-trend.up{color:var(--teal-deep);} .lake-trend.down{color:var(--coral-deep);} .lake-trend.steady{color:var(--ink-soft);}
+  .lake-temp{font-size:.85rem;font-weight:800;color:var(--teal-deep);background:rgba(15,127,143,.14);padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .lake-bar{height:9px;border-radius:999px;background:rgba(15,127,143,.16);overflow:hidden;margin-top:9px;}
+  .lake-fill{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal),var(--teal-deep));transition:width .4s ease;}
+  .lake-fill.low{background:linear-gradient(90deg,#ff8f68,var(--coral-deep));}
+  .lake-sub{display:flex;gap:4px 12px;flex-wrap:wrap;align-items:baseline;margin-top:6px;font-size:.8rem;font-weight:650;color:var(--ink-soft);}
+  .lake-pct{font-weight:800;color:var(--teal-deep);} .lake-pct.low{color:var(--coral-deep);}
+  .lake-river{display:flex;gap:6px 18px;flex-wrap:wrap;margin-top:9px;padding-top:9px;border-top:1px solid var(--glass-brd);font-size:.82rem;font-weight:650;color:var(--ink-soft);}
+  .lake-river .rl{font-weight:800;letter-spacing:.04em;text-transform:uppercase;font-size:.68rem;color:var(--ink-faint);margin-right:4px;}
+  .lake-river b{color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums;}
   .wtr-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;}
   .wtr-head h2{margin:0;font-size:1.05rem;font-weight:800;}
   .wtr-src{font-size:.7rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
@@ -566,6 +576,27 @@
         <div class="tile-val"><span id="hi">--</span>&deg; <small>/ <span id="lo">--</span>&deg;F</small></div>
         <div class="tile-sub">High &middot; Low</div>
       </div>
+      <!-- LAKE & RIVER — prominent panel; full detail (levels, dam releases, flow) on /water (HLW-050) -->
+      <a class="tile lake-panel" id="waterTeaser" href="/water.html" hidden>
+        <div class="tile-top">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6c2 0 2 1.6 4 1.6S8 6 10 6s2 1.6 4 1.6S16 6 18 6s2 1.6 4 1.6"/><path d="M2 12c2 0 2 1.6 4 1.6S8 12 10 12s2 1.6 4 1.6S16 12 18 12s2 1.6 4 1.6"/><path d="M2 18c2 0 2 1.6 4 1.6S8 18 10 18s2 1.6 4 1.6S16 18 18 18s2 1.6 4 1.6"/></svg>
+          <span class="t">Lake &amp; River</span>
+          <span class="lake-go">Dam releases &amp; flow &rarr;</span>
+        </div>
+        <div class="lake-main">
+          <span class="lake-lvl"><span class="lake-num" id="teaserLake">--</span><small>ft</small><span class="lake-trend" id="teaserTrend"></span></span>
+          <span class="lake-temp" id="teaserTemp" hidden></span>
+        </div>
+        <div class="lake-bar" id="teaserBar" aria-hidden="true" hidden><span class="lake-fill" id="teaserFill" style="width:0%"></span></div>
+        <div class="lake-sub">
+          <span class="lake-pct" id="teaserPct"></span>
+          <span class="lake-ctx" id="teaserCtx" hidden></span>
+        </div>
+        <div class="lake-river" id="teaserRiver" hidden>
+          <span class="rv" id="teaserDavis" hidden></span>
+          <span class="rv" id="teaserParker" hidden></span>
+        </div>
+      </a>
       <div class="tile aqi-panel" id="aqiTile">
         <div class="tile-top"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9h13a3 3 0 1 0-3-3"/><path d="M2 14h16a3 3 0 1 1-3 3"/></svg><span class="t">Air Quality</span></div>
         <div class="aqi-row">
@@ -599,16 +630,6 @@
         <div class="sun-end set"><div class="lbl">Sunset 🌇</div><div class="val" id="sunsetT">--</div></div>
       </div>
     </section>
-
-    <!-- LAKE & RIVER teaser — full detail (levels, dam releases, flow animation) on /water -->
-    <a class="glass lakeriver-teaser" id="waterTeaser" href="/water.html" hidden>
-      <span class="wtr-t-left">
-        <span class="wtr-t-k">Lake &amp; river</span>
-        <span class="wtr-t-lake"><b id="teaserLake">--</b> ft <span class="wtr-t-pct" id="teaserPct"></span> <span class="wtr-t-trend" id="teaserTrend"></span></span>
-      </span>
-      <span class="wtr-t-go">Dams &amp; flow &rarr;</span>
-    </a>
-
 
     <!-- CHART -->
     <section class="glass chart" aria-labelledby="chart-h">
@@ -1022,22 +1043,50 @@
   async function loadWater(){
     try{var r=await fetch(API+"/api/water"+mockQ("Water",""),{cache:"no-store"});renderWater(await r.json());}catch(e){}
   }
+  function cfs(n){return Math.round(n).toLocaleString();}
+  function renderRiver(id,label,rel){
+    var el=$(id);if(!el)return;
+    if(!rel||rel.cfs==null){el.hidden=true;return;}
+    el.hidden=false;
+    var arrow=rel.trend==="rising"?" ▲":rel.trend==="falling"?" ▼":"";
+    el.innerHTML='<span class="rl">'+label+'</span><b>'+cfs(rel.cfs)+' cfs</b>'+arrow;
+  }
   function renderWater(d){
     var t=$("waterTeaser");if(!t||!d)return;
-    // Source the teaser from the same cascade node the /water page uses, so % full + trend match.
+    // Source from the same cascade node the /water page uses, so % full + trend match.
     var hav=null,casc=d.cascade||[];for(var i=0;i<casc.length;i++){if(casc[i].key==="havasu")hav=casc[i];}
     var lake=d.lake||{};
     var elev=hav&&hav.elevationFt!=null?hav.elevationFt:lake.elevationFt;
     if(elev==null){t.hidden=true;return;}
     t.hidden=false;
     $("teaserLake").textContent=elev.toFixed(1);
-    var pct=hav?hav.pctFull:null, trend=hav?hav.netTrend:null;
-    var pctEl=$("teaserPct");
-    if(pct!=null){pctEl.textContent="· "+pct+"% full";pctEl.className="wtr-t-pct"+(pct<40?" low":"");}
-    else pctEl.textContent="";
-    var trEl=$("teaserTrend");
-    trEl.textContent=trend==="rising"?"▲":trend==="draining"?"▼":"";
-    trEl.className="wtr-t-trend "+(trend==="rising"?"up":trend==="draining"?"down":"");
+    /* trend badge — net flow (in − out) into Lake Havasu */
+    var trend=hav?hav.netTrend:null, net=hav?hav.netCfs:null, trEl=$("teaserTrend");
+    if(trend==="rising"){trEl.textContent="▲ Rising"+(net!=null?" +"+cfs(net)+" cfs":"");trEl.className="lake-trend up";}
+    else if(trend==="draining"){trEl.textContent="▼ Draining"+(net!=null?" "+cfs(Math.abs(net))+" cfs":"");trEl.className="lake-trend down";}
+    else if(trend){trEl.textContent="Holding steady";trEl.className="lake-trend steady";}
+    else{trEl.textContent="";trEl.className="lake-trend";}
+    /* water temp chip */
+    var temp=(hav&&hav.waterTempF!=null)?hav.waterTempF:lake.waterTempF, tmpEl=$("teaserTemp");
+    if(temp!=null){tmpEl.textContent=Math.round(temp)+"°F water";tmpEl.hidden=false;}else tmpEl.hidden=true;
+    /* % full bar */
+    var pct=hav?hav.pctFull:null, pctEl=$("teaserPct"), bar=$("teaserBar"), fill=$("teaserFill");
+    if(pct!=null){pctEl.textContent=pct+"% full";pctEl.className="lake-pct"+(pct<40?" low":"");
+      fill.style.width=Math.max(2,Math.min(100,pct))+"%";fill.className="lake-fill"+(pct<40?" low":"");bar.hidden=false;}
+    else{pctEl.textContent="";bar.hidden=true;}
+    /* seasonal context (percentile of past same-months) */
+    var h=hav?hav.history:null, ctx=$("teaserCtx");
+    if(h&&h.percentile!=null&&h.monthName){
+      var p=h.percentile;
+      ctx.textContent=p<=25?("Lower than "+(100-p)+"% of past "+h.monthName+"s")
+                    :p>=75?("Higher than "+p+"% of past "+h.monthName+"s")
+                          :("Typical for "+h.monthName);
+      ctx.hidden=false;
+    }else ctx.hidden=true;
+    /* river — Davis Dam release into the lake, Parker Dam release downstream */
+    renderRiver("teaserDavis","Inflow · Davis Dam ",d.inflow);
+    renderRiver("teaserParker","Outflow · Parker Dam ",d.outflow);
+    $("teaserRiver").hidden=!(d.inflow||d.outflow);
   }
 
   /* -- air quality tile (Open-Meteo / CAMS, US AQI) -- */
