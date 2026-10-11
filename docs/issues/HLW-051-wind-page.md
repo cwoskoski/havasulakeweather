@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/99
 - **Branch:** `feat/HLW-051-wind-page`
-- **PR:** —
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/100
 - **Created:** 2026-10-11
 
 ## Summary
