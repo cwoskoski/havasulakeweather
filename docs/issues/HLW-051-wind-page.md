@@ -1,6 +1,6 @@
 # HLW-051: Wind page — wind history, wind rose and when-it's-windy heatmap
 
-- **Status:** in-progress
+- **Status:** done
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/99
 - **Branch:** `feat/HLW-051-wind-page`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/100
