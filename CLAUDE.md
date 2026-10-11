@@ -96,8 +96,9 @@ plus free public data (NWS, USGS, USBR RISE, Weather Underground).
 - `/api/forecast`, `/api/alerts` — NWS (free, no key)
 - `/api/compare` — our station vs nearby WU PWS (`KCAHAVAS2`)
 - `/api/water` — lake/river (USGS levels + USBR RISE releases)
+- `/api/wind?hours=N` — wind history for `/wind.html`, aggregated server-side (max 7d)
 - **Preview/mock:** API `?mock=<scenario>`; page `?demo=1`, `?mockAlerts=`,
-  `?mockForecast=`, `?mockCompare=`, `?mockWater=`
+  `?mockForecast=`, `?mockCompare=`, `?mockWater=`, `?mockWind=` (wind page)
 
 ## Deploy commands (run ONLY with approval)
 
