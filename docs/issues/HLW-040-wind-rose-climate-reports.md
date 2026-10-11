@@ -45,3 +45,6 @@ Two enthusiast-grade almanac features from stored station data: a **wind rose**
 - Effort: **medium**; hard dependency on HLW-030's daily aggregates and stats pipeline.
 - Ranked low on general-audience impact, high on credibility with the weather/boating
   crowd — a good "polish era" ticket.
+- 2026-10-11: HLW-051 ships a wind rose for recent periods (24 h / 3 d / 7 d) on `/wind.html`,
+  computed at request time. What remains here: month/year roses from precomputed aggregates,
+  and the climate reports.

@@ -3,6 +3,7 @@
  *
  *   GET /api/current                 → latest reading + derived values
  *   GET /api/history?hours=24        → time series for charts (max 30d)
+ *   GET /api/wind?hours=24           → bucketed wind timeline + rose + daily stats (max 7d)
  *
  * Read-only over the same DynamoDB table. Behind CloudFront + edge caching in
  * Phase 3; for now it's a Function URL you can curl. Derived values (dew point,
@@ -17,6 +18,7 @@ import { getWater } from "./water.js";
 import { getRadar } from "./radar.js";
 import { getAir } from "./air.js";
 import { kmToMi, summarize, mockLightning } from "./lightning.js";
+import { summarizeWind, mockWind } from "./wind.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.TABLE_NAME;
@@ -338,7 +340,22 @@ export const handler = async (event) => {
       }
     }
 
-    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar", "/api/air", "/api/lightning"] }, 15);
+    // Wind history for the /wind page (HLW-051): aggregated server-side so the page gets
+    // ~150 buckets instead of the raw minute series. ?mock=calm|breezy|gusty previews.
+    if (path.endsWith("/api/wind")) {
+      let hours = parseInt(qs.hours || "24", 10);
+      if (!Number.isFinite(hours) || hours <= 0) hours = 24;
+      hours = Math.min(hours, 24 * 7);
+      if (qs.mock) return res(200, mockWind(qs.mock, hours), 20);
+      try {
+        return res(200, { source: "live", ...summarizeWind(await series(hours), hours) }, 300);
+      } catch (e) {
+        console.error(JSON.stringify({ msg: "wind-upstream", error: String(e?.message || e) }));
+        return res(200, { source: "live", hours, latest: null, points: [], rose: null, days: [], error: "upstream" }, 30);
+      }
+    }
+
+    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar", "/api/air", "/api/lightning", "/api/wind?hours=24"] }, 15);
   } catch (e) {
     console.error(JSON.stringify({ msg: "read-error", error: String(e?.message || e), path }));
     return res(500, { error: "internal" }, 5);

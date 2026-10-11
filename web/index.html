@@ -130,6 +130,7 @@
   .hero-head .kicker{font-size:.72rem;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-soft);}
   .headliners{display:grid;grid-template-columns:1fr;gap:6px;}
   .head-col{padding:14px 4px;display:flex;align-items:center;gap:16px;}
+  a.head-col{color:inherit;text-decoration:none;}
   .head-col + .head-col{border-top:1px dashed rgba(43,24,16,.18);}
   .headline-icon{width:58px;height:58px;flex:none;display:grid;place-items:center;border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,.5),rgba(255,255,255,.14));border:1px solid rgba(255,255,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.8);}
   .head-main{min-width:0;}
@@ -494,7 +495,7 @@
             <div class="head-sub">Feels like <b id="feels">--&deg;F</b></div>
           </div>
         </div>
-        <div class="head-col">
+        <a class="head-col" href="/wind.html">
           <svg class="compass" viewBox="0 0 60 60" aria-hidden="true">
             <circle cx="30" cy="30" r="27" fill="rgba(255,255,255,0.35)" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
             <text x="30" y="12" text-anchor="middle" font-size="7" font-weight="800" fill="#0a5a66" font-family="sans-serif">N</text>
@@ -505,11 +506,11 @@
             <circle cx="30" cy="30" r="2.6" fill="#0a5a66"/>
           </svg>
           <div class="head-main">
-            <div class="head-label">Wind</div>
+            <div class="head-label">Wind <span aria-hidden="true">&rsaquo;</span></div>
             <div class="big teal"><span id="wind">--</span><span class="deg">mph</span></div>
             <div class="head-sub">Gusting <b id="gust">--</b> &middot; from <b id="windDir">--</b></div>
           </div>
-        </div>
+        </a>
       </div>
     </section>
 
@@ -707,7 +708,7 @@
     <footer class="footer">
       <div>Personal WS-2902D weather station &mdash; not an official observation.</div>
       <div>Havasu Lake, CA &middot; Ambient Weather &middot; Outdoor readings only</div>
-      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/rain.html">Rain &amp; storms</a></nav>
+      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/rain.html">Rain &amp; storms</a> &middot; <a href="/wind.html">Wind</a></nav>
     </footer>
   </main>
 
