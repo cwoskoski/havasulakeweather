@@ -239,6 +239,7 @@
   .chart-head .t{font-size:.86rem;font-weight:800;color:var(--ink);}
   .range-tabs{display:flex;gap:6px;}
   .range-tabs button{border:1px solid var(--glass-brd);background:rgba(255,255,255,.28);color:var(--ink-soft);font:inherit;font-family:var(--font);font-weight:800;font-size:.72rem;padding:5px 11px;border-radius:999px;cursor:pointer;}
+  .range-tabs a.more{display:inline-flex;align-items:center;color:var(--teal-deep);font-weight:800;font-size:.72rem;text-decoration:none;padding:5px 4px 5px 6px;}
   .range-tabs button.on{background:linear-gradient(160deg,rgba(255,122,69,.3),rgba(255,255,255,.2));border-color:var(--coral);color:var(--coral-deep);}
   .chart svg{display:block;width:100%;height:auto;}
   .chart-legend{display:flex;gap:16px;padding:0 4px 10px;}
@@ -640,6 +641,7 @@
         <div class="range-tabs">
           <button type="button" data-hours="24" class="on">24h</button>
           <button type="button" data-hours="168">7d</button>
+          <a class="more" href="/research.html">All data &rsaquo;</a>
         </div>
       </div>
       <div class="chart-legend" id="chartLegend" hidden>
@@ -708,7 +710,7 @@
     <footer class="footer">
       <div>Personal WS-2902D weather station &mdash; not an official observation.</div>
       <div>Havasu Lake, CA &middot; Ambient Weather &middot; Outdoor readings only</div>
-      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/rain.html">Rain &amp; storms</a> &middot; <a href="/wind.html">Wind</a></nav>
+      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/rain.html">Rain &amp; storms</a> &middot; <a href="/wind.html">Wind</a> &middot; <a href="/research.html">Research</a></nav>
     </footer>
   </main>
 

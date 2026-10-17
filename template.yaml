@@ -34,6 +34,7 @@ Resources:
   # Single table. On-demand billing; storage is free under 25 GB (~50 years here).
   # Time-series items:  pk = OBS#<stationKey>#YYYY-MM, sk = <dateutc ISO>
   # Latest pointer:     pk = STATION#<stationKey>,     sk = LATEST
+  # Rollups (HLW-052):  pk = HOUR#<stationKey>#YYYY-MM / DAY#<stationKey>#YYYY
   WeatherTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -177,6 +178,40 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${WaterIngestFunction}"
+      RetentionInDays: 14
+
+  # Hourly + daily rollups of our station for the /research page (HLW-052):
+  # pk = HOUR#<stationKey>#YYYY-MM and DAY#<stationKey>#YYYY. Re-rolls the last 3 hours
+  # each run (idempotent), a few minutes past the hour so the hour just closed is complete.
+  RollupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: havasu-weather-rollup
+      Description: Hourly + daily station rollups for the research page
+      CodeUri: ingest/
+      Handler: src/rollup.handler
+      Timeout: 60
+      LoggingConfig:
+        LogFormat: JSON
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref WeatherTable
+          STATION_KEY: !Ref AllowedStationKeys
+      Events:
+        Tick:
+          Type: Schedule
+          Properties:
+            Schedule: "cron(5 * * * ? *)"
+            Description: Roll up the last few hours of station readings
+            Enabled: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WeatherTable
+
+  RollupLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${RollupFunction}"
       RetentionInDays: 14
 
   Distribution:

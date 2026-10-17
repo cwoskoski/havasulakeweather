@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0e4a5e" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" type="image/png" href="/assets/icon-192.png" />
+<link rel="apple-touch-icon" href="/assets/icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Havasu Wx" />
+<meta name="description" content="Research Havasu Lake, CA weather history — temperature, rain, wind, humidity, pressure, UV and lake level from an on-site station, for any timeframe. Compare periods and download the data." />
+<title>Weather Data Research — Havasu Lake, CA (History, Comparisons &amp; CSV)</title>
+<link rel="canonical" href="https://havasulakeweather.com/research.html" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Havasu Lake Weather" />
+<meta property="og:title" content="Weather Data Research — Havasu Lake, CA" />
+<meta property="og:description" content="Explore Havasu Lake, California weather history for any timeframe — compare periods and download the station data." />
+<meta property="og:url" content="https://havasulakeweather.com/research.html" />
+<meta property="og:image" content="https://havasulakeweather.com/assets/og-image.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Weather Data Research — Havasu Lake, CA" />
+<meta name="twitter:description" content="Havasu Lake, California weather history for any timeframe, with period comparisons and CSV download." />
+<meta name="twitter:image" content="https://havasulakeweather.com/assets/og-image.png" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "WebPage", "@id": "https://havasulakeweather.com/research.html#webpage", "url": "https://havasulakeweather.com/research.html", "name": "Weather Data Research — Havasu Lake, CA", "isPartOf": { "@id": "https://havasulakeweather.com/#website" }, "about": { "@id": "https://havasulakeweather.com/#place" }, "description": "Havasu Lake, California weather history from an on-site station — temperature, rain, wind, humidity, pressure, UV and lake level for any timeframe, with period comparisons and CSV download." },
+    { "@type": "BreadcrumbList", "@id": "https://havasulakeweather.com/research.html#breadcrumb", "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Havasu Lake, CA Weather", "item": "https://havasulakeweather.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Research" }
+    ] }
+  ]
+}
+</script>
+<!-- Google Analytics (GA4) — loads only on the live domain. -->
+<script>
+  (function () {
+    var h = location.hostname;
+    if (h !== "havasulakeweather.com" && h !== "www.havasulakeweather.com") return;
+    var s = document.createElement("script");
+    s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=G-NTKCW8E330";
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    window.gtag = gtag; gtag("js", new Date()); gtag("config", "G-NTKCW8E330");
+  })();
+</script>
+<style>
+  :root{
+    --ink:#eaf6f8;--ink-soft:rgba(234,246,248,.72);--ink-faint:rgba(234,246,248,.5);
+    --teal-deep:#7fe6e2;
+    --glass:rgba(10,42,52,.55);--glass-2:rgba(255,255,255,.06);--brd:rgba(255,255,255,.16);
+    --radius:22px;--font:ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --shadow:0 18px 44px -18px rgba(0,0,0,.6);
+    /* chart series — validated as a set on the #0c3440 chart surface (dataviz validator) */
+    --s1:#d9653f;--s2:#1a97a3;--s3:#b88329;--cmp:rgba(234,246,248,.6);
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  [hidden]{display:none!important;}
+  body{font-family:var(--font);color:var(--ink);background:linear-gradient(180deg,#0d3a49 0%,#0a2b34 60%,#08222a 100%);min-height:100vh;-webkit-font-smoothing:antialiased;}
+  .wnav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12px;padding:max(12px,env(safe-area-inset-top)) 16px 12px;background:rgba(8,34,42,.72);backdrop-filter:blur(12px) saturate(150%);-webkit-backdrop-filter:blur(12px) saturate(150%);border-bottom:1px solid rgba(255,255,255,.08);}
+  .wnav a.back{display:inline-flex;align-items:center;gap:7px;color:var(--ink);text-decoration:none;font-weight:800;font-size:.92rem;background:rgba(255,255,255,.08);border:1px solid var(--brd);border-radius:999px;padding:8px 14px;}
+  .wnav .title{font-weight:800;font-size:1.02rem;} .wnav .title small{display:block;font-weight:600;font-size:.68rem;color:var(--ink-faint);}
+  .rpage{max-width:860px;margin:0 auto;padding:14px 14px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;}
+  .card{background:var(--glass);border:1px solid var(--brd);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:16px 18px;min-width:0;}
+  .card h2{margin:0 0 4px;font-size:.8rem;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-faint);}
+  .card h2 b{color:var(--ink);font-weight:800;text-transform:none;letter-spacing:0;font-size:.86rem;margin-left:4px;}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  .note{font-size:.74rem;font-weight:600;color:var(--ink-faint);margin-top:6px;line-height:1.45;}
+  /* controls */
+  .ctl{display:flex;flex-direction:column;gap:12px;}
+  .ctl .row{display:flex;flex-direction:column;gap:6px;}
+  .ctl .lbl{font-size:.64rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-faint);}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chips button{font:inherit;font-weight:800;font-size:.82rem;color:var(--ink-soft);background:var(--glass-2);border:1px solid var(--brd);border-radius:999px;padding:7px 12px;cursor:pointer;}
+  .chips button[aria-pressed="true"]{background:rgba(47,185,196,.26);border-color:rgba(127,230,226,.5);color:var(--ink);}
+  .chips button:focus-visible,.dates input:focus-visible,.dates button:focus-visible,.btn:focus-visible,th button:focus-visible{outline:2px solid var(--teal-deep);outline-offset:1px;}
+  .dates{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:.8rem;font-weight:700;color:var(--ink-soft);}
+  .dates input{font:inherit;font-weight:700;color:var(--ink);background:rgba(255,255,255,.08);border:1px solid var(--brd);border-radius:10px;padding:6px 8px;color-scheme:dark;}
+  .btn{font:inherit;font-weight:800;font-size:.8rem;color:var(--ink);background:rgba(47,185,196,.26);border:1px solid rgba(127,230,226,.5);border-radius:999px;padding:7px 14px;cursor:pointer;text-decoration:none;display:inline-block;}
+  .btn.ghost{background:var(--glass-2);border-color:var(--brd);color:var(--ink-soft);}
+  /* summary */
+  .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px 14px;margin-top:12px;}
+  .stat .k{font-size:.62rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-faint);}
+  .stat .v{font-size:1.35rem;font-weight:800;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums;}
+  .stat .v small{font-size:.78rem;font-weight:700;color:var(--ink-soft);margin-left:2px;}
+  .stat .at{font-size:.72rem;font-weight:650;color:var(--ink-faint);margin-top:1px;}
+  .stat .vs{font-size:.74rem;font-weight:700;color:var(--ink-soft);margin-top:3px;font-variant-numeric:tabular-nums;}
+  .stat .vs b{color:var(--ink);}
+  .period{font-size:1.05rem;font-weight:800;line-height:1.3;}
+  .period .cmpline{display:block;font-size:.8rem;font-weight:700;color:var(--ink-soft);margin-top:2px;}
+  /* charts */
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.72rem;font-weight:700;color:var(--ink-soft);margin:4px 0 8px;}
+  .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+  .legend i.band{height:10px;border-radius:2px;opacity:.85;}
+  .legend i.dash{height:0;border-top:2px dashed var(--cmp);background:none;border-radius:0;}
+  .legend i.bar{width:9px;height:11px;border-radius:2px 2px 0 0;}
+  .chartwrap{position:relative;}
+  .chartwrap svg{display:block;width:100%;touch-action:pan-y;}
+  .chartwrap svg text{font-family:var(--font);font-size:11px;font-weight:700;fill:rgba(234,246,248,.55);}
+  .sub-h{font-size:.72rem;font-weight:800;color:var(--ink-soft);margin:14px 0 2px;}
+  .empty{padding:26px 0;text-align:center;font-size:.86rem;font-weight:700;color:var(--ink-faint);}
+  /* table */
+  .tblwrap{overflow-x:auto;margin-top:6px;-webkit-overflow-scrolling:touch;max-height:560px;overflow-y:auto;}
+  table.days{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums;}
+  table.days th{position:sticky;top:0;background:#0b2f39;font-size:.62rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-faint);text-align:right;padding:0;white-space:nowrap;}
+  table.days th button{font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;background:none;border:0;padding:8px 5px;cursor:pointer;width:100%;text-align:inherit;}
+  table.days th[aria-sort] button{color:var(--ink);}
+  table.days td{padding:7px 5px;border-top:1px solid rgba(255,255,255,.08);font-weight:750;text-align:right;white-space:nowrap;}
+  table.days th:first-child,table.days td:first-child{text-align:left;}
+  table.days td small{font-weight:650;color:var(--ink-faint);font-size:.72rem;margin-left:4px;}
+  table.days tr.nd td{color:var(--ink-faint);font-weight:600;}
+  .tblbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;}
+  /* tooltip */
+  #tip{position:fixed;z-index:3000;pointer-events:none;background:rgba(6,26,33,.96);border:1px solid var(--brd);border-radius:12px;padding:8px 11px;font-size:.78rem;font-weight:700;line-height:1.5;color:var(--ink);box-shadow:0 10px 26px -10px rgba(0,0,0,.8);max-width:260px;opacity:0;transition:opacity .12s ease;}
+  #tip.on{opacity:1;}
+  #tip .th{font-size:.66rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-faint);}
+  #tip .th + .th{margin-top:4px;}
+  #tip i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;}
+  #tip i.dash{border-radius:0;height:0;border-top:2px dashed var(--cmp);width:10px;vertical-align:middle;}
+  .foot{text-align:center;font-size:.72rem;color:var(--ink-faint);line-height:1.5;}
+  .foot a{color:var(--ink-soft);}
+  .ftnav{margin-top:8px;font-weight:700;}
+  .ftnav a{color:var(--ink-soft);white-space:nowrap;}
+  .loading{opacity:.55;transition:opacity .2s;}
+  @media (max-width:430px){
+    .card{padding:14px 14px;} .stat .v{font-size:1.15rem;} .stats{grid-template-columns:repeat(2,1fr);}
+    table.days{font-size:.78rem;}
+  }
+</style>
+</head>
+<body>
+  <div id="tip" role="status" aria-live="off"></div>
+  <header class="wnav">
+    <a class="back" href="/">&larr; Conditions</a>
+    <div class="title">Research<small>Havasu Lake, CA &middot; the station record</small></div>
+  </header>
+
+  <main class="rpage">
+    <h1 class="sr-only">Havasu Lake, CA Weather History — Research the Station Data</h1>
+
+    <!-- CONTROLS -->
+    <section class="card ctl" aria-label="Choose what to look at">
+      <div class="row">
+        <span class="lbl" id="rangeLbl">Timeframe</span>
+        <div class="chips" role="group" aria-labelledby="rangeLbl" id="rangeChips">
+          <button type="button" data-r="24h">24 hours</button>
+          <button type="button" data-r="7d">7 days</button>
+          <button type="button" data-r="30d">30 days</button>
+          <button type="button" data-r="month">This month</button>
+          <button type="button" data-r="year">This year</button>
+          <button type="button" data-r="all">All data</button>
+          <button type="button" data-r="custom">Custom&hellip;</button>
+        </div>
+        <div class="dates" id="customRow" hidden>
+          <label>From <input type="date" id="fromIn" /></label>
+          <label>To <input type="date" id="toIn" /></label>
+          <button type="button" class="btn" id="applyCustom">Show</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl" id="cmpLbl">Compare with</span>
+        <div class="chips" role="group" aria-labelledby="cmpLbl" id="cmpChips">
+          <button type="button" data-c="off">Nothing</button>
+          <button type="button" data-c="prev">Previous period</button>
+          <button type="button" data-c="year">Same time last year</button>
+          <button type="button" data-c="date">Pick a start date&hellip;</button>
+        </div>
+        <div class="dates" id="cmpRow" hidden>
+          <label>Starting <input type="date" id="cmpIn" /></label>
+          <button type="button" class="btn" id="applyCmp">Compare</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl" id="metLbl">Show</span>
+        <div class="chips" role="group" aria-labelledby="metLbl" id="metChips">
+          <button type="button" data-m="temp">Temperature</button>
+          <button type="button" data-m="rain">Rain</button>
+          <button type="button" data-m="wind">Wind</button>
+          <button type="button" data-m="humidity">Humidity</button>
+          <button type="button" data-m="pressure">Pressure</button>
+          <button type="button" data-m="uv">UV index</button>
+          <button type="button" data-m="lake">Lake &amp; river</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUMMARY -->
+    <section class="card" aria-labelledby="sum-h" id="sumCard">
+      <h2 id="sum-h">Summary</h2>
+      <div class="period" id="periodLbl">Loading&hellip;</div>
+      <div class="stats" id="stats"></div>
+      <div class="note" id="sumNote"></div>
+    </section>
+
+    <div id="charts" style="display:contents"></div>
+
+    <!-- DAILY TABLE -->
+    <section class="card" aria-labelledby="days-h">
+      <div class="tblbar">
+        <h2 id="days-h">Day by day</h2>
+        <div class="chips">
+          <button type="button" class="btn ghost" id="csvDays">Download daily CSV</button>
+          <button type="button" class="btn ghost" id="csvPts">Download chart data CSV</button>
+        </div>
+      </div>
+      <div class="tblwrap">
+        <table class="days" aria-describedby="days-note">
+          <thead><tr id="daysHead"></tr></thead>
+          <tbody id="daysBody"><tr><td style="text-align:center;color:var(--ink-faint)">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+      <div class="note" id="days-note">Tap a column to sort. Highs and lows use the shaded air sensor where it was reporting, otherwise the full-sun array.</div>
+    </section>
+
+    <div class="foot">
+      Data: on-site <b>Ambient WS-2902D</b> station (+ WH31E shaded sensor), readings about once a minute; lake &amp; river from USGS and USBR RISE &middot; days and times are Havasu Lake local (Pacific) &middot; records cover the station&rsquo;s own history, not long-term climate averages &middot; community reference, not an official product.
+      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/rain.html">Rain &amp; storms</a> &middot; <a href="/wind.html">Wind</a> &middot; <a href="/research.html">Research</a></nav>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var API="", TZ="America/Los_Angeles", DAY=86400000;
+  var Q=new URLSearchParams(location.search), MOCK=Q.get("mockResearch");
+  var C={s1:"#d9653f",s2:"#1a97a3",s3:"#b88329",cmp:"rgba(234,246,248,.6)"}, SURFACE="#0c3440";
+  var ALL_METRICS=["temp","rain","wind","humidity","pressure","uv","lake"];
+  var state={r:"7d",from:"",to:"",c:"off",cdate:"",m:["temp","rain","wind"]};
+  var A=null,B=null,seq=0,sort={key:"day",dir:-1};
+
+  /* ---------- formatting ---------- */
+  var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});};
+  var fmt=function(v,d){return v==null?"--":Number(v).toFixed(d==null?0:d);};
+  var fmtDate=function(ms,o){return new Date(ms).toLocaleDateString("en-US",Object.assign({timeZone:TZ},o||{month:"short",day:"numeric"}));};
+  var fmtTime=function(ms){return new Date(ms).toLocaleTimeString("en-US",{timeZone:TZ,hour:"numeric",minute:"2-digit"});};
+  var fmtWhen=function(iso){if(!iso)return "";var ms=Date.parse(iso);return fmtDate(ms,{weekday:"short",month:"short",day:"numeric"})+", "+fmtTime(ms);};
+  var dayFmt=function(day){return new Date(day+"T12:00:00Z").toLocaleDateString("en-US",{timeZone:"UTC",weekday:"short",month:"short",day:"numeric",year:"numeric"});};
+  var todayLocal=function(){return new Date().toLocaleDateString("en-CA",{timeZone:TZ});};
+  var COMPASS=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  var compass=function(d){return d==null?"":COMPASS[Math.round(((d%360)+360)%360/22.5)%16];};
+
+  // UTC ms of Pacific midnight (UTC-7 or UTC-8; DST flips at 2 AM so midnight is always one of them).
+  var partsFmt=new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hourCycle:"h23"});
+  function localMidnight(day){
+    var y=+day.slice(0,4),m=+day.slice(5,7),d=+day.slice(8,10);
+    for(var off=7;off<=8;off++){
+      var ms=Date.UTC(y,m-1,d,off),p={};
+      partsFmt.formatToParts(new Date(ms)).forEach(function(x){p[x.type]=x.value;});
+      if(p.year+"-"+p.month+"-"+p.day===day&&Number(p.hour)%24===0)return ms;
+    }
+    return Date.UTC(y,m-1,d,8);
+  }
+  var isoSec=function(ms){return new Date(ms).toISOString().slice(0,19)+"Z";};
+
+  /* ---------- URL state ---------- */
+  function readURL(){
+    var r=Q.get("r");if(r&&/^(24h|7d|30d|month|year|all|custom)$/.test(r))state.r=r;
+    if(Q.get("from"))state.from=Q.get("from");if(Q.get("to"))state.to=Q.get("to");
+    if(state.r==="custom"&&!state.from)state.r="7d";
+    var c=Q.get("cmp");if(c==="prev"||c==="year")state.c=c;else if(c&&/^\d{4}-\d{2}-\d{2}$/.test(c)){state.c="date";state.cdate=c;}
+    var m=Q.get("m");if(m){var ms=m.split(",").filter(function(x){return ALL_METRICS.indexOf(x)>=0;});if(ms.length)state.m=ms;}
+  }
+  function writeURL(){
+    var p=new URLSearchParams();
+    p.set("r",state.r);
+    if(state.r==="custom"){p.set("from",state.from);if(state.to)p.set("to",state.to);}
+    if(state.c==="prev"||state.c==="year")p.set("cmp",state.c);else if(state.c==="date"&&state.cdate)p.set("cmp",state.cdate);
+    p.set("m",state.m.join(","));
+    if(MOCK)p.set("mockResearch",MOCK);
+    try{history.replaceState(null,"","?"+p.toString());}catch(e){}
+  }
+
+  /* ---------- ranges ---------- */
+  // Rolling ranges round "now" to 5 minutes so the edge cache can serve repeat visitors.
+  function rangeQuery(){
+    var now=Math.floor(Date.now()/300000)*300000,t=todayLocal();
+    switch(state.r){
+      case "24h":return {from:isoSec(now-DAY)};
+      case "7d":return {from:isoSec(now-7*DAY)};
+      case "30d":return {from:isoSec(now-30*DAY)};
+      case "month":return {from:t.slice(0,7)+"-01"};
+      case "year":return {from:t.slice(0,4)+"-01-01"};
+      case "all":return {from:"all"};
+      default:return {from:state.from,to:state.to||undefined};
+    }
+  }
+  // The comparison period is the same length as what A actually covered.
+  function cmpQuery(a){
+    var s=Date.parse(a.from),e=Date.parse(a.to),span=e-s;
+    if(state.c==="prev")return {from:isoSec(s-span),to:isoSec(s)};
+    if(state.c==="year"){var ys=new Date(s),ye=new Date(e);ys.setUTCFullYear(ys.getUTCFullYear()-1);ye.setUTCFullYear(ye.getUTCFullYear()-1);return {from:isoSec(+ys),to:isoSec(+ye)};}
+    if(state.c==="date"&&state.cdate){var cs=localMidnight(state.cdate);return {from:isoSec(cs),to:isoSec(cs+span)};}
+    return null;
+  }
+  function periodLabel(j){
+    var s=Date.parse(j.from),e=Date.parse(j.to),span=e-s;
+    if(span<=3*DAY)return fmtWhen(j.from)+" – "+fmtWhen(j.to);
+    var sy=fmtDate(s,{year:"numeric"}),ey=fmtDate(e-1,{year:"numeric"});
+    return fmtDate(s,{month:"short",day:"numeric",year:sy===ey?undefined:"numeric"})+" – "+fmtDate(e-1,{month:"short",day:"numeric",year:"numeric"});
+  }
+  var STEP_LBL={10:"10 minutes",30:"30 minutes",180:"3 hours",360:"6 hours"};
+
+  /* ---------- data access ---------- */
+  function fetchResearch(q){
+    var p=new URLSearchParams();
+    if(q.from)p.set("from",q.from);if(q.to)p.set("to",q.to);
+    if(MOCK)p.set("mock",MOCK);
+    return fetch(API+"/api/research?"+p.toString(),{cache:"no-store"}).then(function(r){
+      if(!r.ok)return r.json().catch(function(){return {};}).then(function(j){throw new Error(j.error||("HTTP "+r.status));});
+      return r.json();
+    });
+  }
+  // Evenly spaced rows for charting: points, or every day at daily resolution.
+  var rowsOf=function(j){return j?(j.points||j.days||[]):[];};
+  var tOf=function(row){return row.t?Date.parse(row.t):localMidnight(row.day);};
+  function val(row,k,f){
+    if(!row||!row.n)return null;
+    if(k==="rainIn")return row.rainIn==null?null:row.rainIn;
+    var m=row[k];return m?m[f||"avg"]:null;
+  }
+  // Shaded sensor when it covered most of the range (it was added after the array), else the array.
+  // (Day rows carry no counts — a day either had the sensor or didn't.)
+  function airKey(agg){
+    if(!agg||!agg.shade)return "temp";
+    return agg.shade.n==null||!agg.temp||agg.temp.n==null||agg.shade.n>=0.5*agg.temp.n?"shade":"temp";
+  }
+
+  /* ---------- charts ---------- */
+  var CHARTS={
+    temp:{title:"Temperature",unit:"°F",dec:0,series:[
+      {k:"shade",label:"Shaded air (range + average)",short:"Shaded air",color:C.s1,band:true},
+      {k:"temp",label:"Full sun",short:"Full sun",color:C.s2},
+      {k:"dew",label:"Dew point",short:"Dew point",color:C.s3}]},
+    rain:{title:"Rain",unit:"in",dec:2,bars:true,series:[{k:"rainIn",label:"Rain",short:"Rain",color:C.s2}]},
+    wind:{title:"Wind",unit:"mph",dec:0,series:[
+      {k:"wind",label:"Average speed",short:"Average",color:C.s2},
+      {k:"gust",f:"max",label:"Peak gust",short:"Peak gust",color:C.s3}]},
+    humidity:{title:"Humidity",unit:"%",dec:0,series:[{k:"humidity",label:"Humidity (range + average)",short:"Humidity",color:C.s2,band:true}]},
+    pressure:{title:"Pressure",unit:"inHg",dec:2,series:[{k:"pressure",label:"Pressure (range + average)",short:"Pressure",color:C.s2,band:true}]},
+    uv:{title:"UV index",unit:"",dec:0,series:[{k:"uv",f:"max",label:"Peak UV",short:"Peak UV",color:C.s3}]}
+  };
+  var charts={}; // id -> draw state, for the shared crosshair
+
+  function niceStep(range,target){
+    var raw=range/target,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;
+    return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p;
+  }
+  function xLabel(ms,spanMs,stepMin){
+    if(spanMs<=26*3600e3)return new Date(ms).toLocaleTimeString("en-US",{timeZone:TZ,hour:"numeric"});
+    if(spanMs<=8*DAY)return fmtDate(ms,{weekday:"short"});
+    if(stepMin<1440||spanMs<=120*DAY)return fmtDate(ms);
+    if(spanMs<=400*DAY)return fmtDate(ms,{month:"short"});
+    return fmtDate(ms,{month:"short",year:"2-digit"});
+  }
+  function tipWhen(ms,stepMin){
+    if(stepMin>=1440)return fmtDate(ms,{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+    var end=ms+stepMin*60000;
+    return fmtDate(ms,{weekday:"short",month:"short",day:"numeric"})+", "+fmtTime(ms)+(stepMin>10?"–"+fmtTime(end):"");
+  }
+
+  // cfg: {id, unit, dec, bars, times:[ms], stepMin, spanMs, series:[{label,color,band,dash,a:[{v,lo,hi}|null]}]}
+  function drawChart(svg,cfg){
+    var W=Math.max(300,Math.round(svg.parentNode.clientWidth)),H=cfg.bars?170:210,PL=40,PR=10,PT=14,PB=26;
+    var x0=PL,x1=W-PR,y0=H-PB,n=0;
+    cfg.series.forEach(function(s){n=Math.max(n,s.a.length);});
+    svg.setAttribute("viewBox","0 0 "+W+" "+H);svg.style.height=H+"px";
+    var lo=Infinity,hi=-Infinity;
+    cfg.series.forEach(function(s){s.a.forEach(function(p){if(!p)return;var a=p.lo!=null?p.lo:p.v,b=p.hi!=null?p.hi:p.v;if(a!=null&&a<lo)lo=a;if(b!=null&&b>hi)hi=b;});});
+    if(!isFinite(lo)){svg.innerHTML='<text x="'+W/2+'" y="'+H/2+'" text-anchor="middle">No readings in this period.</text>';charts[cfg.id]=null;return;}
+    if(cfg.bars||cfg.zero)lo=0;
+    if(hi-lo<1e-9)hi=lo+(cfg.bars?0.1:1);
+    var st=niceStep(hi-lo,4),yMin=Math.floor(lo/st)*st,yMax=Math.ceil(hi/st)*st;
+    if(cfg.bars)yMin=0;
+    var X=function(i){return x0+(i+0.5)/n*(x1-x0);},Y=function(v){return y0-(v-yMin)/(yMax-yMin)*(y0-PT);};
+    var o="",sd=st<1?(st<0.1?2:1):0;
+    for(var v=yMin;v<=yMax+st/2;v+=st){
+      var yy=Y(v).toFixed(1);
+      o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+yy+'" y2="'+yy+'" stroke="rgba(255,255,255,'+(Math.abs(v-yMin)<1e-9?".22":".08")+')"/>';
+      o+='<text x="'+(x0-6)+'" y="'+(+yy+4)+'" text-anchor="end">'+v.toFixed(sd)+'</text>';
+    }
+    if(cfg.unit)o+='<text x="'+x0+'" y="'+(PT-4)+'" style="font-size:9.5px">'+esc(cfg.unit)+'</text>';
+    var ticks=Math.max(2,Math.min(7,Math.floor((x1-x0)/80))),last=-99;
+    for(var k=0;k<ticks;k++){
+      var i=Math.round(k*(n-1)/(ticks-1)),tx=X(i);
+      if(cfg.times[i]==null||tx-last<56)continue;
+      o+='<text x="'+tx.toFixed(1)+'" y="'+(H-7)+'" text-anchor="'+(k===0?"start":k===ticks-1?"end":"middle")+'">'+esc(xLabel(cfg.times[i],cfg.spanMs,cfg.stepMin))+'</text>';
+      last=tx;
+    }
+    if(cfg.bars){
+      var ns=cfg.series.length,bw=Math.max(1,(x1-x0)/n*0.8/ns);
+      cfg.series.forEach(function(s,si){
+        s.a.forEach(function(p,i){
+          if(!p||!p.v)return;
+          var bx=X(i)-bw*ns/2+si*bw,by=Y(p.v),h=Math.max(1,y0-by);
+          o+='<rect x="'+bx.toFixed(1)+'" y="'+by.toFixed(1)+'" width="'+Math.max(1,bw-(ns>1?1:0)).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+Math.min(2,bw/3).toFixed(1)+'" fill="'+(s.dash?C.cmp:s.color)+'"'+(s.dash?' fill-opacity=".55"':'')+'/>';
+        });
+      });
+    }else{
+      cfg.series.forEach(function(s){
+        // runs break at gaps so a station dropout is visible, not bridged
+        var runs=[],run=null;
+        s.a.forEach(function(p,i){if(!p||p.v==null){run=null;return;}if(!run){run=[];runs.push(run);}run.push(i);});
+        runs.forEach(function(r){
+          var ln="",up="",dn="";
+          r.forEach(function(i,k){ln+=(k?"L":"M")+X(i).toFixed(1)+" "+Y(s.a[i].v).toFixed(1);});
+          if(s.band&&!s.dash){
+            r.forEach(function(i,k){up+=(k?"L":"M")+X(i).toFixed(1)+" "+Y(s.a[i].hi).toFixed(1);});
+            for(var k=r.length-1;k>=0;k--)dn+="L"+X(r[k]).toFixed(1)+" "+Y(s.a[r[k]].lo).toFixed(1);
+            o+='<path d="'+up+dn+'Z" fill="'+s.color+'" fill-opacity=".22"/>';
+          }
+          if(r.length===1)o+='<circle cx="'+X(r[0]).toFixed(1)+'" cy="'+Y(s.a[r[0]].v).toFixed(1)+'" r="3" fill="'+(s.dash?C.cmp:s.color)+'"/>';
+          else o+='<path d="'+ln+'" fill="none" stroke="'+(s.dash?C.cmp:s.color)+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"'+(s.dash?' stroke-dasharray="5 4"':'')+'/>';
+        });
+      });
+    }
+    o+='<line class="xh" y1="'+PT+'" y2="'+y0+'" stroke="rgba(255,255,255,.5)" stroke-width="1" style="display:none"/>';
+    o+='<rect class="hit" x="'+x0+'" y="0" width="'+(x1-x0)+'" height="'+H+'" fill="transparent"/>';
+    svg.innerHTML=o;
+    charts[cfg.id]={svg:svg,cfg:cfg,X:X,Y:Y,n:n,x0:x0,x1:x1};
+  }
+
+  // Shared crosshair: hovering one chart in a group moves the line on all of them.
+  function hover(id,e){
+    var s=charts[id];if(!s)return;
+    var r=s.svg.getBoundingClientRect(),px=(e.clientX-r.left)*(s.svg.viewBox.baseVal.width/r.width);
+    var i=Math.max(0,Math.min(s.n-1,Math.floor((px-s.x0)/(s.x1-s.x0)*s.n)));
+    Object.keys(charts).forEach(function(k){
+      var c=charts[k];if(!c)return;var xh=c.svg.querySelector(".xh");
+      if(c.cfg.group!==s.cfg.group||i>=c.n){xh.style.display="none";return;}
+      var x=c.X(i).toFixed(1);xh.setAttribute("x1",x);xh.setAttribute("x2",x);xh.style.display="";
+    });
+    var cfg=s.cfg,h="";
+    if(cfg.times[i]!=null)h+='<div class="th">'+esc(tipWhen(cfg.times[i],cfg.stepMin))+'</div>';
+    cfg.series.forEach(function(se){
+      if(se.dash)return;
+      var p=se.a[i];
+      h+='<div><i style="background:'+se.color+'"></i>'+esc(se.short)+' '+(p&&p.v!=null?fmt(p.v,cfg.dec)+(cfg.unit&&cfg.unit!=="%"?" ":"")+esc(cfg.unit):"—")+(p&&p.lo!=null&&se.band?' <span style="color:var(--ink-faint)">('+fmt(p.lo,cfg.dec)+'–'+fmt(p.hi,cfg.dec)+')</span>':'')+'</div>';
+    });
+    cfg.series.forEach(function(se){
+      if(!se.dash)return;
+      var p=se.a[i];
+      if(cfg.timesB&&cfg.timesB[i]!=null)h+='<div class="th">'+esc(tipWhen(cfg.timesB[i],cfg.stepMin))+'</div>';
+      h+='<div><i class="dash"></i>'+esc(se.short)+' '+(p&&p.v!=null?fmt(p.v,cfg.dec)+(cfg.unit&&cfg.unit!=="%"?" ":"")+esc(cfg.unit):"—")+'</div>';
+    });
+    showTip(h,e.clientX,e.clientY);
+  }
+  function unhover(){Object.keys(charts).forEach(function(k){var c=charts[k];if(c){var xh=c.svg.querySelector(".xh");if(xh)xh.style.display="none";}});hideTip();}
+
+  var tip=$("tip");
+  function showTip(html,x,y){
+    tip.innerHTML=html;tip.classList.add("on");
+    var r=tip.getBoundingClientRect(),vw=document.documentElement.clientWidth;
+    var left=Math.min(Math.max(8,x+14),vw-r.width-8),top=y-r.height-14;
+    if(top<8)top=y+18;
+    tip.style.left=left+"px";tip.style.top=top+"px";
+  }
+  function hideTip(){tip.classList.remove("on");}
+  window.addEventListener("scroll",hideTip,{passive:true});
+
+  function seriesArr(rows,k,f,band){
+    return rows.map(function(r){var v=val(r,k,f);if(v==null)return null;var o={v:v};if(band&&r[k]){o.lo=r[k].min;o.hi=r[k].max;}return o;});
+  }
+  function cmpLabel(){return B?periodLabel(B):"";}
+
+  function chartCard(id,title,extra){
+    var sec=document.createElement("section");sec.className="card";sec.setAttribute("aria-labelledby",id+"-h");
+    sec.innerHTML='<h2 id="'+id+'-h">'+esc(title)+(extra?' <b>'+extra+'</b>':'')+'</h2><div class="legend" id="'+id+'-lg"></div><div class="chartwrap"><svg id="'+id+'-svg" role="img" aria-label="'+esc(title)+' over the selected period"></svg></div>';
+    return sec;
+  }
+  function wire(svg,id){
+    svg.addEventListener("pointermove",function(e){hover(id,e);});
+    svg.addEventListener("pointerdown",function(e){hover(id,e);});
+    svg.addEventListener("pointerleave",unhover);
+  }
+  function legendHtml(series,cfg){
+    var real=series.filter(function(s){return !s.dash;}),cmp=series.filter(function(s){return s.dash;});
+    if(real.length<2&&!cmp.length)return "";
+    var h=real.map(function(s){return '<span><i class="'+(cfg.bars?"bar":s.band?"band":"")+'" style="background:'+s.color+'"></i>'+esc(s.label)+'</span>';}).join("");
+    if(cmp.length)h+='<span><i class="'+(cfg.bars?"bar":"dash")+'"'+(cfg.bars?' style="background:var(--cmp);opacity:.6"':'')+'></i>'+esc(cmp[0].short)+', '+esc(cmpLabel())+'</span>';
+    return h;
+  }
+
+  function renderCharts(){
+    var host=$("charts");host.innerHTML="";charts={};
+    var rowsA=rowsOf(A),rowsB=rowsOf(B),stepMin=A.res.stepMin,spanMs=Date.parse(A.to)-Date.parse(A.from);
+    var timesA=rowsA.map(tOf),timesB=rowsB.map(tOf);
+    state.m.forEach(function(m){
+      if(m==="lake"){renderLake(host);return;}
+      var def=CHARTS[m];if(!def)return;
+      var extra="";
+      if(m==="rain")extra=fmt(A.summary.rainIn,2)+'"'+(B?' <span style="color:var(--ink-faint)">vs '+fmt(B.summary.rainIn,2)+'"</span>':'');
+      var sec=chartCard("c-"+m,def.title,extra);host.appendChild(sec);
+      var series=def.series.map(function(s){return {label:s.label,short:s.short,color:s.color,band:s.band,a:seriesArr(rowsA,s.k,s.f,s.band)};})
+        .filter(function(s){return s.a.some(function(p){return p;});});
+      if(B&&def.series.length){
+        var p0=def.series[0];
+        if(m==="temp"&&!series.some(function(s){return s.label===def.series[0].label;}))p0=def.series[1];
+        series.push({label:p0.label,short:p0.short,dash:true,a:seriesArr(rowsB,p0.k,p0.f,false)});
+      }
+      var cfg={id:"c-"+m,group:"wx",unit:def.unit,dec:def.dec,bars:def.bars,times:timesA,timesB:timesB,stepMin:stepMin,spanMs:spanMs,series:series};
+      $("c-"+m+"-lg").innerHTML=legendHtml(series,cfg);
+      var svg=$("c-"+m+"-svg");drawChart(svg,cfg);wire(svg,"c-"+m);
+    });
+  }
+
+  // Lake & river: daily snapshots, so their own day axis (and crosshair group).
+  function renderLake(host){
+    var wa=(A.water||[]).slice().sort(function(a,b){return a.date<b.date?-1:1;});
+    var wb=B?(B.water||[]).slice().sort(function(a,b){return a.date<b.date?-1:1;}):[];
+    var sec=document.createElement("section");sec.className="card";sec.setAttribute("aria-labelledby","lake-h");
+    sec.innerHTML='<h2 id="lake-h">Lake Havasu &amp; the river</h2>';
+    host.appendChild(sec);
+    if(wa.length<2){
+      var last=wa[wa.length-1];
+      sec.innerHTML+='<div class="empty">'+(last?"Lake level "+fmt(last.havasuElevFt,2)+" ft · water "+fmt(last.havasuTempF,0)+"°F · Parker Dam releasing "+fmt(last.parkerCfs,0)+" cfs (daily snapshot)":"No lake snapshots in this period.")+'<br><span style="font-size:.76rem">Pick a longer timeframe to chart the lake.</span></div>';
+      return;
+    }
+    var spanMs=Date.parse(A.to)-Date.parse(A.from);
+    var times=wa.map(function(w){return localMidnight(w.date);}),timesB=wb.map(function(w){return localMidnight(w.date);});
+    var useElev=wa.filter(function(w){return w.havasuElevFt!=null;}).length>=wa.length/2;
+    var defs=[
+      {id:"lk-level",sub:useElev?"Lake level":"Lake storage",unit:useElev?"ft":"acre-ft",dec:useElev?2:0,s:[{k:useElev?"havasuElevFt":"havasuStorageAf",label:useElev?"Surface elevation":"Storage",color:C.s2}]},
+      {id:"lk-temp",sub:"Water temperature",unit:"°F",dec:0,s:[{k:"havasuTempF",label:"Lake Havasu",color:C.s1}]},
+      {id:"lk-flow",sub:"Dam releases",unit:"cfs",dec:0,zero:true,s:[{k:"davisCfs",label:"Davis Dam (into the lake)",color:C.s2},{k:"parkerCfs",label:"Parker Dam (out of the lake)",color:C.s3}]}
+    ];
+    defs.forEach(function(d){
+      var arr=function(rows,k){return rows.map(function(w){return w[k]==null?null:{v:w[k]};});};
+      var series=d.s.map(function(s){return {label:s.label,short:s.label,color:s.color,a:arr(wa,s.k)};}).filter(function(s){return s.a.some(function(p){return p;});});
+      if(!series.length)return;
+      if(B&&wb.length)series.push({label:d.s[0].label,short:d.s[0].label,dash:true,a:arr(wb,d.s[0].k)});
+      var cfg={id:d.id,group:"lake",unit:d.unit,dec:d.dec,zero:d.zero,times:times,timesB:timesB,stepMin:1440,spanMs:Math.max(spanMs,9*DAY),series:series};
+      var box=document.createElement("div");
+      box.innerHTML='<div class="sub-h">'+esc(d.sub)+'</div><div class="legend">'+legendHtml(series,cfg)+'</div><div class="chartwrap"><svg role="img" aria-label="'+esc(d.sub)+' by day"></svg></div>';
+      sec.appendChild(box);
+      var svg=box.querySelector("svg");drawChart(svg,cfg);wire(svg,d.id);
+    });
+  }
+
+  /* ---------- summary ---------- */
+  function renderSummary(){
+    var s=A.summary,b=B&&B.summary,ak=airKey(s),bk=b?airKey(b):ak;
+    $("periodLbl").innerHTML=esc(periodLabel(A))+(B?'<span class="cmpline">compared with '+esc(periodLabel(B))+' (dashed)</span>':'');
+    if(!s||!s.n){
+      $("stats").innerHTML='<div class="empty" style="grid-column:1/-1">No station readings in this period'+(A.since?" — the record starts "+esc(dayFmt(A.since)):"")+'.</div>';
+      $("sumNote").textContent="";return;
+    }
+    var get=function(x,k,f){return x&&x[k]?x[k][f]:null;};
+    var tiles=[
+      {k:"High",v:get(s,ak,"max"),u:"°F",at:get(s,ak,"maxAt"),bv:get(b,bk,"max")},
+      {k:"Low",v:get(s,ak,"min"),u:"°F",at:get(s,ak,"minAt"),bv:get(b,bk,"min")},
+      {k:"Average temp",v:get(s,ak,"avg"),u:"°F",d:1,bv:get(b,bk,"avg")},
+      {k:"Rain",v:s.rainIn,u:'"',d:2,at:s.rainDays+" day"+(s.rainDays===1?"":"s")+" with rain",bv:b?b.rainIn:null},
+      {k:"Peak gust",v:get(s,"gust","max"),u:"mph",at:get(s,"gust","maxAt"),bv:get(b,"gust","max")},
+      {k:"Average wind",v:get(s,"wind","avg"),u:"mph",d:1,at:s.dirDeg!=null?"mostly from the "+compass(s.dirDeg):"",bv:get(b,"wind","avg")},
+      {k:"Humidity",v:get(s,"humidity","avg"),u:"%",at:get(s,"humidity","min")!=null?fmt(get(s,"humidity","min"))+"–"+fmt(get(s,"humidity","max"))+"%":"",bv:get(b,"humidity","avg")},
+      {k:"Pressure",v:get(s,"pressure","avg"),u:"inHg",d:2,at:get(s,"pressure","min")!=null?fmt(get(s,"pressure","min"),2)+"–"+fmt(get(s,"pressure","max"),2):"",bv:get(b,"pressure","avg")},
+      {k:"Peak UV",v:get(s,"uv","max"),u:"",at:get(s,"uv","maxAt"),bv:get(b,"uv","max")}
+    ];
+    $("stats").innerHTML=tiles.filter(function(t){return t.v!=null;}).map(function(t){
+      var at=t.at&&/^\d{4}-/.test(t.at)?fmtWhen(t.at):(t.at||"");
+      var vs="";
+      if(b){
+        if(t.bv==null)vs='<div class="vs">vs —</div>';
+        else{var dlt=t.v-t.bv,dd=t.d==null?0:t.d;vs='<div class="vs">vs '+fmt(t.bv,dd)+(t.u==='"'?'"':"")+' <b>('+(dlt>0?"+":dlt<0?"−":"±")+fmt(Math.abs(dlt),dd)+')</b></div>';}
+      }
+      return '<div class="stat"><div class="k">'+esc(t.k)+'</div><div class="v">'+fmt(t.v,t.d)+'<small>'+esc(t.u)+'</small></div>'+(at?'<div class="at">'+esc(at)+'</div>':'')+vs+'</div>';
+    }).join("");
+    var notes=[];
+    notes.push("Highs and lows from the "+(ak==="shade"?"shaded air sensor":"full-sun array")+".");
+    notes.push("Each chart point is "+(A.res.stepMin===1440?"a day":A.res.stepMin===60?"an hour":STEP_LBL[A.res.stepMin])+".");
+    if(A.since)notes.push("Station record since "+dayFmt(A.since)+".");
+    if(A.source==="mock")notes.push("Preview data ("+A.mock+").");
+    $("sumNote").textContent=notes.join(" ");
+  }
+
+  /* ---------- table ---------- */
+  var COLS=[
+    {key:"day",lbl:"Day",get:function(d){return d.day;}},
+    {key:"hi",lbl:"High",get:function(d){var k=airKey(d);return d[k]?d[k].max:null;},fmt:function(v,d){var k=airKey(d);return fmt(v)+"°"+(d[k]&&d[k].maxAt?"<small>"+fmtTime(Date.parse(d[k].maxAt))+"</small>":"");}},
+    {key:"lo",lbl:"Low",get:function(d){var k=airKey(d);return d[k]?d[k].min:null;},fmt:function(v,d){var k=airKey(d);return fmt(v)+"°"+(d[k]&&d[k].minAt?"<small>"+fmtTime(Date.parse(d[k].minAt))+"</small>":"");}},
+    {key:"rain",lbl:"Rain",get:function(d){return d.n?d.rainIn:null;},fmt:function(v){return v?fmt(v,2)+'"':(v===0?"—":"--");}},
+    {key:"wind",lbl:"Avg wind",get:function(d){return d.wind?d.wind.avg:null;},fmt:function(v){return fmt(v,1);}},
+    {key:"gust",lbl:"Peak gust",get:function(d){return d.gust?d.gust.max:null;},fmt:function(v,d){return fmt(v)+(d.gust&&d.gust.maxAt?"<small>"+fmtTime(Date.parse(d.gust.maxAt))+"</small>":"");}},
+    {key:"rh",lbl:"Humidity",get:function(d){return d.humidity?d.humidity.avg:null;},fmt:function(v){return v==null?"--":fmt(v)+"%";}},
+    {key:"uv",lbl:"UV",get:function(d){return d.uv?d.uv.max:null;},fmt:function(v){return fmt(v);}}
+  ];
+  function renderTable(){
+    $("daysHead").innerHTML=COLS.map(function(c){
+      var on=sort.key===c.key;
+      return '<th scope="col"'+(on?' aria-sort="'+(sort.dir>0?"ascending":"descending")+'"':'')+'><button type="button" data-k="'+c.key+'">'+c.lbl+(on?(sort.dir>0?" ▲":" ▼"):"")+'</button></th>';
+    }).join("");
+    var col=COLS.filter(function(c){return c.key===sort.key;})[0]||COLS[0];
+    var rows=(A.days||[]).slice().sort(function(a,b){
+      var x=col.get(a),y=col.get(b);
+      if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;
+      return (x<y?-1:x>y?1:0)*sort.dir;
+    });
+    var today=todayLocal();
+    $("daysBody").innerHTML=rows.map(function(d){
+      if(!d.n)return '<tr class="nd"><td>'+esc(dayFmt(d.day))+'</td><td colspan="'+(COLS.length-1)+'" style="text-align:center">no readings</td></tr>';
+      return '<tr>'+COLS.map(function(c,i){
+        if(!i)return '<td>'+esc(dayFmt(d.day))+(d.day===today?' <small>so far</small>':'')+'</td>';
+        var v=c.get(d);return '<td>'+(c.fmt?c.fmt(v,d):fmt(v))+'</td>';
+      }).join("")+'</tr>';
+    }).join("")||'<tr><td colspan="'+COLS.length+'" style="text-align:center;color:var(--ink-faint)">No days in this period.</td></tr>';
+  }
+  $("daysHead").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    var k=b.getAttribute("data-k");
+    if(sort.key===k)sort.dir=-sort.dir;else{sort.key=k;sort.dir=-1;}
+    renderTable();
+  });
+
+  /* ---------- CSV ---------- */
+  var M_COLS=["shade","temp","dew","humidity","wind","gust","pressure","uv","solar"];
+  var M_NAMES={shade:"shaded_air_f",temp:"full_sun_f",dew:"dew_point_f",humidity:"humidity_pct",wind:"wind_mph",gust:"gust_mph",pressure:"pressure_inhg",uv:"uv_index",solar:"solar_wm2"};
+  function csvCell(v){if(v==null)return "";var s=String(v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+  function toCsv(rows,first,firstName,extra){
+    var head=[firstName];
+    M_COLS.forEach(function(k){["avg","min","max"].forEach(function(f){head.push(M_NAMES[k]+"_"+f);});});
+    head.push("rain_in","wind_from_deg","readings");
+    if(extra)head=head.concat(extra.cols);
+    var lines=[head.join(",")];
+    rows.forEach(function(r){
+      var c=[first(r)];
+      M_COLS.forEach(function(k){["avg","min","max"].forEach(function(f){c.push(r[k]?r[k][f]:null);});});
+      c.push(r.n?r.rainIn:null,r.dirDeg,r.n||0);
+      if(extra)c=c.concat(extra.vals(r));
+      lines.push(c.map(csvCell).join(","));
+    });
+    return lines.join("\n")+"\n";
+  }
+  function download(name,text){
+    var blob=new Blob([text],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+  }
+  var fileStem=function(){return "havasu-lake-weather_"+A.from.slice(0,10)+"_to_"+isoSec(Date.parse(A.to)-1).slice(0,10);};
+  $("csvDays").addEventListener("click",function(){
+    if(!A)return;
+    var wmap={};(A.water||[]).forEach(function(w){wmap[w.date]=w;});
+    var WC=["havasuElevFt","havasuStorageAf","havasuTempF","davisCfs","parkerCfs"];
+    download(fileStem()+"_daily.csv",toCsv(A.days||[],function(r){return r.day;},"date_local",{
+      cols:["lake_elev_ft","lake_storage_af","lake_temp_f","davis_release_cfs","parker_release_cfs"],
+      vals:function(r){var w=wmap[r.day]||{};return WC.map(function(k){return w[k];});}
+    }));
+  });
+  $("csvPts").addEventListener("click",function(){
+    if(!A)return;
+    download(fileStem()+"_every-"+(A.res.stepMin>=1440?"day":A.res.stepMin+"min")+".csv",toCsv(rowsOf(A),function(r){return r.t||r.day;},A.points?"start_utc":"date_local"));
+  });
+
+  /* ---------- controls ---------- */
+  function syncControls(){
+    document.querySelectorAll("#rangeChips button").forEach(function(b){b.setAttribute("aria-pressed",String(b.getAttribute("data-r")===state.r));});
+    document.querySelectorAll("#cmpChips button").forEach(function(b){b.setAttribute("aria-pressed",String(b.getAttribute("data-c")===state.c));});
+    document.querySelectorAll("#metChips button").forEach(function(b){b.setAttribute("aria-pressed",String(state.m.indexOf(b.getAttribute("data-m"))>=0));});
+    $("customRow").hidden=state.r!=="custom";$("cmpRow").hidden=state.c!=="date";
+    var t=todayLocal();$("fromIn").max=$("toIn").max=$("cmpIn").max=t;
+    if(state.r==="custom"){$("fromIn").value=state.from;$("toIn").value=state.to;}
+    if(state.c==="date")$("cmpIn").value=state.cdate;
+  }
+  $("rangeChips").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    state.r=b.getAttribute("data-r");
+    if(state.r==="custom"){
+      if(!state.from){var t=todayLocal();state.from=t.slice(0,7)+"-01";state.to=t;}
+      syncControls();$("fromIn").focus();return;
+    }
+    syncControls();load();
+  });
+  $("applyCustom").addEventListener("click",function(){
+    var f=$("fromIn").value,t=$("toIn").value;
+    if(!f)return;
+    if(t&&t<f){var x=f;f=t;t=x;}
+    state.from=f;state.to=t;load();
+  });
+  $("cmpChips").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    state.c=b.getAttribute("data-c");syncControls();
+    if(state.c==="date"&&!state.cdate){$("cmpIn").focus();return;}
+    loadCompare().then(renderAll);writeURL();
+  });
+  $("applyCmp").addEventListener("click",function(){if($("cmpIn").value){state.cdate=$("cmpIn").value;loadCompare().then(renderAll);writeURL();}});
+  $("metChips").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    var m=b.getAttribute("data-m"),i=state.m.indexOf(m);
+    if(i>=0){if(state.m.length>1)state.m.splice(i,1);}else state.m=ALL_METRICS.filter(function(x){return x===m||state.m.indexOf(x)>=0;});
+    syncControls();writeURL();if(A)renderCharts();
+  });
+
+  /* ---------- loads ---------- */
+  function renderAll(){if(!A)return;renderSummary();renderCharts();renderTable();document.querySelector("main").classList.remove("loading");}
+  function loadCompare(){
+    var my=seq;
+    if(!A||state.c==="off"||(state.c==="date"&&!state.cdate)){B=null;return Promise.resolve();}
+    return fetchResearch(cmpQuery(A)).then(function(j){if(my===seq)B=j;}).catch(function(){if(my===seq)B=null;});
+  }
+  function load(){
+    var my=++seq;writeURL();
+    document.querySelector("main").classList.add("loading");
+    $("periodLbl").textContent="Loading…";
+    return fetchResearch(rangeQuery()).then(function(j){
+      if(my!==seq)return;
+      A=j;return loadCompare().then(function(){if(my===seq)renderAll();});
+    }).catch(function(err){
+      if(my!==seq)return;
+      document.querySelector("main").classList.remove("loading");
+      $("periodLbl").textContent="Couldn't load that period"+(err&&err.message==="bad range"?" — check the dates.":" — check your connection and try again.");
+    });
+  }
+  var rz=null;window.addEventListener("resize",function(){clearTimeout(rz);rz=setTimeout(function(){if(A)renderCharts();},150);});
+
+  readURL();syncControls();load();
+})();
+</script>
+<script src="/sw-register.js" defer></script>
+</body>
+</html>
