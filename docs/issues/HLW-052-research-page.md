@@ -1,6 +1,6 @@
 # HLW-052: Research page — explore the station record over any timeframe
 
-- **Status:** in-progress
+- **Status:** done (deployed + prod-verified 2026-10-17)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/101
 - **Branch:** `feat/HLW-052-research-page`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/102
@@ -41,11 +41,11 @@ numbers. Backed by new hourly + daily rollups so long ranges are fast and cheap.
 
 ## Acceptance criteria
 
-- [ ] Any range from 24 h to the full record loads in well under the 10 s timeout.
-- [ ] Comparison overlays a second period of the same length, aligned by offset.
-- [ ] CSV export matches what's on screen.
-- [ ] Day boundaries, highs/lows and rain totals are Pacific-local.
-- [ ] Helpers unit-tested; `?mockResearch=` previews without AWS.
+- [x] Any range from 24 h to the full record loads in well under the 10 s timeout.
+- [x] Comparison overlays a second period of the same length, aligned by offset.
+- [x] CSV export matches what's on screen.
+- [x] Day boundaries, highs/lows and rain totals are Pacific-local.
+- [x] Helpers unit-tested; `?mockResearch=` previews without AWS.
 
 ## Notes
 
@@ -59,3 +59,16 @@ numbers. Backed by new hourly + daily rollups so long ranges are fast and cheap.
   backfill (a DynamoDB write — needs Chad's OK) right after so long ranges have data.
 - Honest labelling: "since the station went live" — never implies climate normals.
 - `/api/history`'s 30 d cap exceeding the timeout is a separate `fix/` ticket.
+
+## Shipped (2026-10-17)
+
+- PR #102 merged → deploy workflow green (site + ingest). New `havasu-weather-rollup` Lambda
+  active; manual invoke rolled 3 hours + today.
+- Backfill `--write`: 1,580 hour items + 67 day items (station record starts **2026-08-12**).
+  Pre-write check: rollup rain per day matched the station's own `dailyrainin` on every rain
+  day (1.72" total).
+- Live `/api/research`: 24 h raw/10 min 2.9 s · 7 d hourly 1.0 s · 30 d 6 h 2.5 s · all data
+  daily 0.9 s (the old `/api/history` 502s past ~3 weeks).
+- Follow-ups: (1) summary should pick ONE sensor for both periods when comparing (today each
+  period picks shaded/full-sun independently — only diverges if one period predates the
+  WH31E, Aug 26); (2) `/api/history` 30 d cap still exceeds the timeout (separate fix ticket).
