@@ -119,6 +119,14 @@ Resources:
         DefaultRootObject: index.html
         HttpVersion: http2and3
         PriceClass: PriceClass_100
+        # North America only (HLW-053): US, Canada, Mexico + Puerto Rico and the US Virgin
+        # Islands. Covers the pages and /api/*. Blocked viewers get a 403, which the
+        # CustomErrorResponses below turn into the branded 404 page (it carries a region note).
+        # The station's ingest distribution (template.yaml) is deliberately NOT restricted.
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: whitelist
+            Locations: [US, CA, MX, PR, VI]
         ViewerCertificate:
           AcmCertificateArn: !Ref Certificate
           SslSupportMethod: sni-only
