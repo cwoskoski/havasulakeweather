@@ -363,13 +363,15 @@ export const handler = async (event) => {
       }
     }
 
-    // Radar manifest: observed (RainViewer) + HRRR "future radar" frames (IEM). Keyless.
+    // Radar manifest: observed NOAA MRMS (WMS times) + HRRR "future radar" frames (IEM) +
+    // NWS storm-warning polygons. Keyless. ?mock=warning adds a preview warning box.
+    // 2-min cache: MRMS scans land every ~2 min.
     if (path.endsWith("/api/radar")) {
       try {
-        return res(200, await getRadar(), 300);
+        return res(200, await getRadar(Date.now(), qs.mock || null), qs.mock ? 20 : 120);
       } catch (e) {
         console.error(JSON.stringify({ msg: "radar-upstream", error: String(e?.message || e) }));
-        return res(200, { observed: { host: null, past: [], nowcast: [] }, forecast: null, error: "upstream" }, 30);
+        return res(200, { observed: null, forecast: null, warnings: [], error: "upstream" }, 30);
       }
     }
 
