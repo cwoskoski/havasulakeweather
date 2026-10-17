@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/104
 - **Branch:** `feat/HLW-053-geo-north-america`
-- **PR:** —
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/105
 - **Created:** 2026-10-17
 
 ## Summary
