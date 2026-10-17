@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/107
 - **Branch:** `feat/HLW-054-radar-mrms`
-- **PR:** —
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/108
 - **Created:** 2026-10-17
 
 ## Summary
