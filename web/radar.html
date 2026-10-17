@@ -9,13 +9,13 @@
 <link rel="apple-touch-icon" href="/assets/icon-180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Havasu Wx" />
-<meta name="description" content="Live weather radar for Havasu Lake, CA and the Colorado River — animated precipitation from RainViewer (past 2 hours + short-term nowcast)." />
+<meta name="description" content="Live weather radar for Havasu Lake, CA and the Colorado River — animated NOAA radar (past 2 hours), a 6-hour HRRR forecast and NWS storm warnings." />
 <title>Weather Radar — Havasu Lake, CA (Live Precipitation)</title>
 <link rel="canonical" href="https://havasulakeweather.com/radar.html" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Havasu Lake Weather" />
 <meta property="og:title" content="Weather Radar — Havasu Lake, CA (Live Precipitation)" />
-<meta property="og:description" content="Live animated weather radar for Havasu Lake, California and the Colorado River — past 2 hours of precipitation plus a short-term nowcast, from RainViewer." />
+<meta property="og:description" content="Live animated weather radar for Havasu Lake, California and the Colorado River — past 2 hours of NOAA radar, a 6-hour forecast and storm warnings." />
 <meta property="og:url" content="https://havasulakeweather.com/radar.html" />
 <meta property="og:image" content="https://havasulakeweather.com/assets/og-image.png" />
 <meta property="og:image:type" content="image/png" />
@@ -29,7 +29,7 @@
 {
   "@context": "https://schema.org",
   "@graph": [
-    { "@type": "WebPage", "@id": "https://havasulakeweather.com/radar.html#webpage", "url": "https://havasulakeweather.com/radar.html", "name": "Weather Radar — Havasu Lake, CA (Live Precipitation)", "isPartOf": { "@id": "https://havasulakeweather.com/#website" }, "about": { "@id": "https://havasulakeweather.com/#place" }, "description": "Live animated weather radar centered on Havasu Lake, California and the Colorado River, showing the past two hours of precipitation and a short-term nowcast." },
+    { "@type": "WebPage", "@id": "https://havasulakeweather.com/radar.html#webpage", "url": "https://havasulakeweather.com/radar.html", "name": "Weather Radar — Havasu Lake, CA (Live Precipitation)", "isPartOf": { "@id": "https://havasulakeweather.com/#website" }, "about": { "@id": "https://havasulakeweather.com/#place" }, "description": "Live animated weather radar centered on Havasu Lake, California and the Colorado River, showing the past two hours of NOAA radar, a 6-hour HRRR forecast and NWS storm warnings." },
     { "@type": "BreadcrumbList", "@id": "https://havasulakeweather.com/radar.html#breadcrumb", "itemListElement": [
       { "@type": "ListItem", "position": 1, "name": "Havasu Lake, CA Weather", "item": "https://havasulakeweather.com/" },
       { "@type": "ListItem", "position": 2, "name": "Weather Radar" }
@@ -67,6 +67,8 @@
   .rpage{max-width:760px;margin:0 auto;padding:14px 14px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;}
   #map{height:clamp(380px,64vh,660px);width:100%;border-radius:var(--radius);border:1px solid var(--brd);box-shadow:var(--shadow);background:#0a2b34;z-index:1;}
   .leaflet-container{background:#0a2b34;font-family:var(--font);}
+  /* radar tiles are 1 km pixels: a sub-pixel soften hides speckle without smearing storm structure */
+  .leaflet-tile-container canvas.leaflet-tile{filter:blur(.6px);}
   .leaflet-control-attribution{background:rgba(8,34,42,.8)!important;color:var(--ink-faint)!important;font-size:.62rem;}
   .leaflet-control-attribution a{color:var(--ink-soft)!important;}
   /* controls */
@@ -88,7 +90,22 @@
   .rtime .tag.fc{color:var(--gold);} .rtime .tag.now{color:var(--teal-deep);}
   .rnote{font-size:.78rem;font-weight:600;color:var(--ink-faint);text-align:center;line-height:1.4;}
   .rlegend{display:flex;align-items:center;justify-content:center;gap:6px;font-size:.66rem;font-weight:700;color:var(--ink-faint);flex-wrap:wrap;}
-  .rlegend .sw{width:16px;height:9px;border-radius:2px;display:inline-block;}
+  .rlegend .ramp{width:min(260px,60vw);height:9px;border-radius:3px;display:inline-block;
+    background:linear-gradient(90deg,rgba(80,133,183,.35) 0%,#5dadce 8%,#30d65b 20%,#0b8a0f 36%,#fadf00 48%,#feb101 60%,#d00808 72%,#b00000 80%,#f1b9fd 88%,#fe75ff 94%,#8200e7 100%);}
+  .rlegend .lbls{display:flex;justify-content:space-between;width:min(260px,60vw);font-size:.6rem;}
+  .rlegend .col{display:inline-flex;flex-direction:column;gap:3px;}
+  /* layer toggles + storm warnings + our lightning detector (HLW-054) */
+  .rchips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+  .rchips button{font:inherit;font-weight:800;font-size:.76rem;color:var(--ink-soft);background:var(--glass-2);border:1px solid var(--brd);border-radius:999px;padding:6px 12px;cursor:pointer;}
+  .rchips button[aria-pressed="true"]{background:rgba(47,185,196,.26);border-color:rgba(127,230,226,.5);color:var(--ink);}
+  .rchips button:disabled{cursor:default;opacity:.7;background:none;border-color:rgba(255,255,255,.1);color:var(--ink-faint);}
+  .rchips button:focus-visible{outline:2px solid var(--teal-deep);outline-offset:1px;}
+  .rwarn{display:flex;flex-direction:column;gap:6px;}
+  .rwarn:empty{display:none;}
+  .rwarn .w{display:flex;align-items:flex-start;gap:9px;background:var(--glass);border:1px solid var(--brd);border-left:4px solid var(--wc,#ffa500);border-radius:12px;padding:9px 12px;font-size:.8rem;font-weight:700;line-height:1.35;}
+  .rwarn .w small{display:block;font-weight:650;color:var(--ink-faint);font-size:.72rem;margin-top:1px;}
+  .rltg{font-size:.78rem;font-weight:700;color:var(--ink-soft);text-align:center;}
+  .rltg b{color:var(--ink);}
   .foot{text-align:center;font-size:.72rem;color:var(--ink-faint);line-height:1.5;}
   .foot a{color:var(--ink-soft);}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
@@ -110,12 +127,21 @@
       <span class="rslider-wrap"><input class="rslider" id="rSlider" type="range" min="0" max="0" value="0" step="1" aria-label="Radar frame" /><span class="rnow" id="rNow" hidden></span></span>
     </div>
     <div class="rtime" id="rTime">&mdash;</div>
-    <div class="rlegend">
-      Light <span class="sw" style="background:#8ff08f"></span><span class="sw" style="background:#2fb62f"></span><span class="sw" style="background:#f2f229"></span><span class="sw" style="background:#ff9e2b"></span><span class="sw" style="background:#ff4d4d"></span> Heavy
+    <div class="rlegend" role="img" aria-label="Color scale: light rain in blue and green, heavier rain in yellow and orange, very heavy rain and hail in red, pink and purple">
+      <span class="col"><span class="ramp"></span><span class="lbls"><span>Light</span><span>Moderate</span><span>Heavy</span><span>Hail</span></span></span>
     </div>
-    <div class="rnote" id="rNote">Past ~2 hours of observed radar, then the next 6 hours forecast. Future frames are an <b>HRRR model</b> simulation, not live radar.</div>
+    <div class="rwarn" id="rWarn" aria-live="polite"></div>
+    <div class="rchips" role="group" aria-label="Map layers">
+      <button type="button" id="tWarn" aria-pressed="true">Storm warnings</button>
+      <button type="button" id="tLtg" aria-pressed="false">Lightning (NOAA)</button>
+    </div>
+    <div class="rltg" id="rLtg" hidden></div>
+    <div class="rnote" id="rNote">Past ~2 hours of NOAA radar, then the next 6 hours forecast. Future frames are an <b>HRRR model</b> simulation, not live radar.</div>
+    <div class="rnote">The nearest radar (Las Vegas) scans about 2&frac12; miles above the lake, so light showers and virga that stay low can be missed or look weaker than they are.</div>
     <div class="foot">
-      Observed radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> &middot;
+      Observed radar: <a href="https://www.nssl.noaa.gov/projects/mrms/" target="_blank" rel="noopener">NOAA MRMS</a> &middot;
+      warnings: <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a> &middot;
+      lightning: <a href="https://nowcoast.noaa.gov/" target="_blank" rel="noopener">NOAA nowCOAST</a> &middot;
       future radar (HRRR): <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &middot;
       map &copy; OpenStreetMap / CARTO &middot; community reference, not an official product.
       <a href="/water.html">Lake &amp; river &rarr;</a>
@@ -128,28 +154,71 @@
 (function(){
   var HAVASU=[34.4822,-114.4138];
   var $=function(id){return document.getElementById(id);};
-  var map=L.map("map",{center:HAVASU,zoom:7,minZoom:4,maxZoom:9,zoomControl:true,attributionControl:true,worldCopyJump:true});
+  var map=L.map("map",{center:HAVASU,zoom:7,minZoom:4,maxZoom:10,zoomControl:true,attributionControl:true,worldCopyJump:true});
   L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2dzm_1_674318b44e9de52c84e5cab5",{
     subdomains:"abcd",maxZoom:19,
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> &middot; Radar <a href="https://www.rainviewer.com/">RainViewer</a>'
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> &middot; Radar <a href="https://www.nssl.noaa.gov/projects/mrms/">NOAA MRMS</a>'
   }).addTo(map);
   L.circleMarker(HAVASU,{radius:6,color:"#ffd24a",weight:2,fillColor:"#ffd24a",fillOpacity:.9})
     .addTo(map).bindTooltip("Havasu Lake, CA",{direction:"top",offset:[0,-6]});
 
   var frames=[], layers={}, pos=0, playing=false, timer=null, boundary=0, shownKey=null;
-  var RV_HOST=null, FC_TEMPLATE=null;
-  var SIZE=256, COLOR=6, SMOOTH=1, SNOW=1, OPACITY=0.72; // RainViewer scheme 6 = NEXRAD L-III, matches HRRR's NWS ramp
+  var OBS=null, FC_TEMPLATE=null, OPACITY=0.82;
   var playBtn=$("rPlay"), slider=$("rSlider"), timeEl=$("rTime"), nowMark=$("rNow");
 
-  function fkey(f){ return f.kind+":"+(f.kind==="fc"?f.fmin:f.path); }
-  function tileUrl(f){
-    return f.kind==="fc"
-      ? FC_TEMPLATE.replace("{fmin}",f.fmin)                       // IEM HRRR simulated reflectivity
-      : RV_HOST+f.path+"/"+SIZE+"/{z}/{x}/{y}/"+COLOR+"/"+SMOOTH+"_"+SNOW+".png"; // RainViewer observed
+  function fkey(f){ return f.kind+":"+(f.kind==="fc"?f.fmin:f.iso); }
+
+  /* ---- weak-echo fade (HLW-054) ----
+     NOAA MRMS and IEM's HRRR tiles share one NWS reflectivity palette (sampled from the MRMS
+     legend: [dBZ, r, g, b]). Each tile is drawn to a canvas, each pixel mapped back to dBZ by
+     nearest palette color, and echoes below ~8 dBZ (ground clutter, the faintest virga) fade
+     out — the same treatment for observed and forecast frames, so they stay comparable. */
+  var PAL=[[-25,145,137,105],[-22.5,149,144,83],[-20,164,161,107],[-17.5,178,178,132],[-15,194,195,155],[-12.5,209,211,179],[-10,193,197,180],[-7.5,175,181,180],[-5,162,168,180],[-2.5,148,155,181],[0,123,136,174],[2.5,98,117,167],[5,83,106,163],[7.5,67,94,159],[10,80,133,183],[12.5,93,173,206],[15,88,193,184],[17.5,82,213,162],[20,48,214,91],[22.5,14,212,20],[25,12,175,17],[27.5,11,137,15],[30,10,115,12],[32.5,13,96,8],[35,132,160,4],[37.5,250,223,0],[40,244,202,23],[42.5,234,179,45],[45,244,178,23],[47.5,254,177,1],[50,208,8,8],[52.5,162,15,16],[55,169,8,8],[57.5,176,0,0],[60,241,185,253],[62.5,227,116,252],[65,241,116,253],[67.5,254,117,255],[70,130,0,231]];
+  var FADE_LO=4, FADE_HI=12, dbzCache=new Map();
+  function dbzOf(r,g,b){
+    var k=(r<<16)|(g<<8)|b, v=dbzCache.get(k);
+    if(v!==undefined) return v;
+    var best=1e9; v=0;
+    for(var i=0;i<PAL.length;i++){ var p=PAL[i],dr=r-p[1],dg=g-p[2],db=b-p[3],e=dr*dr+dg*dg+db*db; if(e<best){best=e;v=p[0];} }
+    dbzCache.set(k,v); return v;
+  }
+  function fade(px){
+    for(var i=0;i<px.length;i+=4){
+      if(!px[i+3]) continue;
+      var z=dbzOf(px[i],px[i+1],px[i+2]);
+      if(z>=FADE_HI) continue;
+      px[i+3]=z<=FADE_LO?0:Math.round(px[i+3]*(z-FADE_LO)/(FADE_HI-FADE_LO));
+    }
+  }
+  // Tiles become canvases: same URLs/zoom logic as the base layers, pixels faded on load.
+  var Faded={createTile:function(coords,done){
+    var tile=document.createElement("canvas"), img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=function(){
+      tile.width=img.naturalWidth; tile.height=img.naturalHeight;
+      var cx=tile.getContext("2d",{willReadFrequently:true}); cx.drawImage(img,0,0);
+      try{ var d=cx.getImageData(0,0,tile.width,tile.height); fade(d.data); cx.putImageData(d,0,0); }catch(e){} // CORS-blocked → unfaded, still shown
+      done(null,tile);
+    };
+    img.onerror=function(){ done(null,tile); }; // a missing tile is just empty sky
+    img.src=this.getTileUrl(coords);
+    return tile;
+  }};
+  var FadedTiles=L.TileLayer.extend(Faded), FadedWMS=L.TileLayer.WMS.extend(Faded).extend({
+    // Zoomed in, 1 km radar pixels turn into visible blocks: ask GeoServer to smooth them
+    // (bilinear). Not below z8, where it only makes tiles ~5x heavier for no visible gain.
+    getTileUrl:function(c){ var u=L.TileLayer.WMS.prototype.getTileUrl.call(this,c); return c.z>=8?u+"&interpolations=bilinear":u; }
+  });
+  var HIDPI=(window.devicePixelRatio||1)>1.4;
+  function makeLayer(f){
+    if(f.kind==="fc") return new FadedTiles(FC_TEMPLATE.replace("{fmin}",f.fmin),{tileSize:256,opacity:0,maxNativeZoom:7,zIndex:100}); // IEM HRRR (3 km)
+    var l=new FadedWMS(OBS.wmsUrl,{layers:OBS.layer,format:"image/png",transparent:true,version:"1.3.0",time:f.iso,tileSize:256,opacity:0,zIndex:100});
+    if(HIDPI){ l.wmsParams.width=l.wmsParams.height=512; } // crisp on phones: 2x pixels per tile
+    return l;
   }
   function ensureLayer(f){
     var k=fkey(f);
-    if(!layers[k]) layers[k]=L.tileLayer(tileUrl(f),{tileSize:256,opacity:0,maxNativeZoom:7,zIndex:100});
+    if(!layers[k]) layers[k]=makeLayer(f);
     if(!map.hasLayer(layers[k])){
       layers[k].addTo(map);
       var c=layers[k].getContainer&&layers[k].getContainer();
@@ -199,15 +268,60 @@
     nowMark.hidden=false; nowMark.style.left=pct+"%";
   }
 
-  fetch("/api/radar",{cache:"no-store"})
+  /* ---- storm warnings (NWS polygons) ---- */
+  var WCOL={"Tornado Warning":"#ff3b3b","Severe Thunderstorm Warning":"#ffa500","Flash Flood Warning":"#3ddc84","Extreme Wind Warning":"#ff8c00","Dust Storm Warning":"#e8c49a","Special Weather Statement":"#ffe4b5"};
+  var warnLayer=L.layerGroup().addTo(map), showWarn=true;
+  var esc=function(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});};
+  var hhmm=function(iso){return new Date(iso).toLocaleTimeString("en-US",{timeZone:"America/Los_Angeles",hour:"numeric",minute:"2-digit"});};
+  function renderWarnings(ws){
+    warnLayer.clearLayers();
+    ws.forEach(function(w){
+      var c=WCOL[w.event]||"#ffa500";
+      L.geoJSON(w.geometry,{style:{color:c,weight:2.5,opacity:.95,fillColor:c,fillOpacity:.12}})
+        .bindTooltip(esc(w.event)+(w.ends?" until "+hhmm(w.ends):""),{sticky:true}).addTo(warnLayer);
+    });
+    $("rWarn").innerHTML=ws.map(function(w){
+      return '<div class="w" style="--wc:'+(WCOL[w.event]||"#ffa500")+'"><span>'+esc(w.event)+(w.ends?" &middot; until "+hhmm(w.ends):"")+'<small>'+esc(w.headline)+'</small></span></div>';
+    }).join("");
+    var b=$("tWarn"); b.textContent=ws.length?"Storm warnings ("+ws.length+")":"No storm warnings nearby"; b.disabled=!ws.length;
+  }
+  $("tWarn").addEventListener("click",function(){
+    showWarn=!showWarn; this.setAttribute("aria-pressed",String(showWarn));
+    if(showWarn) warnLayer.addTo(map); else map.removeLayer(warnLayer);
+  });
+
+  /* ---- lightning: NOAA density layer (toggle) + our own detector's last hour ---- */
+  var ltgLayer=null, LTG=null;
+  $("tLtg").addEventListener("click",function(){
+    if(!LTG) return;
+    var on=this.getAttribute("aria-pressed")!=="true"; this.setAttribute("aria-pressed",String(on));
+    if(on){ ltgLayer=ltgLayer||L.tileLayer.wms(LTG.wmsUrl,{layers:LTG.layer,format:"image/png",transparent:true,version:"1.3.0",opacity:.85,zIndex:200}); ltgLayer.addTo(map); }
+    else if(ltgLayer) map.removeLayer(ltgLayer);
+  });
+  function loadOurLightning(){
+    fetch("/api/current",{cache:"no-store"}).then(function(r){return r.json();}).then(function(c){
+      var l=c&&c.lightning, el=$("rLtg");
+      if(!l){ el.hidden=true; return; }
+      el.hidden=false;
+      el.innerHTML=l.strikes60>0
+        ? "Our lightning detector: <b>"+l.strikes60+" strike"+(l.strikes60===1?"":"s")+"</b> in the last hour"+(l.nearestMi!=null?", nearest <b>"+l.nearestMi+" mi</b>":"")
+        : "Our lightning detector: no strikes in the last hour.";
+    }).catch(function(){});
+  }
+
+  var MOCK=new URLSearchParams(location.search).get("mockRadar");
+  fetch("/api/radar"+(MOCK?"?mock="+encodeURIComponent(MOCK):""),{cache:"no-store"})
     .then(function(r){return r.json();})
     .then(function(j){
-      var obs=j.observed||{}, fc=j.forecast||null;
-      RV_HOST=obs.host; if(fc) FC_TEMPLATE=fc.tileTemplate;
-      var obsFrames=(RV_HOST?(obs.past||[]).concat(obs.nowcast||[]):[]).map(function(f){ return {time:f.time,kind:"obs",path:f.path}; });
+      OBS=j.observed||null; var fc=j.forecast||null;
+      if(fc) FC_TEMPLATE=fc.tileTemplate;
+      LTG=j.lightning||null; $("tLtg").disabled=!LTG;
+      renderWarnings(j.warnings||[]);
+      var obsFrames=(OBS&&OBS.frames?OBS.frames:[]).map(function(f){ return {time:f.time,kind:"obs",iso:f.iso}; });
       var fcFrames=(fc&&fc.frames?fc.frames:[]).map(function(f){ return {time:f.time,kind:"fc",fmin:f.fmin}; });
       frames=obsFrames.concat(fcFrames);
       if(!frames.length){ $("rNote").textContent="Radar is temporarily unavailable — try again shortly."; return; }
+      if(!OBS) $("rNote").textContent="Live radar is temporarily unavailable — showing the HRRR model forecast only.";
       var nowMs=Date.now();
       boundary=frames.filter(function(f){ return f.time*1000<=nowMs; }).length; // index of the first future frame
       slider.max=frames.length-1;
@@ -215,6 +329,7 @@
       placeNow(); show(pos); play();
     })
     .catch(function(){ $("rNote").textContent="Radar is temporarily unavailable — try again shortly."; });
+  loadOurLightning();
 
   window.addEventListener("resize",placeNow);
   // Pause the loop when the tab is hidden (save data/battery).

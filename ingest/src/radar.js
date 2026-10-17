@@ -1,18 +1,26 @@
 /**
- * Havasu Lake Weather — radar manifest (HLW-045).
+ * Havasu Lake Weather — radar manifest (HLW-045, observed source swapped in HLW-054).
  *
- * One small JSON for the /radar page: observed radar (RainViewer, past ~2h + its
- * short nowcast) plus a "future radar" built from HRRR simulated reflectivity
- * (REFD) tiles hosted by Iowa Environmental Mesonet (IEM) — free, keyless.
- *
- * The browser loads tiles directly from RainViewer + IEM; we only return the
- * manifest (host/paths + the HRRR init time and forecast-frame list).
+ * One small JSON for the /radar page:
+ *   - observed radar: NOAA MRMS quality-controlled base reflectivity (1 km, ~2-min
+ *     updates) as a time-enabled WMS — NCEP GeoServer first, NOAA nowCOAST as fallback.
+ *     (RainViewer's free API was cut to zoom 7 + one fixed color scheme in 2026.)
+ *   - future radar: HRRR simulated reflectivity (REFD) tiles from Iowa Environmental
+ *     Mesonet (IEM). Both use the same NWS reflectivity palette, so they match.
+ *   - active NWS storm warnings (polygons) near the lake, and the nowCOAST lightning layer.
+ * All free and keyless. The browser loads tiles directly; we only return the manifest.
  *
  * HRRR REFD is a MODEL SIMULATION, not observed radar — the page labels it as a
  * forecast. Tiles: hrrr::REFD-F{fmin}-{YYYYMMDDHHmm}, 15-min steps to F1080 (+18h).
  */
 
-const RAINVIEWER = "https://api.rainviewer.com/public/weather-maps.json";
+// Observed radar sources, in preference order. Both are MRMS mosaics with a WMS TIME dimension.
+export const OBS_SOURCES = [
+  { name: "NOAA MRMS (NCEP)", wmsUrl: "https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows", layer: "conus_bref_qcd" },
+  { name: "NOAA nowCOAST", wmsUrl: "https://nowcoast.noaa.gov/geoserver/observations/weather_radar/ows", layer: "base_reflectivity_mosaic" },
+];
+export const LIGHTNING = { name: "NOAA nowCOAST lightning density", wmsUrl: "https://nowcoast.noaa.gov/geoserver/lightning_detection/ows", layer: "ldn_lightning_strike_density" };
+const UA = process.env.NWS_USER_AGENT || "HavasuLakeWeather/1.0 (+https://havasulakeweather.com)";
 const IEM_TEMPLATE =
   "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/hrrr::REFD-F{fmin}-{init}/{z}/{x}/{y}.png";
 // Cheap availability probe (tiny z2 tile): 200 = that init is processed, 503 = not (yet).
@@ -55,16 +63,91 @@ export function futureFrames(nowMs, init, opts = {}) {
   return frames;
 }
 
-async function rainviewer() {
+// Times from a WMS 1.3.0 capabilities doc: the <Dimension name="time"> of `layer`
+// (comma-separated ISO list). Returns ms, ascending; [] if absent.
+export function parseWmsTimes(xml, layer) {
+  const at = xml.indexOf(`<Name>${layer}</Name>`);
+  if (at < 0) return [];
+  const m = /<Dimension[^>]*name="time"[^>]*>([^<]*)<\/Dimension>/.exec(xml.slice(at));
+  if (!m) return [];
+  return m[1].split(",").map((t) => Date.parse(t.trim())).filter(Number.isFinite).sort((a, b) => a - b);
+}
+
+// ~`spanMin` of history at ~`stepMin` spacing: for each step back from the newest scan,
+// the newest scan at or before it. Always ends on the newest. [{ time: unixSec, iso }].
+export function pickFrames(timesMs, { spanMin = 120, stepMin = 10 } = {}) {
+  if (!timesMs.length) return [];
+  const newest = timesMs[timesMs.length - 1], picked = new Set();
+  for (let k = 0; k * stepMin <= spanMin; k++) {
+    const target = newest - k * stepMin * 60000;
+    let best = null;
+    for (const t of timesMs) if (t <= target) best = t; else break;
+    if (best != null && newest - best <= (spanMin + stepMin / 2) * 60000) picked.add(best);
+  }
+  return [...picked].sort((a, b) => a - b).map((t) => ({ time: Math.round(t / 1000), iso: new Date(t).toISOString().slice(0, 19) + "Z" }));
+}
+
+// First source whose capabilities list a scan from the last 30 min; null if none do.
+async function observed(nowMs) {
+  for (const src of OBS_SOURCES) {
+    try {
+      const r = await fetch(`${src.wmsUrl}?service=WMS&version=1.3.0&request=GetCapabilities`, { signal: AbortSignal.timeout(4000) });
+      if (!r.ok) throw new Error(`${src.name} ${r.status}`);
+      const times = parseWmsTimes(await r.text(), src.layer);
+      if (!times.length || nowMs - times[times.length - 1] > 30 * 60000) throw new Error(`${src.name} stale`);
+      return { source: src.name, wmsUrl: src.wmsUrl, layer: src.layer, frames: pickFrames(times) };
+    } catch (e) {
+      console.error(JSON.stringify({ msg: "radar-observed-source", source: src.name, error: String(e?.message || e) }));
+    }
+  }
+  return null; // soft-fail → forecast-only
+}
+
+// Storm-based NWS warnings — the ones drawn as polygons on a radar map.
+export const WARN_EVENTS = new Set([
+  "Tornado Warning", "Severe Thunderstorm Warning", "Flash Flood Warning", "Extreme Wind Warning",
+  "Dust Storm Warning", "Special Weather Statement",
+]);
+const WARN_BOX = [-118.5, 31.5, -110, 37.5]; // lon/lat box well beyond the map's default view
+
+function ringsOf(g) {
+  if (!g) return [];
+  if (g.type === "Polygon") return g.coordinates;
+  if (g.type === "MultiPolygon") return g.coordinates.flat();
+  return [];
+}
+export function stormWarnings(features, box = WARN_BOX) {
+  return (features || []).filter((f) => {
+    const p = f.properties || {};
+    if (!WARN_EVENTS.has(p.event) || !f.geometry) return false;
+    return ringsOf(f.geometry).some((ring) => ring.some(([x, y]) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3]));
+  }).map((f) => ({
+    event: f.properties.event,
+    headline: f.properties.headline || f.properties.event,
+    ends: f.properties.ends || f.properties.expires || null,
+    geometry: f.geometry,
+  }));
+}
+
+async function warnings() {
   try {
-    const r = await fetch(RAINVIEWER, { signal: AbortSignal.timeout(4000) });
-    if (!r.ok) throw new Error(`rainviewer ${r.status}`);
-    const j = await r.json();
-    return { host: j.host, past: (j.radar && j.radar.past) || [], nowcast: (j.radar && j.radar.nowcast) || [] };
+    const r = await fetch("https://api.weather.gov/alerts/active?area=CA,AZ,NV&status=actual", {
+      headers: { "user-agent": UA, accept: "application/geo+json" }, signal: AbortSignal.timeout(4000),
+    });
+    if (!r.ok) throw new Error(`nws ${r.status}`);
+    return stormWarnings((await r.json()).features);
   } catch {
-    return { host: null, past: [], nowcast: [] }; // soft-fail → forecast-only
+    return []; // soft-fail: no polygons is better than no radar
   }
 }
+
+// ?mock=warning — a Severe Thunderstorm Warning box just west of the lake, for previews.
+export const MOCK_WARNING = {
+  event: "Severe Thunderstorm Warning",
+  headline: "Severe Thunderstorm Warning (preview) — 60 mph wind gusts and quarter-size hail",
+  ends: null,
+  geometry: { type: "Polygon", coordinates: [[[-114.75, 34.32], [-114.38, 34.22], [-114.30, 34.55], [-114.62, 34.66], [-114.75, 34.32]]] },
+};
 
 async function iemHas(initStr) {
   try {
@@ -87,16 +170,19 @@ export async function freshestInit(nowMs, tries = 4) {
   return d;
 }
 
-export async function getRadar(nowMs = Date.now()) {
-  const [observed, init] = await Promise.all([rainviewer(), freshestInit(nowMs)]);
+export async function getRadar(nowMs = Date.now(), mock = null) {
+  const [obs, init, warn] = await Promise.all([observed(nowMs), freshestInit(nowMs), mock ? Promise.resolve([]) : warnings()]);
+  if (mock === "warning") { warn.push({ ...MOCK_WARNING, ends: new Date(nowMs + 45 * 60000).toISOString() }); }
   return {
-    observed,
+    observed: obs,
     forecast: {
       source: "HRRR (Iowa Environmental Mesonet)",
       initUnix: Math.round(init.getTime() / 1000),
       tileTemplate: IEM_TEMPLATE.replace("{init}", iemInit(init)),
       frames: futureFrames(nowMs, init),
     },
-    attribution: "Observed radar: RainViewer · Future radar: HRRR via Iowa Environmental Mesonet",
+    warnings: warn,
+    lightning: LIGHTNING,
+    attribution: "Observed radar: NOAA MRMS · Future radar: HRRR via Iowa Environmental Mesonet · Warnings: NWS",
   };
 }
