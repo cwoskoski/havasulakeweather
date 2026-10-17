@@ -4,6 +4,7 @@
  *   GET /api/current                 → latest reading + derived values
  *   GET /api/history?hours=24        → time series for charts (max 30d)
  *   GET /api/wind?hours=24           → bucketed wind timeline + rose + daily stats (max 7d)
+ *   GET /api/research?from=&to=      → any range from rollups: points + day rows + summary (HLW-052)
  *
  * Read-only over the same DynamoDB table. Behind CloudFront + edge caching in
  * Phase 3; for now it's a Function URL you can curl. Derived values (dew point,
@@ -19,6 +20,8 @@ import { getRadar } from "./radar.js";
 import { getAir } from "./air.js";
 import { kmToMi, summarize, mockLightning } from "./lightning.js";
 import { summarizeWind, mockWind } from "./wind.js";
+import { parseRange, pickResolution, alignStart, assemble, entriesFromReadings, mockResearch, waterRow, localDay, localDayStart, isoSec } from "./research.js";
+import { rawReadings, hourItems } from "./rollup.js";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.TABLE_NAME;
@@ -184,6 +187,67 @@ export function rainState(recent, latest) {
   const rainingNow = rate(latest) > 0 || wet.length > 0;
   const lastRainAt = wet.length ? wet[wet.length - 1].sk : (latest?.lastRainAt ?? null);
   return { rainingNow, rateInHr: rate(latest) || null, lastRainAt };
+}
+
+// ---- /api/research (HLW-052) ----
+const FIRST_YEAR = 2025; // before the station existed — the earliest DAY# partition we look in
+let sinceCache = null;   // { day, at } — first rolled-up day; only ever moves when backfilled
+
+async function stationSince() {
+  if (sinceCache && Date.now() - sinceCache.at < 3600e3) return sinceCache.day;
+  let day = null;
+  for (let y = FIRST_YEAR; y <= new Date().getUTCFullYear() && !day; y++) {
+    const r = await ddb.send(new QueryCommand({
+      TableName: TABLE, KeyConditionExpression: "pk = :pk",
+      ExpressionAttributeValues: { ":pk": `DAY#${STATION}#${y}` }, Limit: 1, ProjectionExpression: "sk",
+    }));
+    day = r.Items?.[0]?.sk || null;
+  }
+  sinceCache = { day, at: Date.now() };
+  return day;
+}
+
+async function dayItems(fromDay, toDay) {
+  const items = [];
+  for (let y = Number(fromDay.slice(0, 4)); y <= Number(toDay.slice(0, 4)); y++) {
+    let ek;
+    do {
+      const r = await ddb.send(new QueryCommand({
+        TableName: TABLE, KeyConditionExpression: "pk = :pk AND sk BETWEEN :s AND :e",
+        ExpressionAttributeValues: { ":pk": `DAY#${STATION}#${y}`, ":s": fromDay, ":e": toDay }, ExclusiveStartKey: ek,
+      }));
+      items.push(...(r.Items || []));
+      ek = r.LastEvaluatedKey;
+    } while (ek);
+  }
+  return items;
+}
+
+async function waterRows(fromDay, toDay) {
+  const r = await ddb.send(new QueryCommand({
+    TableName: TABLE, KeyConditionExpression: "pk = :pk AND sk BETWEEN :s AND :e",
+    ExpressionAttributeValues: { ":pk": "WATER#DAILY", ":s": fromDay, ":e": toDay },
+  }));
+  return (r.Items || []).map(waterRow);
+}
+
+// Source entries for a range: raw buckets (≤3 d), hour items (≤63 d) or day items. The
+// hourly source tops up the not-yet-rolled tail (rollups run at :05) from raw readings.
+async function researchEntries({ startMs, endMs }, rez) {
+  if (rez.src === "raw") {
+    const s0 = alignStart(startMs, rez.stepMin);
+    return entriesFromReadings(await rawReadings(STATION, s0 - 30 * 60e3, endMs), startMs, endMs, rez.stepMin);
+  }
+  if (rez.src === "hour") {
+    const s0 = alignStart(startMs, rez.stepMin);
+    const items = await hourItems(STATION, s0, endMs);
+    const entries = items.map((it) => ({ t: Date.parse(it.sk), a: it }));
+    const tail = entries.length ? entries[entries.length - 1].t + 3600e3 : Math.max(s0, endMs - 3 * 3600e3);
+    if (endMs > tail) entries.push(...entriesFromReadings(await rawReadings(STATION, tail - 30 * 60e3, endMs), tail, endMs, 60));
+    return entries;
+  }
+  const items = await dayItems(localDay(startMs), localDay(endMs - 1));
+  return items.map((it) => ({ t: localDayStart(it.sk), a: it }));
 }
 
 export const handler = async (event) => {
@@ -355,7 +419,34 @@ export const handler = async (event) => {
       }
     }
 
-    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar", "/api/air", "/api/lightning", "/api/wind?hours=24"] }, 15);
+    // Research page (HLW-052): any timeframe, read from the hourly/daily rollups.
+    // from/to = YYYY-MM-DD (local days, to inclusive) or ISO; from=all = since the first
+    // rolled-up day. ?mock=summer|storm|winter previews without AWS.
+    if (path.endsWith("/api/research")) {
+      const nowMs = Date.now();
+      if (qs.mock) {
+        const range = parseRange(qs.from === "all" ? { ...qs, from: localDay(nowMs - 400 * 86400e3) } : qs, nowMs);
+        if (!range) return res(400, { error: "bad range", hint: "from/to as YYYY-MM-DD or ISO, from < to" }, 60);
+        return res(200, mockResearch(qs.mock, range, nowMs), 20);
+      }
+      try {
+        const since = await stationSince();
+        const range = parseRange(qs.from === "all" ? { ...qs, from: since || isoSec(nowMs - 86400e3) } : qs, nowMs);
+        if (!range) return res(400, { error: "bad range", hint: "from/to as YYYY-MM-DD or ISO, from < to" }, 60);
+        const r = pickResolution(range.endMs - range.startMs);
+        const [entries, water] = await Promise.all([
+          researchEntries(range, r),
+          waterRows(localDay(range.startMs), localDay(range.endMs - 1)).catch(() => []),
+        ]);
+        const past = range.endMs < nowMs - 2 * 3600e3; // a finished range never changes
+        return res(200, { source: "live", since, ...assemble(entries, { ...range, res: r }), water }, past ? 3600 : 300);
+      } catch (e) {
+        console.error(JSON.stringify({ msg: "research-error", error: String(e?.message || e) }));
+        return res(200, { source: "live", points: [], days: [], summary: { n: 0 }, water: [], error: "upstream" }, 30);
+      }
+    }
+
+    return res(404, { error: "not found", try: ["/api/current", "/api/history?hours=24", "/api/forecast", "/api/alerts", "/api/compare", "/api/water", "/api/radar", "/api/air", "/api/lightning", "/api/wind?hours=24", "/api/research?from=2026-10-01&to=2026-10-07"] }, 15);
   } catch (e) {
     console.error(JSON.stringify({ msg: "read-error", error: String(e?.message || e), path }));
     return res(500, { error: "internal" }, 5);
