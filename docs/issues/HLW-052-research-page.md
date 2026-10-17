@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/101
 - **Branch:** `feat/HLW-052-research-page`
-- **PR:** —
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/102
 - **Created:** 2026-10-17
 
 ## Summary
