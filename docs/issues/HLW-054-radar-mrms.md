@@ -1,6 +1,6 @@
 # HLW-054: Radar — NOAA MRMS observed radar, warning polygons, lightning
 
-- **Status:** in-progress
+- **Status:** done (deployed + verified live 2026-10-17)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/107
 - **Branch:** `feat/HLW-054-radar-mrms`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/108
@@ -49,3 +49,13 @@ polygons plus lightning (NOAA density layer + our own detector).
   virga can be missed. Every source shares this; the page says so.
 - NOAA publishes no rate policy for these WMS endpoints; our load is current+next frame only.
   Watch after launch.
+
+## Shipped (2026-10-17)
+
+- PR #108 merged → deploy workflow green (ingest + site). Live `/api/radar`: NOAA MRMS (NCEP),
+  12 observed frames (newest ~3 min old) + 12 HRRR frames, 0 warnings, lightning layer listed.
+- Live `/radar.html` (after the r10 update toast → Refresh): 24 frames, all radar tiles drawn,
+  "No storm warnings nearby", our detector line, NOAA MRMS attribution, 0 console errors.
+- Known transient: a returning visitor on the cached r9 page sees forecast-only frames until they
+  tap the update toast (the old page expected RainViewer fields the API no longer returns).
+- Follow-ups: watch NOAA GeoServer responsiveness (no published rate policy).
