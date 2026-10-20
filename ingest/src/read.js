@@ -2,7 +2,7 @@
  * Havasu Lake Weather — read API (JSON for the public page)
  *
  *   GET /api/current                 → latest reading + derived values
- *   GET /api/history?hours=24        → time series for charts (max 30d)
+ *   GET /api/history?hours=24        → time series for charts (max 7d; longer → /api/research)
  *   GET /api/wind?hours=24           → bucketed wind timeline + rose + daily stats (max 7d)
  *   GET /api/research?from=&to=      → any range from rollups: points + day rows + summary (HLW-052)
  *
@@ -34,7 +34,6 @@ const obsPkFor = (key, mm) => `OBS#${key}#${mm}`;
 const obsPk = (mm) => obsPkFor(STATION, mm);
 const ym = (d) => d.toISOString().slice(0, 7);
 const prevMonth = (mm) => { let [y, m] = mm.split("-").map(Number); if (--m === 0) { m = 12; y--; } return `${y}-${String(m).padStart(2, "0")}`; };
-const nextMonth = (mm) => { let [y, m] = mm.split("-").map(Number); if (++m === 13) { m = 1; y++; } return `${y}-${String(m).padStart(2, "0")}`; };
 
 function res(status, body, cacheSeconds = 15) {
   return {
@@ -88,28 +87,39 @@ async function newest() {
   return null;
 }
 
+// One sort-key window per UTC day from startISO to now, so series() can query the
+// days in parallel instead of paging a whole month serially (HLW-055). "T".."U"
+// brackets every "YYYY-MM-DDThh:mm:ssZ" key for that day.
+export function daySegments(startISO, nowMs) {
+  const segs = [];
+  let day = startISO.slice(0, 10);
+  const last = new Date(nowMs).toISOString().slice(0, 10);
+  while (day <= last && segs.length < 400) {
+    segs.push({ mm: day.slice(0, 7), lo: day === startISO.slice(0, 10) ? startISO : day + "T", hi: day + "U" });
+    day = new Date(Date.parse(day + "T00:00:00Z") + 864e5).toISOString().slice(0, 10);
+  }
+  return segs;
+}
+
 async function series(hours) {
-  const now = new Date();
-  const startISO = new Date(now - hours * 3600e3).toISOString().slice(0, 19) + "Z";
-  const months = [ym(new Date(now - hours * 3600e3))];
-  while (months[months.length - 1] !== ym(now) && months.length < 14) months.push(nextMonth(months[months.length - 1]));
-  const items = [];
-  for (const mm of months) {
+  const startISO = new Date(Date.now() - hours * 3600e3).toISOString().slice(0, 19) + "Z";
+  const days = await Promise.all(daySegments(startISO, Date.now()).map(async ({ mm, lo, hi }) => {
+    const out = [];
     let ek;
     do {
       const r = await ddb.send(new QueryCommand({
         TableName: TABLE,
-        KeyConditionExpression: "pk = :pk AND sk >= :s",
-        ExpressionAttributeValues: { ":pk": obsPk(mm), ":s": startISO },
+        KeyConditionExpression: "pk = :pk AND sk BETWEEN :lo AND :hi",
+        ExpressionAttributeValues: { ":pk": obsPk(mm), ":lo": lo, ":hi": hi },
         ProjectionExpression: "sk, tempf, temp1f, windspeedmph, windgustmph, winddir, humidity, baromrelin, uv, solarradiation, dailyrainin",
         ExclusiveStartKey: ek,
       }));
-      items.push(...(r.Items || []));
+      out.push(...(r.Items || []));
       ek = r.LastEvaluatedKey;
     } while (ek);
-  }
-  items.sort((a, b) => (a.sk < b.sk ? -1 : 1));
-  return items;
+    return out;
+  }));
+  return days.flat().sort((a, b) => (a.sk < b.sk ? -1 : 1));
 }
 
 // Recent readings (last `minutes`) for the rain debounce — small, edge-cached query.
@@ -296,7 +306,7 @@ export const handler = async (event) => {
     if (path.endsWith("/api/history")) {
       let hours = parseInt(qs.hours || "24", 10);
       if (!Number.isFinite(hours) || hours <= 0) hours = 24;
-      hours = Math.min(hours, 24 * 30);
+      hours = Math.min(hours, 24 * 7); // raw 1-min points; longer ranges go through /api/research (HLW-055)
       const its = await series(hours);
       return res(200, {
         station: STATION, hours, count: its.length,
