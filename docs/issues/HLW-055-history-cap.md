@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/110
 - **Branch:** `fix/HLW-055-history-cap`
-- **PR:** (pending)
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/112
 - **Created:** 2026-10-20
 
 ## Summary
