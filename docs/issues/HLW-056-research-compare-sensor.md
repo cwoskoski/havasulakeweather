@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/111
 - **Branch:** `fix/HLW-056-research-compare-sensor`
-- **PR:** (pending)
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/113
 - **Created:** 2026-10-20
 
 ## Summary
