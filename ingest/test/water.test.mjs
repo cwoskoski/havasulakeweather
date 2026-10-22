@@ -4,7 +4,7 @@
 // in-memory MOCK map so nothing touches DynamoDB or RISE/USGS.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { netFlow, pctFull, contextFor, getWater } from "../src/water.js";
+import { netFlow, pctFull, contextFor, getWater, davisUnits } from "../src/water.js";
 
 // --- netFlow(inCfs, outCfs) -> { netCfs, trend } with a ±200 cfs deadband -------
 
@@ -198,4 +198,72 @@ test("getWater: an unknown scenario name falls back to the normal fixture shape"
   // MOCK[mock] || MOCK.normal — content defaults to normal, but the echoed name is preserved
   assert.equal(w.mock, "does-not-exist");
   assert.equal(w.cascade.length, 8);
+});
+
+// --- davisUnits(cfs) -> Davis Dam generating units, ~4,600 cfs each (HLW-057) -----
+// Rounded to the nearest half; the rating uses the rounded value (<2 low, <3 minimum, 3+ good).
+
+test("davisUnits: null / non-numeric cfs gives null", () => {
+  assert.equal(davisUnits(null), null);
+  assert.equal(davisUnits(undefined), null);
+  assert.equal(davisUnits(NaN), null);
+});
+
+test("davisUnits: 1 unit (4,600 cfs) is low", () => {
+  assert.deepEqual(davisUnits(4600), { units: 1, rating: "low", cfsPerUnit: 4600 });
+});
+
+test("davisUnits: just under 2 units rounds to 1.5 and is low", () => {
+  assert.equal(davisUnits(8000).units, 1.5);
+  assert.equal(davisUnits(8000).rating, "low");
+});
+
+test("davisUnits: exactly 2 units is minimum", () => {
+  assert.deepEqual(davisUnits(9200), { units: 2, rating: "minimum", cfsPerUnit: 4600 });
+});
+
+test("davisUnits: a hair under 2 that rounds to 2 is minimum (badge and color agree)", () => {
+  assert.equal(davisUnits(9100).units, 2);
+  assert.equal(davisUnits(9100).rating, "minimum");
+});
+
+test("davisUnits: 2.5 units is still minimum", () => {
+  assert.equal(davisUnits(11500).units, 2.5);
+  assert.equal(davisUnits(11500).rating, "minimum");
+});
+
+test("davisUnits: exactly 3 units is good", () => {
+  assert.deepEqual(davisUnits(13800), { units: 3, rating: "good", cfsPerUnit: 4600 });
+});
+
+test("davisUnits: 5 units (all wide open) is good", () => {
+  assert.equal(davisUnits(23000).units, 5);
+  assert.equal(davisUnits(23000).rating, "good");
+});
+
+const isDavisLow = (w) => w.kind === "river" && /Davis Dam is averaging/.test(w.text);
+
+test("getWater('davis-low'): Davis under 2 units raises a low-water warning", async () => {
+  const w = await getWater("davis-low");
+  assert.equal(w.inflow.units.rating, "low");
+  const warn = w.warnings.find(isDavisLow);
+  assert.ok(warn, "expected a Davis low-water warning");
+  assert.equal(warn.severity, "warning");
+});
+
+test("getWater('davis-minimum' / 'davis-good'): no low-water warning", async () => {
+  for (const s of ["davis-minimum", "davis-good"]) {
+    const w = await getWater(s);
+    assert.equal(w.inflow.units.rating, s.slice(6));
+    assert.equal(w.warnings.some(isDavisLow), false, s);
+  }
+});
+
+test("getWater: Davis cascade node carries units; Parker does not (Davis only)", async () => {
+  const w = await getWater("normal");
+  const davis = w.cascade.find((n) => n.key === "davis");
+  const parker = w.cascade.find((n) => n.key === "parker");
+  assert.equal(davis.units.units, 2.5);
+  assert.equal(parker.units, null);
+  assert.equal(w.outflow.units, undefined);
 });

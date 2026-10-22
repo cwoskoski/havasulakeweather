@@ -418,6 +418,8 @@
   .lake-sub{display:flex;gap:4px 12px;flex-wrap:wrap;align-items:baseline;margin-top:6px;font-size:.8rem;font-weight:650;color:var(--ink-soft);}
   .lake-pct{font-weight:800;color:var(--teal-deep);} .lake-pct.low{color:var(--coral-deep);}
   .lake-river{display:flex;gap:6px 18px;flex-wrap:wrap;margin-top:9px;padding-top:9px;border-top:1px solid var(--glass-brd);font-size:.82rem;font-weight:650;color:var(--ink-soft);}
+  .lake-river .du{font-size:.68rem;font-weight:800;padding:1px 7px;border-radius:999px;white-space:nowrap;}
+  .lake-river .du-low{background:rgba(255,122,77,.24);color:var(--coral-deep);} .lake-river .du-minimum{background:rgba(255,191,92,.22);color:var(--gold);} .lake-river .du-good{background:rgba(47,185,196,.2);color:var(--teal-deep);}
   .lake-river .rl{font-weight:800;letter-spacing:.04em;text-transform:uppercase;font-size:.68rem;color:var(--ink-faint);margin-right:4px;}
   .lake-river b{color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums;}
   .wtr-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;}
@@ -1070,7 +1072,8 @@
     if(!rel||rel.cfs==null){el.hidden=true;return;}
     el.hidden=false;
     var arrow=rel.trend==="rising"?" ▲":rel.trend==="falling"?" ▼":"";
-    el.innerHTML='<span class="rl">'+label+'</span><b>'+cfs(rel.cfs)+' cfs</b>'+arrow;
+    var u=rel.units, du=(u&&u.units!=null)?' <span class="du du-'+u.rating+'">≈'+u.units+' units</span>':""; // Davis only (HLW-057)
+    el.innerHTML='<span class="rl">'+label+'</span><b>'+cfs(rel.cfs)+' cfs</b>'+arrow+du;
   }
   function renderWater(d){
     var t=$("waterTeaser");if(!t||!d)return;

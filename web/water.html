@@ -178,6 +178,10 @@
   .casc-flow .pill .ft{color:var(--teal-deep);font-weight:700;font-size:.74rem;}
   .casc-flow .pill .cc{font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:1px 7px;border-radius:999px;}
   .cc.chip-low{background:rgba(255,191,92,.22);color:var(--gold);} .cc.chip-normal{background:rgba(47,185,196,.2);color:var(--teal-deep);} .cc.chip-high{background:rgba(255,122,77,.24);color:var(--coral-deep);}
+  /* Davis Dam "units" badge (HLW-057) */
+  .casc-flow .pill .du{font-size:.68rem;font-weight:800;padding:1px 8px;border-radius:999px;white-space:nowrap;}
+  .du-low{background:rgba(255,122,77,.24);color:var(--coral-deep);} .du-minimum{background:rgba(255,191,92,.22);color:var(--gold);} .du-good{background:rgba(47,185,196,.2);color:var(--teal-deep);}
+  .du-note{font-size:.72rem;font-weight:650;color:var(--ink-faint);text-align:center;line-height:1.35;max-width:340px;margin:2px auto 3px;}
   .casc-intro{font-size:.84rem;font-weight:650;color:var(--ink-soft);line-height:1.4;margin:2px 2px 4px;}
   /* where Havasu's water goes (HLW-026) */
   .wgoes-lead{font-size:.86rem;font-weight:650;color:var(--ink-soft);line-height:1.42;margin:2px 0 12px;}
@@ -335,8 +339,14 @@
     var chip=(lvl&&lvl!=="unknown")?'<span class="cc chip-'+lvl+'">'+lvl+'</span>':"";
     var temp=n.waterTempF!=null?'<span class="ft">'+Math.round(n.waterTempF)+'°F</span>':"";
     var sub=n.sub?' · '+esc(n.sub):"";
+    var u=n.units, du="", note="";
+    if(u&&u.units!=null){ // Davis only (HLW-057): daily avg ≈ N units, rated low / minimum / good
+      du='<span class="du du-'+u.rating+'" title="Daily average ÷ ~'+fmt(u.cfsPerUnit)+' cfs per generating unit">≈'+u.units+' units · '+({low:"Low",minimum:"Minimum",good:"Good"}[u.rating]||"")+'</span>';
+      note='<div class="du-note">A “unit” is one of Davis Dam’s generators, ~'+fmt(u.cfsPerUnit)+' cfs each (daily average). Under 2 units the river below Laughlin runs low; 3+ is good.</div>';
+      chip=""; // the units rating replaces the seasonal chip for Davis
+    }
     return '<div class="casc-flow"><div class="line"></div>'+
-      '<div class="pill"><span class="fn">'+esc(n.name)+sub+'</span><span class="fv">'+fmt(n.cfs)+' cfs'+arrow+'</span>'+temp+chip+'</div>'+
+      '<div class="pill"><span class="fn">'+esc(n.name)+sub+'</span><span class="fv">'+fmt(n.cfs)+' cfs'+arrow+'</span>'+temp+chip+du+'</div>'+note+
       '<div class="line"></div></div>';
   }
   function renderCascade(c){
