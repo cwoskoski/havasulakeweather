@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/114
 - **Branch:** `feat/HLW-057-davis-units`
-- **PR:** _pending_
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/115
 - **Created:** 2026-10-22
 
 ## Summary
