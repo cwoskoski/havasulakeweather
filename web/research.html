@@ -185,7 +185,7 @@
           <button type="button" data-m="humidity">Humidity</button>
           <button type="button" data-m="pressure">Pressure</button>
           <button type="button" data-m="uv">UV index</button>
-          <button type="button" data-m="lake">Lake &amp; river</button>
+          <button type="button" data-m="lake">Lakes &amp; river</button>
         </div>
       </div>
     </section>
@@ -516,7 +516,7 @@
     var wa=(A.water||[]).slice().sort(function(a,b){return a.date<b.date?-1:1;});
     var wb=B?(B.water||[]).slice().sort(function(a,b){return a.date<b.date?-1:1;}):[];
     var sec=document.createElement("section");sec.className="card";sec.setAttribute("aria-labelledby","lake-h");
-    sec.innerHTML='<h2 id="lake-h">Lake Havasu &amp; the river</h2>';
+    sec.innerHTML='<h2 id="lake-h">Lakes &amp; the river</h2>';
     host.appendChild(sec);
     if(wa.length<2){
       var last=wa[wa.length-1];
@@ -526,10 +526,17 @@
     var spanMs=Date.parse(A.to)-Date.parse(A.from);
     var times=wa.map(function(w){return localMidnight(w.date);}),timesB=wb.map(function(w){return localMidnight(w.date);});
     var useElev=wa.filter(function(w){return w.havasuElevFt!=null;}).length>=wa.length/2;
+    /* HLW-058: every lake we store, not just Havasu. Lakes this different in size share one
+       chart as % full; colors validated (dataviz) on the dark surface — Havasu stays teal, and
+       each entity keeps its color across charts. Havasu is listed first so the dashed
+       comparison line follows it. */
+    var L={havasu:"#1a97a3",mohave:"#d95926",mead:"#3987e5",powell:"#c98500",canyon:"#3987e5",hoover:"#d95926"};
     var defs=[
-      {id:"lk-level",sub:useElev?"Lake level":"Lake storage",unit:useElev?"ft":"acre-ft",dec:useElev?2:0,s:[{k:useElev?"havasuElevFt":"havasuStorageAf",label:useElev?"Surface elevation":"Storage",color:C.s2}]},
-      {id:"lk-temp",sub:"Water temperature",unit:"°F",dec:0,s:[{k:"havasuTempF",label:"Lake Havasu",color:C.s1}]},
-      {id:"lk-flow",sub:"Dam releases",unit:"cfs",dec:0,zero:true,s:[{k:"davisCfs",label:"Davis Dam (into the lake)",color:C.s2},{k:"parkerCfs",label:"Parker Dam (out of the lake)",color:C.s3}]}
+      {id:"lk-pct",sub:"How full — Havasu, Mohave, Mead & Powell",unit:"%",dec:0,zero:true,s:[{k:"havasuPctFull",label:"Lake Havasu",color:L.havasu},{k:"mohavePctFull",label:"Lake Mohave",color:L.mohave},{k:"meadPctFull",label:"Lake Mead",color:L.mead},{k:"powellPctFull",label:"Lake Powell",color:L.powell}]},
+      {id:"lk-level",sub:useElev?"Lake Havasu level":"Lake Havasu storage",unit:useElev?"ft":"acre-ft",dec:useElev?2:0,s:[{k:useElev?"havasuElevFt":"havasuStorageAf",label:useElev?"Surface elevation":"Storage",color:C.s2}]},
+      {id:"lk-temp",sub:"Water temperature",unit:"°F",dec:0,s:[{k:"havasuTempF",label:"Lake Havasu",color:L.havasu},{k:"mohaveTempF",label:"Lake Mohave",color:L.mohave},{k:"canyonTempF",label:"Grand Canyon (Lees Ferry)",color:L.canyon}]},
+      {id:"lk-flow",sub:"Dam releases in & out of Lake Havasu",unit:"cfs",dec:0,zero:true,s:[{k:"davisCfs",label:"Davis Dam (into the lake)",color:C.s2},{k:"parkerCfs",label:"Parker Dam (out of the lake)",color:C.s3}]},
+      {id:"lk-up",sub:"Upstream — Powell inflow, Grand Canyon & Hoover Dam",unit:"cfs",dec:0,zero:true,s:[{k:"powellInflowCfs",label:"Into Lake Powell",color:L.powell},{k:"canyonCfs",label:"Grand Canyon (below Glen Canyon Dam)",color:L.canyon},{k:"hooverCfs",label:"Hoover Dam release",color:L.hoover}]}
     ];
     defs.forEach(function(d){
       var arr=function(rows,k){return rows.map(function(w){return w[k]==null?null:{v:w[k]};});};
@@ -650,9 +657,15 @@
   $("csvDays").addEventListener("click",function(){
     if(!A)return;
     var wmap={};(A.water||[]).forEach(function(w){wmap[w.date]=w;});
-    var WC=["havasuElevFt","havasuStorageAf","havasuTempF","davisCfs","parkerCfs"];
+    var WC=["havasuElevFt","havasuStorageAf","havasuPctFull","havasuTempF","davisCfs","parkerCfs",
+      "mohaveElevFt","mohaveStorageAf","mohavePctFull","mohaveTempF","hooverCfs",
+      "meadElevFt","meadStorageAf","meadPctFull","canyonCfs","canyonTempF",
+      "powellElevFt","powellStorageAf","powellPctFull","powellInflowCfs"];
     download(fileStem()+"_daily.csv",toCsv(A.days||[],function(r){return r.day;},"date_local",{
-      cols:["lake_elev_ft","lake_storage_af","lake_temp_f","davis_release_cfs","parker_release_cfs"],
+      cols:["lake_elev_ft","lake_storage_af","lake_pct_full","lake_temp_f","davis_release_cfs","parker_release_cfs",
+        "mohave_elev_ft","mohave_storage_af","mohave_pct_full","mohave_temp_f","hoover_release_cfs",
+        "mead_elev_ft","mead_storage_af","mead_pct_full","grand_canyon_cfs","grand_canyon_temp_f",
+        "powell_elev_ft","powell_storage_af","powell_pct_full","powell_inflow_cfs"],
       vals:function(r){var w=wmap[r.day]||{};return WC.map(function(k){return w[k];});}
     }));
   });
