@@ -500,7 +500,9 @@
         .filter(function(s){return s.a.some(function(p){return p;});});
       if(B&&def.series.length){
         var p0=def.series[0];
-        if(m==="temp"&&!series.some(function(s){return s.label===def.series[0].label;}))p0=def.series[1];
+        /* Temp: the dashed comparison uses the shaded sensor only when both periods have it,
+           otherwise full sun for both (the shaded sensor started later — HLW-056). */
+        if(m==="temp"&&!(series.some(function(s){return s.label===def.series[0].label;})&&seriesArr(rowsB,"shade",null,false).some(function(p){return p;})))p0=def.series[1];
         series.push({label:p0.label,short:p0.short,dash:true,a:seriesArr(rowsB,p0.k,p0.f,false)});
       }
       var cfg={id:"c-"+m,group:"wx",unit:def.unit,dec:def.dec,bars:def.bars,times:timesA,timesB:timesB,stepMin:stepMin,spanMs:spanMs,series:series};
@@ -545,6 +547,8 @@
   /* ---------- summary ---------- */
   function renderSummary(){
     var s=A.summary,b=B&&B.summary,ak=airKey(s),bk=b?airKey(b):ak;
+    /* Compare like with like: if either period lacks the shaded sensor, use full sun for both (HLW-056). */
+    var mixed=b&&ak!==bk;if(mixed)ak=bk="temp";
     $("periodLbl").innerHTML=esc(periodLabel(A))+(B?'<span class="cmpline">compared with '+esc(periodLabel(B))+' (dashed)</span>':'');
     if(!s||!s.n){
       $("stats").innerHTML='<div class="empty" style="grid-column:1/-1">No station readings in this period'+(A.since?" — the record starts "+esc(dayFmt(A.since)):"")+'.</div>';
@@ -572,7 +576,8 @@
       return '<div class="stat"><div class="k">'+esc(t.k)+'</div><div class="v">'+fmt(t.v,t.d)+'<small>'+esc(t.u)+'</small></div>'+(at?'<div class="at">'+esc(at)+'</div>':'')+vs+'</div>';
     }).join("");
     var notes=[];
-    notes.push("Highs and lows from the "+(ak==="shade"?"shaded air sensor":"full-sun array")+".");
+    notes.push(mixed?"Highs and lows from the full-sun array for both periods, since the shaded sensor wasn’t reporting for one of them."
+                    :"Highs and lows from the "+(ak==="shade"?"shaded air sensor":"full-sun array")+(b?" for both periods":"")+".");
     notes.push("Each chart point is "+(A.res.stepMin===1440?"a day":A.res.stepMin===60?"an hour":STEP_LBL[A.res.stepMin])+".");
     if(A.since)notes.push("Station record since "+dayFmt(A.since)+".");
     if(A.source==="mock")notes.push("Preview data ("+A.mock+").");
