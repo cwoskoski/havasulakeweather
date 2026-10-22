@@ -220,7 +220,7 @@ function warningsFor(lake, inflow, outflow) {
   const n = (x) => x.toLocaleString();
   const du = inflow ? davisUnits(inflow.cfs) : null;
   if (du && du.rating === "low")
-    w.push({ kind: "river", severity: "warning", text: `Davis Dam is averaging ~${du.units} units (${n(inflow.cfs)} cfs) — low water on the river below Laughlin; watch for sandbars and shallows.` });
+    w.push({ kind: "river", severity: "warning", text: `Davis Dam is averaging ~${du.units} unit${du.units === 1 ? "" : "s"} (${n(inflow.cfs)} cfs) — low water on the river below Laughlin; watch for sandbars and shallows.` });
   if (inflow && inflow.context && inflow.context.level === "high")
     w.push({ kind: "river", severity: "warning", text: `High flows on the Colorado below Davis Dam (${n(inflow.cfs)} cfs, high for the season) — expect stronger current.` });
   if (outflow && outflow.context && outflow.context.level === "high")
@@ -398,7 +398,7 @@ export async function getWater(mock) {
 }
 
 /* ------------------------------------------------------------ mock fixtures --
- * normal | low-lake | high-release | davis-low | davis-minimum | davis-good (HLW-057).
+ * normal | low-lake | high-release | davis-one | davis-low | davis-minimum | davis-good (HLW-057).
  * Fake, shaped like the live output.
  */
 function mockLake(elev, status) {
@@ -442,6 +442,7 @@ const MOCK = {
   "normal": () => mockScenario(mockLake(451.5, "full"), moh(643.1), 12500, "steady", 9200, "steady"),
   "low-lake": () => mockScenario(mockLake(444.2, "low"), moh(638.4), 8000, "falling", 7200, "falling"),
   "high-release": () => mockScenario(mockLake(451.0, "full"), moh(644.0), 19500, "rising", 16000, "rising"),
+  "davis-one": () => mockScenario(mockLake(450.0, "full"), moh(640.5), 4750, "falling", 5100, "steady"),      // ~1 unit (singular)
   "davis-low": () => mockScenario(mockLake(450.2, "full"), moh(641.0), 6900, "falling", 6200, "steady"),      // ~1.5 units
   "davis-minimum": () => mockScenario(mockLake(450.8, "full"), moh(642.0), 10600, "steady", 9000, "steady"),  // ~2.5 units
   "davis-good": () => mockScenario(mockLake(451.2, "full"), moh(643.0), 16100, "rising", 12000, "steady"),    // ~3.5 units

@@ -267,3 +267,9 @@ test("getWater: Davis cascade node carries units; Parker does not (Davis only)",
   assert.equal(parker.units, null);
   assert.equal(w.outflow.units, undefined);
 });
+
+test("getWater('davis-one'): a single unit reads singular (\"~1 unit\", not \"~1 units\")", async () => {
+  const w = await getWater("davis-one");
+  const text = w.warnings.find(isDavisLow).text;
+  assert.match(text, /~1 unit \(/);
+});

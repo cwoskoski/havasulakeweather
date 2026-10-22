@@ -341,7 +341,7 @@
     var sub=n.sub?' · '+esc(n.sub):"";
     var u=n.units, du="", note="";
     if(u&&u.units!=null){ // Davis only (HLW-057): daily avg ≈ N units, rated low / minimum / good
-      du='<span class="du du-'+u.rating+'" title="Daily average ÷ ~'+fmt(u.cfsPerUnit)+' cfs per generating unit">≈'+u.units+' units · '+({low:"Low",minimum:"Minimum",good:"Good"}[u.rating]||"")+'</span>';
+      du='<span class="du du-'+u.rating+'" title="Daily average ÷ ~'+fmt(u.cfsPerUnit)+' cfs per generating unit">≈'+u.units+' unit'+(u.units===1?'':'s')+' · '+({low:"Low",minimum:"Minimum",good:"Good"}[u.rating]||"")+'</span>';
       note='<div class="du-note">A “unit” is one of Davis Dam’s generators, ~'+fmt(u.cfsPerUnit)+' cfs each (daily average). Under 2 units the river below Laughlin runs low; 3+ is good.</div>';
       chip=""; // the units rating replaces the seasonal chip for Davis
     }
