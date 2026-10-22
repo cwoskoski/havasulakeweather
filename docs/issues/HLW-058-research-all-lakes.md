@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/117
 - **Branch:** `feat/HLW-058-research-all-lakes`
-- **PR:** _pending_
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/118
 - **Created:** 2026-10-22
 
 ## Summary
