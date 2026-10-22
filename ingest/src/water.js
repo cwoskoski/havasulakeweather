@@ -10,7 +10,7 @@
  * USGS discontinued the instantaneous release gauges below both dams, so the
  * live flow (cfs) comes from USBR RISE. RISE item ids are supplied via env
  * (RISE_DAVIS_ID / RISE_PARKER_ID); until set, flows read null and the card
- * shows "—". ?mock=<scenario> serves fixtures: normal | low-lake | high-release.
+ * shows "—". ?mock=<scenario> serves fixtures: normal | low-lake | high-release | davis-*.
  */
 
 import { readFileSync } from "node:fs";
@@ -186,6 +186,8 @@ function seriesToRelease(series, name, norm, month) {
   const trend = cfs > prev * 1.05 ? "rising" : cfs < prev * 0.95 ? "falling" : "steady";
   return { name, cfs, trend, observedAt: series[series.length - 1].date, source: "USBR RISE", context: contextFor(norm, cfs, month) };
 }
+// Tag the Davis release with its unit count (HLW-057).
+const withUnits = (rel) => (rel ? { ...rel, units: davisUnits(rel.cfs) } : rel);
 
 // Align Davis + Parker series by date for the mini-chart (last ~30 days).
 function buildSeries(davisS, parkerS) {
@@ -200,17 +202,31 @@ function buildSeries(davisS, parkerS) {
   };
 }
 
+// Davis Dam "units" (HLW-057). Boaters on the river below Davis talk in generating units
+// running, ~4,600 cfs each. RISE gives a DAILY AVERAGE release, so this is "daily avg ≈ N
+// units", not the hourly count. Rounded to the nearest half (how people say it), and the
+// rating uses the rounded value so the badge and its color never disagree.
+// Davis only — we don't assume a per-unit figure (or thresholds) for Parker.
+export const DAVIS_CFS_PER_UNIT = 4600;
+export function davisUnits(cfs) {
+  if (cfs == null || !Number.isFinite(cfs)) return null;
+  const units = Math.round((cfs / DAVIS_CFS_PER_UNIT) * 2) / 2;
+  const rating = units < 2 ? "low" : units < 3 ? "minimum" : "good";
+  return { units, rating, cfsPerUnit: DAVIS_CFS_PER_UNIT };
+}
+
 function warningsFor(lake, inflow, outflow) {
   const w = [];
   const n = (x) => x.toLocaleString();
+  const du = inflow ? davisUnits(inflow.cfs) : null;
+  if (du && du.rating === "low")
+    w.push({ kind: "river", severity: "warning", text: `Davis Dam is averaging ~${du.units} units (${n(inflow.cfs)} cfs) — low water on the river below Laughlin; watch for sandbars and shallows.` });
   if (inflow && inflow.context && inflow.context.level === "high")
     w.push({ kind: "river", severity: "warning", text: `High flows on the Colorado below Davis Dam (${n(inflow.cfs)} cfs, high for the season) — expect stronger current.` });
   if (outflow && outflow.context && outflow.context.level === "high")
     w.push({ kind: "river", severity: "info", text: `Heavy Parker Dam releases (${n(outflow.cfs)} cfs, high for the season) downstream.` });
   if (lake && lake.status === "low")
     w.push({ kind: "lake", severity: "warning", text: "Lake Havasu is running below its normal level." });
-  if (inflow && inflow.context && inflow.context.level === "low")
-    w.push({ kind: "river", severity: "info", text: `Davis Dam releases are low for the season (${n(inflow.cfs)} cfs) — calmer water below the dam.` });
   return w;
 }
 
@@ -242,7 +258,7 @@ function reservoirNode(key, name, dam, o) {
 }
 function flowNode(key, name, sub, o) {
   if (o.cfs == null) return null;
-  return { type: "flow", key, name, sub, cfs: Math.round(o.cfs), trend: o.trend ?? null, context: o.context ?? null, waterTempF: o.tempF ?? null, observedAt: o.observedAt ?? null };
+  return { type: "flow", key, name, sub, cfs: Math.round(o.cfs), trend: o.trend ?? null, context: o.context ?? null, units: o.units ?? null, waterTempF: o.tempF ?? null, observedAt: o.observedAt ?? null };
 }
 // Assemble the ordered cascade from primitive values, dropping any node we have no data for.
 // Each reservoir's net = (flow in, above it) − (its dam release, below it). Powell's "in" is
@@ -255,7 +271,7 @@ function buildCascade(v) {
     reservoirNode("mead", "Lake Mead", "Hoover Dam", { elevFt: v.meadElevFt, storageAf: v.meadStorageAf, net: netFlow(v.canyonCfs, v.hooverCfs), month: m, observedAt: v.meadAt }),
     flowNode("hoover", "Hoover Dam", "into Lake Mohave", { cfs: v.hooverCfs, observedAt: v.hooverAt }),
     reservoirNode("mohave", "Lake Mohave", "Davis Dam", { elevFt: v.mohaveElevFt, storageAf: v.mohaveStorageAf, tempF: v.mohaveTempF, net: netFlow(v.hooverCfs, v.davisCfs), month: m, observedAt: v.mohaveAt }),
-    flowNode("davis", "Davis Dam", "into Lake Havasu", { cfs: v.davisCfs, trend: v.davisTrend, context: v.davisCtx, observedAt: v.davisAt }),
+    flowNode("davis", "Davis Dam", "into Lake Havasu", { cfs: v.davisCfs, trend: v.davisTrend, context: v.davisCtx, units: davisUnits(v.davisCfs), observedAt: v.davisAt }),
     reservoirNode("havasu", "Lake Havasu", "Parker Dam", { elevFt: v.havasuElevFt, storageAf: v.havasuStorageAf, tempF: v.havasuTempF, star: true, net: netFlow(v.davisCfs, v.parkerCfs), month: m, observedAt: v.havasuAt }),
     flowNode("parker", "Parker Dam", "downstream to Parker", { cfs: v.parkerCfs, trend: v.parkerTrend, context: v.parkerCtx, observedAt: v.parkerAt }),
   ].filter(Boolean);
@@ -295,7 +311,7 @@ export async function getLive() {
     storageAf: mohStore ? Math.round(mohStore.value) : null,
     waterTempF: mohTemp ? +mohTemp.value.toFixed(1) : null, observedAt: moh.at, datum: "NGVD29",
   } : null;
-  const inflow = seriesToRelease(davisS, "Davis Dam release", NORMALS.davisRelease, month);
+  const inflow = withUnits(seriesToRelease(davisS, "Davis Dam release", NORMALS.davisRelease, month));
   const outflow = seriesToRelease(parkerS, "Parker Dam release", NORMALS.parkerRelease, month);
   const cascade = buildCascade({
     month,
@@ -348,7 +364,7 @@ function snapshotsToResponse(items) {
   } : null;
   const davisSeries = asc.filter((s) => s.davisCfs != null).map((s) => ({ date: s.date, value: s.davisCfs }));
   const parkerSeries = asc.filter((s) => s.parkerCfs != null).map((s) => ({ date: s.date, value: s.parkerCfs }));
-  const inflow = seriesToRelease(davisSeries, "Davis Dam release", NORMALS.davisRelease, month);
+  const inflow = withUnits(seriesToRelease(davisSeries, "Davis Dam release", NORMALS.davisRelease, month));
   const outflow = seriesToRelease(parkerSeries, "Parker Dam release", NORMALS.parkerRelease, month);
   const cascade = buildCascade({
     month,
@@ -382,7 +398,8 @@ export async function getWater(mock) {
 }
 
 /* ------------------------------------------------------------ mock fixtures --
- * normal | low-lake | high-release. Fake, shaped like the live output.
+ * normal | low-lake | high-release | davis-low | davis-minimum | davis-good (HLW-057).
+ * Fake, shaped like the live output.
  */
 function mockLake(elev, status) {
   const storeAf = status === "low" ? 555000 : status === "normal" ? 595000 : 619000;
@@ -416,7 +433,7 @@ function mockCascade(lake, upstream, dCfs, pCfs) {
 }
 function mockScenario(lake, upstream, dCfs, dTrend, pCfs, pTrend) {
   const m = new Date().getUTCMonth() + 1;
-  const inflow = { name: "Davis Dam release", cfs: dCfs, trend: dTrend, observedAt: now().slice(0, 10), source: "USBR RISE", context: contextFor(NORMALS.davisRelease, dCfs, m) };
+  const inflow = withUnits({ name: "Davis Dam release", cfs: dCfs, trend: dTrend, observedAt: now().slice(0, 10), source: "USBR RISE", context: contextFor(NORMALS.davisRelease, dCfs, m) });
   const outflow = { name: "Parker Dam release", cfs: pCfs, trend: pTrend, observedAt: now().slice(0, 10), source: "USBR RISE", context: contextFor(NORMALS.parkerRelease, pCfs, m) };
   return { lake, upstream, inflow, outflow, cascade: mockCascade(lake, upstream, dCfs, pCfs), series: mockSeries(dCfs, pCfs), warnings: warningsFor(lake, inflow, outflow), notes: [] };
 }
@@ -425,4 +442,7 @@ const MOCK = {
   "normal": () => mockScenario(mockLake(451.5, "full"), moh(643.1), 12500, "steady", 9200, "steady"),
   "low-lake": () => mockScenario(mockLake(444.2, "low"), moh(638.4), 8000, "falling", 7200, "falling"),
   "high-release": () => mockScenario(mockLake(451.0, "full"), moh(644.0), 19500, "rising", 16000, "rising"),
+  "davis-low": () => mockScenario(mockLake(450.2, "full"), moh(641.0), 6900, "falling", 6200, "steady"),      // ~1.5 units
+  "davis-minimum": () => mockScenario(mockLake(450.8, "full"), moh(642.0), 10600, "steady", 9000, "steady"),  // ~2.5 units
+  "davis-good": () => mockScenario(mockLake(451.2, "full"), moh(643.0), 16100, "rising", 12000, "steady"),    // ~3.5 units
 };
