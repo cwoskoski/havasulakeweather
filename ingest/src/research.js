@@ -13,6 +13,8 @@
  * Rain is the sum of dailyrainin increments; direction is a speed-weighted vector.
  */
 
+import { POOL, pctFull } from "./pools.js";
+
 export const TZ = "America/Los_Angeles";
 const HOUR = 3600e3, DAY = 86400e3;
 
@@ -279,9 +281,21 @@ export function entriesFromReadings(readings, startMs, endMs, stepMin) {
     .filter((e) => e && e.t + step > startMs);
 }
 
-// Only the lake/river fields the page charts.
-export const WATER_FIELDS = ["havasuElevFt", "havasuStorageAf", "havasuTempF", "davisCfs", "parkerCfs"];
-export const waterRow = (it) => Object.fromEntries([["date", it.sk], ...WATER_FIELDS.map((k) => [k, num(it[k])])]);
+// Every lake/river field the daily water snapshot stores (HLW-058: all four lakes, not just
+// Havasu), plus a derived "% full" per lake so lakes of very different size share one chart.
+export const WATER_FIELDS = [
+  "havasuElevFt", "havasuStorageAf", "havasuTempF", "davisCfs", "parkerCfs",
+  "mohaveElevFt", "mohaveStorageAf", "mohaveTempF",
+  "meadElevFt", "meadStorageAf", "hooverCfs",
+  "powellElevFt", "powellStorageAf", "powellInflowCfs",
+  "canyonCfs", "canyonTempF",
+];
+export const LAKES = ["havasu", "mohave", "mead", "powell"];
+export function waterRow(it) {
+  const row = Object.fromEntries([["date", it.sk], ...WATER_FIELDS.map((k) => [k, num(it[k])])]);
+  for (const l of LAKES) row[l + "PctFull"] = pctFull(row[l + "StorageAf"], POOL[l].capacityAf);
+  return row;
+}
 
 // ---------- mock scenarios (?mock=summer|storm|winter) ----------
 // Synthetic readings through the real pipeline, so previews exercise the same maths.
@@ -332,10 +346,15 @@ export function mockWater(startMs, endMs) {
   const out = [];
   for (let d = localDay(startMs), last = localDay(endMs - 1); d <= last; d = addDays(d, 1)) {
     const k = Date.parse(d) / DAY;
-    out.push({
-      date: d, havasuElevFt: round(448.4 + 0.6 * Math.sin(k / 9), 2), havasuStorageAf: Math.round(560000 + 18000 * Math.sin(k / 9)),
-      havasuTempF: round(70 + 12 * Math.sin(((k - 110) / 365) * 2 * Math.PI), 1), davisCfs: Math.round(14000 + 4000 * Math.sin(k / 3)), parkerCfs: Math.round(13000 + 3500 * Math.sin(k / 3 + 0.4)),
-    });
+    const season = Math.sin(((k - 110) / 365) * 2 * Math.PI);
+    out.push(waterRow({
+      sk: d, havasuElevFt: round(448.4 + 0.6 * Math.sin(k / 9), 2), havasuStorageAf: Math.round(560000 + 18000 * Math.sin(k / 9)),
+      havasuTempF: round(70 + 12 * season, 1), davisCfs: Math.round(14000 + 4000 * Math.sin(k / 3)), parkerCfs: Math.round(13000 + 3500 * Math.sin(k / 3 + 0.4)),
+      mohaveElevFt: round(640 + 2 * Math.sin(k / 14), 2), mohaveStorageAf: Math.round(1640000 + 60000 * Math.sin(k / 14)), mohaveTempF: round(66 + 9 * season, 1),
+      meadElevFt: round(1050 + 8 * Math.sin(k / 60), 2), meadStorageAf: Math.round(7400000 + 500000 * Math.sin(k / 60)), hooverCfs: Math.round(9000 + 2500 * Math.sin(k / 4)),
+      powellElevFt: round(3540 + 15 * Math.sin(k / 70), 2), powellStorageAf: Math.round(6200000 + 900000 * Math.sin(k / 70)), powellInflowCfs: Math.round(6000 + 3000 * Math.sin(k / 30)),
+      canyonCfs: Math.round(9500 + 2500 * Math.sin(k / 5)), canyonTempF: round(55 + 6 * season, 1),
+    }));
   }
   return out;
 }

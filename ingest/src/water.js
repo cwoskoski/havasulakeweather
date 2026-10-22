@@ -16,6 +16,8 @@
 import { readFileSync } from "node:fs";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { POOL, pctFull } from "./pools.js";
+export { pctFull }; // re-exported for existing callers/tests
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const WATER_TABLE = process.env.TABLE_NAME;
@@ -51,14 +53,6 @@ const RISE_MEAD_STORAGE = process.env.RISE_MEAD_STORAGE || "6124";
 const RISE_HOOVER_RELEASE = process.env.RISE_HOOVER_RELEASE || "6125";
 const RISE_POWELL_INFLOW = process.env.RISE_POWELL_INFLOW || "511"; // Upper Colorado into Lake Powell (cfs)
 const USGS_GRANDCANYON = "09380000"; // Colorado R. at Lees Ferry, below Glen Canyon Dam
-// Full-pool reference (elevation ft / live-storage capacity acre-ft) for a coarse "% full".
-// Approximate published capacities — for the % readout only, not authoritative accounting.
-const POOL = {
-  powell: { fullElevFt: 3700, capacityAf: 24322000 },
-  mead:   { fullElevFt: 1229, capacityAf: 26120000 },
-  mohave: { fullElevFt: 647,  capacityAf: 1810000 },
-  havasu: { fullElevFt: 450,  capacityAf: 619000 },
-};
 
 const now = () => new Date().toISOString();
 
@@ -231,9 +225,6 @@ function warningsFor(lake, inflow, outflow) {
 }
 
 // --- Colorado cascade (HLW-023): ordered Powell → Havasu ---
-export function pctFull(storageAf, capacityAf) {
-  return storageAf != null && capacityAf ? Math.round((100 * storageAf) / capacityAf) : null;
-}
 // Net flow (in − out) → rising / draining. ±200 cfs deadband so run-of-river lakes
 // (Mohave/Havasu, which pass water through) don't flicker around zero.
 export function netFlow(inCfs, outCfs) {

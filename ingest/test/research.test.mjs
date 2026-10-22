@@ -173,9 +173,24 @@ test("partition keys and month walking", () => {
   assert.deepEqual(monthsBetween(Date.UTC(2026, 10, 20), Date.UTC(2027, 1, 2)), ["2026-11", "2026-12", "2027-01", "2027-02"]);
 });
 
-test("waterRow keeps only the charted lake/river fields", () => {
-  assert.deepEqual(waterRow({ sk: "2026-10-01", havasuElevFt: 448.2, davisCfs: "12000", meadElevFt: 1050 }),
-    { date: "2026-10-01", havasuElevFt: 448.2, havasuStorageAf: null, havasuTempF: null, davisCfs: 12000, parkerCfs: null });
+test("waterRow passes every stored lake/river field through, coerced to numbers", () => {
+  const r = waterRow({ sk: "2026-10-01", havasuElevFt: 448.2, davisCfs: "12000", meadElevFt: 1050, powellInflowCfs: "4742", canyonTempF: 54.1, junk: 1 });
+  assert.equal(r.date, "2026-10-01");
+  assert.equal(r.havasuElevFt, 448.2);
+  assert.equal(r.davisCfs, 12000);
+  assert.equal(r.meadElevFt, 1050);
+  assert.equal(r.powellInflowCfs, 4742);
+  assert.equal(r.canyonTempF, 54.1);
+  assert.equal(r.mohaveTempF, null);
+  assert.equal("junk" in r, false);
+});
+
+test("waterRow derives % full per lake from storage (null when storage is missing)", () => {
+  const r = waterRow({ sk: "2026-10-01", havasuStorageAf: 619000, mohaveStorageAf: 905000, meadStorageAf: 6530000, powellStorageAf: null });
+  assert.equal(r.havasuPctFull, 100);
+  assert.equal(r.mohavePctFull, 50);
+  assert.equal(r.meadPctFull, 25);
+  assert.equal(r.powellPctFull, null);
 });
 
 test("mockResearch runs the real pipeline at every resolution", () => {
