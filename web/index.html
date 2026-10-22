@@ -1072,7 +1072,7 @@
     if(!rel||rel.cfs==null){el.hidden=true;return;}
     el.hidden=false;
     var arrow=rel.trend==="rising"?" ▲":rel.trend==="falling"?" ▼":"";
-    var u=rel.units, du=(u&&u.units!=null)?' <span class="du du-'+u.rating+'">≈'+u.units+' units</span>':""; // Davis only (HLW-057)
+    var u=rel.units, du=(u&&u.units!=null)?' <span class="du du-'+u.rating+'">≈'+u.units+' unit'+(u.units===1?'':'s')+'</span>':""; // Davis only (HLW-057)
     el.innerHTML='<span class="rl">'+label+'</span><b>'+cfs(rel.cfs)+' cfs</b>'+arrow+du;
   }
   function renderWater(d){

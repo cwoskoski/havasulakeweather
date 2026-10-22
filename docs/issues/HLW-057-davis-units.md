@@ -1,6 +1,6 @@
 # HLW-057: Davis Dam releases as "units" with a low-water warning
 
-- **Status:** in-progress
+- **Status:** done
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/114
 - **Branch:** `feat/HLW-057-davis-units`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/115
@@ -46,3 +46,8 @@ rule of thumb: **minimum 2 units, 3+ is good**.
   "units right now".
 - 4,600 is a typical full-load unit, not max hydraulic capacity (rated ~31,000 cfs total),
   so readings like "≈2.5 units" are expected.
+
+## Shipped
+
+- 2026-10-22: PR #115 merged + deployed (site + ingest). Live check: Davis 4,750 cfs → ≈1 unit, Low, warning shown; Parker unchanged; SW v49/r12.
+- Follow-up fix: singular "1 unit" (was "~1 units") + `davis-one` mock; SW v50 (cache-only, no toast).
