@@ -1,6 +1,6 @@
 # HLW-053: Limit the site to North America (US/CA/MX + PR/VI)
 
-- **Status:** in-progress
+- **Status:** done (deployed + verified 2026-10-17)
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/104
 - **Branch:** `feat/HLW-053-geo-north-america`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/105
@@ -24,12 +24,12 @@ Lake, CA; out-of-region traffic has no audience value.
 - [x] `web/404.html`: a one-line region note, since blocked viewers get CloudFront's 403, which
       the existing `CustomErrorResponses` maps to the 404 page. SW `CACHE` bump only (not
       user-facing for anyone who can see the site, so no `RELEASE` bump).
-- [ ] Deploy (manual — the site stack is not in CI), then verify.
+- [x] Deploy (manual — the site stack is not in CI), then verify.
 
 ## Acceptance criteria
 
-- [ ] Live distribution shows `GeoRestriction: whitelist [US, CA, MX, PR, VI]`.
-- [ ] Site + `/api/*` still load from the US; station ingest still storing readings.
+- [x] Live distribution shows `GeoRestriction: whitelist [US, CA, MX, PR, VI]`.
+- [x] Site + `/api/*` still load from the US; station ingest still storing readings.
 
 ## Notes
 
@@ -40,3 +40,12 @@ Lake, CA; out-of-region traffic has no audience value.
 - Deploy: `aws cloudformation deploy --template-file site-template.yaml --stack-name
   havasu-weather-site --region us-east-1 --profile havasu` (existing parameter values are
   kept). CloudFront rollout ~5–15 min.
+
+## Shipped (2026-10-17)
+
+- PR #105 merged → CI synced `web/` (404 region note). Site stack deployed by hand from main
+  (`aws cloudformation deploy … havasu-weather-site`); distribution `E1FK70K9FGVU2M` Deployed
+  with `GeoRestriction whitelist [US, CA, MX, PR, VI]`.
+- From the US: `/`, `/research.html`, `/api/current` → 200; station still storing (fresh reading).
+- Not verified from outside North America (no vantage point) — CloudFront's documented behavior
+  is a 403, served here as the branded 404 page.
