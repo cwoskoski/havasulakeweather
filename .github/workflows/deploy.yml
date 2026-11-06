@@ -58,6 +58,18 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history — sitemap lastmod comes from git (HLW-061)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Stamp sitemap lastmod from git (HLW-061)
+        run: |
+          # Keep the live copy (from the previous deploy) so IndexNow can be told only what moved.
+          # Best-effort: if it can't be fetched, every URL counts as changed.
+          curl -fsS "https://havasulakeweather.com/sitemap.xml?deploy=${{ github.sha }}" -o /tmp/live-sitemap.xml \
+            || { echo "::warning::couldn't fetch the live sitemap; IndexNow will get every URL"; rm -f /tmp/live-sitemap.xml; }
+          node scripts/sitemap.mjs stamp web/sitemap.xml
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE }}
@@ -69,10 +81,10 @@ jobs:
       - name: Ping IndexNow (Bing / Yandex instant recrawl — Google ignores it)
         run: |
           KEY="23b65e54-7ebe-45ca-aff4-d9fbe16c00e8"
-          # Submit the sitemap's canonical URLs (parsed from the just-deployed file, not the
-          # possibly-cached live copy). Best-effort — never fail the deploy on a bad ping.
-          urls=$(grep -oE '<loc>[^<]*</loc>' web/sitemap.xml | sed 's/<[^>]*>//g')
-          if [ -z "$urls" ]; then echo "::warning::no sitemap URLs found; skipping IndexNow"; exit 0; fi
+          # Submit only the URLs whose lastmod moved vs the previously deployed sitemap (HLW-061);
+          # IndexNow asks for changed URLs only. Best-effort — never fail the deploy on a bad ping.
+          urls=$(node scripts/sitemap.mjs changed /tmp/live-sitemap.xml web/sitemap.xml)
+          if [ -z "$urls" ]; then echo "No page lastmod changed; skipping IndexNow."; exit 0; fi
           list=$(printf '%s\n' "$urls" | sed 's/.*/"&"/' | paste -sd, -)
           body=$(printf '{"host":"havasulakeweather.com","key":"%s","keyLocation":"https://havasulakeweather.com/%s.txt","urlList":[%s]}' "$KEY" "$KEY" "$list")
           echo "IndexNow urlList: $list"
