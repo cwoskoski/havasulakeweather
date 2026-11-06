@@ -1,6 +1,6 @@
 # HLW-059: SEO content refresh — crawlable About copy, FAQ page, titles, visible H1s
 
-- **Status:** in-progress
+- **Status:** done
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/119
 - **Branch:** `feat/HLW-059-seo-content`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/120
@@ -55,3 +55,10 @@ Davis Dam "units" explanation (HLW-057) only exists inside a JS string.
 
 Out of scope / follow-ups from the same audit: Dataset + per-page JSON-LD (structured
 data), sitemap `lastmod` stamping in deploy.yml, homepage CLS, site-stack 301s/favicon.
+
+## Shipped (2026-11-06)
+
+Merged PR #120 (`96e3cfe`); deploy run 42279130323 — site job ✅ (S3 + CloudFront), ingest skipped,
+IndexNow accepted. Verified live: all 7 pages 200 with one `<h1>`, About copy + FAQ nav link;
+`/faq.html` live with 12 Q&As and in the sitemap; `sw.js` = `havasu-wx-v52` / `r13`; 404 page
+returns 404 and links to FAQ; water page renders live cascade + Davis units with no console errors.
