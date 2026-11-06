@@ -1,6 +1,6 @@
 # HLW-060: Structured data — Dataset on research, self-contained JSON-LD on every page
 
-- **Status:** in-progress
+- **Status:** done
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/122
 - **Branch:** `feat/HLW-060-structured-data`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/123
@@ -29,7 +29,7 @@ pages the references go nowhere. The water page has no markup for the lake or th
 ## Acceptance criteria
 
 - [x] Every JSON-LD block parses; no `@id` reference on a page lacks a node on that same page
-- [ ] Research page passes Google's Rich Results test as a Dataset (after deploy)
+- [ ] Research page passes Google's Rich Results test as a Dataset (after deploy) — needs a signed-in Google account; Chad to run (or check Search Console → Enhancements → Datasets)
 - [x] CI green
 
 ## Notes
@@ -40,3 +40,10 @@ Decisions (Chad, 2026-11-06): license CC BY 4.0; record starts 2026-08-12.
   0 warnings. (First pass flagged `Dam` — not a schema.org type — so dams are `Place` with Wikipedia `sameAs`.)
 - Shared nodes (`WebSite`, operator `Person`, `Place`) are copied verbatim from `index.html` so the `@id`s match.
 - `WebPage.name` on wind/research aligned with the HLW-059 titles.
+
+## Shipped (2026-11-06)
+
+Merged PR #123 (`dbea7b4`); deploy run 42280077909 — site job ✅, ingest skipped. Verified live:
+validator.schema.org on all 7 live URLs → 0 errors, 0 warnings; research.html serves the Dataset
+(CC BY 4.0, `2026-08-12/..`); `sw.js` = `havasu-wx-v53`. Google's Rich Results test requires sign-in,
+so that check is left for Chad.
