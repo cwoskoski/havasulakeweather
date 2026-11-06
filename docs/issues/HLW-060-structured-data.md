@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/122
 - **Branch:** `feat/HLW-060-structured-data`
-- **PR:** TBD
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/123
 - **Created:** 2026-11-06
 
 ## Summary
