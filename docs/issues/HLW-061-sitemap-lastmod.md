@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/125
 - **Branch:** `feat/HLW-061-sitemap-lastmod`
-- **PR:** TBD
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/126
 - **Created:** 2026-11-06
 
 ## Summary
