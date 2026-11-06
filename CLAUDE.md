@@ -63,7 +63,9 @@ plus free public data (NWS, USGS, USBR RISE, Weather Underground).
   **service-worker cache-bump** check (fails if `web/` changed but `havasu-wx-vN` wasn't
   bumped), and `sam validate --lint`.
 - **Deploy on merge to `main`** (`.github/workflows/deploy.yml`), path-filtered:
-  - site job → `aws s3 sync web/` + CloudFront invalidation, only if `web/` changed;
+  - site job → stamp `web/sitemap.xml` `<lastmod>`s from git (`scripts/sitemap.mjs`, HLW-061 —
+    don't hand-edit them), `aws s3 sync web/` + CloudFront invalidation, then IndexNow for only the
+    URLs whose `lastmod` moved; only if `web/` changed;
   - ingest job → `sam build && sam deploy --config-env ci`, only if
     `ingest/src`/`template.yaml`/`samconfig.toml` changed.
   - The NoEcho station + WU keys are read back from the live read Lambda in-job and passed
