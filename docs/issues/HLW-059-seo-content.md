@@ -3,7 +3,7 @@
 - **Status:** in-progress
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/119
 - **Branch:** `feat/HLW-059-seo-content`
-- **PR:** TBD
+- **PR:** https://github.com/cwoskoski/havasulakeweather/pull/120
 - **Created:** 2026-11-06
 
 ## Summary
