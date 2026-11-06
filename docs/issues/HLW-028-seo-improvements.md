@@ -41,7 +41,7 @@ duplicate `www` host, and `/water` (extensionless) returning a raw S3 403.
 - [x] Static footer nav on all three pages with keyword anchors
       ("Live conditions · Radar · Lake Havasu water level") — always visible, no JS gate.
 - [x] Bumped `web/sw.js` CACHE → v32.
-- [ ] No-code: verify Google Search Console + Bing Webmaster Tools, submit sitemap (Chad).
+- [x] No-code: verify Google Search Console + Bing Webmaster Tools, submit sitemap (Chad) — both verified via DNS (confirmed 2026-11-06, HLW-060).
 
 ### Phase 2 — infra (`site-template.yaml`, separate approval)
 

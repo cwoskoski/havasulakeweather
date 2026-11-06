@@ -1,5 +1,5 @@
 /* Havasu Lake Weather — service worker (installability + offline shell) */
-const CACHE = "havasu-wx-v52";  // bump on EVERY web/ change (cache correctness; CI-enforced)
+const CACHE = "havasu-wx-v53";  // bump on EVERY web/ change (cache correctness; CI-enforced)
 const RELEASE = "r13";           // bump ONLY for user-facing changes — drives the "update available" toast
 const SHELL = [
   "/", "/index.html", "/water.html", "/radar.html", "/rain.html", "/wind.html", "/research.html", "/faq.html", "/manifest.json", "/sw-register.js",
