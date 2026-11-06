@@ -9,8 +9,8 @@
 <link rel="apple-touch-icon" href="/assets/icon-180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Havasu Wx" />
-<meta name="description" content="Lake Havasu water conditions for Havasu Lake, CA — live lake level, Davis & Parker Dam releases (inflow/outflow), and water temperature." />
-<title>Lake Havasu Water Level &amp; Dam Releases — Havasu Lake, CA</title>
+<meta name="description" content="Lake Havasu water level, water temperature and Davis &amp; Parker Dam releases for Havasu Lake, CA — live from USGS and USBR, with decades of history." />
+<title>Lake Havasu Water Level, Temp &amp; Dam Releases — Havasu Lake, CA</title>
 <link rel="canonical" href="https://havasulakeweather.com/water.html" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Havasu Lake Weather" />
@@ -73,11 +73,11 @@
     padding:max(12px,env(safe-area-inset-top)) 16px 12px;background:rgba(8,34,42,.72);
     backdrop-filter:blur(12px) saturate(150%);-webkit-backdrop-filter:blur(12px) saturate(150%);
     border-bottom:1px solid rgba(255,255,255,.08);}
-  .wnav a.back{display:inline-flex;align-items:center;gap:7px;color:var(--ink);text-decoration:none;
+  .wnav a.back{display:inline-flex;flex:none;white-space:nowrap;align-items:center;gap:7px;color:var(--ink);text-decoration:none;
     font-weight:800;font-size:.92rem;background:rgba(255,255,255,.08);border:1px solid var(--brd);
     border-radius:999px;padding:8px 14px;transition:background .18s;}
   .wnav a.back:hover{background:rgba(255,255,255,.15);}
-  .wnav .title{font-weight:800;font-size:1.02rem;letter-spacing:.01em;}
+  .wnav .title{margin:0;font-weight:800;font-size:1.02rem;letter-spacing:.01em;}
   .wnav .title small{display:block;font-weight:600;font-size:.68rem;color:var(--ink-faint);}
 
   /* ---- data cards ---- */
@@ -198,6 +198,8 @@
   .wgoes-note b{color:var(--ink-soft);}
   .casc-note{font-size:.72rem;font-weight:600;color:var(--ink-faint);text-align:center;margin-top:2px;}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  .about-p{margin:8px 0 0;font-size:.86rem;font-weight:600;line-height:1.5;color:var(--ink-soft);}
+  .about-p b{color:var(--ink);}
   .ftnav{margin-top:8px;font-weight:700;}
   .ftnav a{color:var(--ink-soft);white-space:nowrap;}
 </style>
@@ -205,11 +207,11 @@
 <body>
   <header class="wnav">
     <a class="back" href="/">&larr; Conditions</a>
-    <div class="title">Lake &amp; River<small>Havasu Lake, CA · Colorado River</small></div>
+    <h1 class="title">Lake Havasu Water<small>Havasu Lake, CA · Colorado River</small></h1>
   </header>
 
   <main class="wpage">
-    <h1 class="sr-only">Lake Havasu Water Level, Dam Releases &amp; Water Temperature — Havasu Lake, CA</h1>
+    <noscript><div class="card"><p class="about-p">Live Lake Havasu level, Davis &amp; Parker Dam releases and water temperature load with JavaScript. Sources: USGS gauge 09427500 and USBR RISE.</p></div></noscript>
     <div id="warnings"></div>
     <div class="casc-intro">The Colorado, top to bottom — every drop that reaches Lake Havasu passes through these first.</div>
     <div id="cascade" class="cascade" aria-label="Colorado River — Lake Powell down to Lake Havasu"></div>
@@ -231,6 +233,15 @@
     </section>
 
     <div id="notes"></div>
+
+    <!-- Static, crawlable explainer (HLW-059) — ranges from USGS 09427500 + USBR RISE, 2016–2026 -->
+    <section class="card" aria-labelledby="about-h">
+      <h2 id="about-h">About Lake Havasu water levels &amp; dam releases</h2>
+      <p class="about-p"><b>Lake Havasu</b> is the Colorado River reservoir behind <b>Parker Dam</b>, shared by Havasu Lake, California and Lake Havasu City, Arizona. Unlike Lake Mead and Lake Powell, Reclamation keeps Havasu close to full: over the last ten years the USGS gauge near Parker Dam has stayed between about <b>449.6 and 452.6&nbsp;ft</b> (NAVD88), usually a foot or so lower in December and January than in early summer. Day-to-day changes are measured in inches.</p>
+      <p class="about-p"><b>Davis Dam releases</b> (out of Lake Mohave) are the water flowing into Havasu. River boaters count them in <b>units</b>: one Davis generator is about <b>4,600&nbsp;cfs</b>. Under 2 units the river below Laughlin runs low, with sandbars and shallows; 3 or more is good. Summer releases typically run 15,000&ndash;16,000&nbsp;cfs (3&ndash;3&frac12; units), and late fall and winter drop to about 7,500&ndash;8,500&nbsp;cfs, or less.</p>
+      <p class="about-p"><b>Parker Dam releases</b> are the outflow downstream toward Parker and the Parker Strip &mdash; typically around 13,000&nbsp;cfs in summer and 6,000&nbsp;cfs in midwinter. Parker usually releases less than Davis sends in, because two aqueducts pump water out of the lake (below).</p>
+      <p class="about-p"><b>Lake Havasu water temperature</b> (USBR, near Parker Dam) runs about <b>53&ndash;54&deg;F</b> in January and February, warms through the 60s in spring, and peaks around <b>84&ndash;85&deg;F</b> in July and August &mdash; occasionally 87&deg;F or more &mdash; before cooling to the mid-60s by November.</p>
+    </section>
 
     <!-- Where Havasu's water goes — static explainer (HLW-026) -->
     <section class="card" aria-label="Where Lake Havasu's water goes">
@@ -258,7 +269,7 @@
     <div class="foot">
       Lake level: USGS · Dam releases &amp; water temp: USBR RISE · updates ~hourly.<br>
       Community reference only &mdash; not an official forecast. <a href="/">&larr; back to conditions</a>
-      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/rain.html">Rain &amp; storms</a> &middot; <a href="/wind.html">Wind</a> &middot; <a href="/research.html">Research</a></nav>
+      <nav class="ftnav" aria-label="Site"><a href="/">Live conditions</a> &middot; <a href="/radar.html">Radar</a> &middot; <a href="/water.html">Lake Havasu water level</a> &middot; <a href="/rain.html">Rain &amp; storms</a> &middot; <a href="/wind.html">Havasu Lake wind</a> &middot; <a href="/research.html">Weather history</a> &middot; <a href="/faq.html">FAQ</a></nav>
     </div>
   </main>
 
