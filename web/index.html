@@ -303,7 +303,9 @@
   :focus-visible{outline:2px solid var(--coral-deep);outline-offset:2px;}
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff5ec;padding:11px 18px;border-radius:999px;font-family:var(--font);font-size:.88rem;font-weight:700;opacity:0;transition:.25s;z-index:60;pointer-events:none;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  .install{display:flex;align-items:center;gap:11px;padding:11px 14px;font-size:.82rem;font-weight:700;color:var(--ink);}
+  /* Floats over the page, above the Support button (HLW-062): appearing after load must not push the layout down. */
+  .glass.install{position:fixed;left:14px;right:14px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:46;max-width:520px;margin:0 auto;background:rgba(255,250,245,.93);border-radius:20px;box-shadow:0 18px 50px -12px rgba(40,20,10,.5),inset 0 1px 0 var(--glass-hi);display:flex;align-items:center;gap:11px;padding:11px 14px;font-size:.82rem;font-weight:700;color:var(--ink);animation:iosrise .3s ease both;}
+  @media (prefers-reduced-motion:reduce){.install{animation:none;}}
   .install[hidden]{display:none;}
   .install .ph{width:22px;height:22px;flex:none;color:var(--coral-deep);}
   .install .txt{flex:1;line-height:1.3;}
@@ -339,8 +341,24 @@
   }
 
   /* ---- weather alerts (heat kept calm, flood/warnings loud) ---- */
+  /* HLW-062: one fixed-height line is always there (no layout shift when alerts load);
+     tapping it expands the full cards below. */
   .alerts{display:flex;flex-direction:column;gap:8px;}
-  .alerts:empty{display:none;}
+  .alert-line{display:flex;align-items:center;gap:10px;width:100%;height:44px;box-sizing:border-box;padding:0 14px;border-radius:var(--radius-sm);border:1px solid var(--glass-brd);background:var(--glass-bg);color:var(--ink);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--glass-shadow);font:inherit;font-family:var(--font);text-align:left;cursor:pointer;}
+  .alert-line:disabled{cursor:default;}
+  .alert-line .alert-ico{font-size:1.15rem;line-height:1;}
+  .alert-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.92rem;font-weight:800;}
+  .alert-until{font-weight:650;opacity:.85;}
+  .alert-more{flex:none;font-size:.72rem;font-weight:800;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.12);}
+  .alert-more[hidden]{display:none;}
+  .alert-chev{flex:none;font-size:1.2rem;font-weight:800;line-height:1;transition:transform .2s;}
+  .alert-line[aria-expanded="true"] .alert-chev{transform:rotate(90deg);}
+  .alert-line:disabled .alert-chev{display:none;}
+  .alert-none{color:var(--ink-soft);}
+  .alert-none .alert-txt{font-weight:650;}
+  .alert-none .alert-ico{color:var(--teal);font-weight:800;}
+  .alert-list{display:flex;flex-direction:column;gap:8px;}
+  .alert-list[hidden]{display:none;}
   .alert{display:flex;align-items:flex-start;gap:11px;border-radius:var(--radius-sm);padding:12px 14px;border:1px solid var(--glass-brd);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--glass-shadow);}
   .alert-ico{font-size:1.3rem;line-height:1.2;flex:none;}
   .alert-body{flex:1;min-width:0;}
@@ -358,6 +376,7 @@
 
   /* ---- forecast strip (NWS) ---- */
   .forecast{padding:16px 16px 14px;}
+  .forecast.fc-wait{min-height:330px;} /* rendered height, held until the first forecast arrives (HLW-062) */
   .fc-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
   .fc-head h2{margin:0;font-size:1.05rem;font-weight:800;}
   .fc-src{font-size:.7rem;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
@@ -466,7 +485,15 @@
     </header>
 
     <!-- WEATHER ALERTS (NWS) -->
-    <div id="alerts" class="alerts" aria-live="polite"></div>
+    <div id="alerts" class="alerts">
+      <button class="alert-line alert-none" id="alertLine" type="button" aria-expanded="false" aria-controls="alertList" disabled>
+        <span class="alert-ico" id="alertIco" aria-hidden="true">&hellip;</span>
+        <span class="alert-txt" id="alertTxt" aria-live="polite">Checking NWS alerts&hellip;</span>
+        <span class="alert-more" id="alertMore" hidden></span>
+        <span class="alert-chev" aria-hidden="true">&rsaquo;</span>
+      </button>
+      <div class="alert-list" id="alertList" hidden></div>
+    </div>
 
     <div class="glass install" id="installBanner" hidden>
       <svg class="ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v6M9 10h6"/></svg>
@@ -487,9 +514,9 @@
             <div class="temp-row">
               <div class="temp-primary">
                 <div class="big"><span id="temp">--</span><span class="deg">&deg;F</span></div>
-                <div class="temp-cap" id="tempCap" hidden>Solar Shielded</div>
+                <div class="temp-cap" id="tempCap">Solar Shielded</div>
               </div>
-              <div class="sun-temp" id="sunTemp" hidden>
+              <div class="sun-temp" id="sunTemp">
                 <div class="big-sun"><span id="tempSun">--</span><span class="deg-sun">&deg;</span></div>
                 <div class="temp-cap">Full Sun</div>
               </div>
@@ -544,13 +571,13 @@
     </section>
 
     <!-- FORECAST (NWS) -->
-    <section class="glass forecast" id="forecast" aria-labelledby="fc-h" hidden>
+    <section class="glass forecast fc-wait" id="forecast" aria-labelledby="fc-h">
       <div class="fc-head">
         <h2 id="fc-h">Forecast</h2>
         <span class="fc-src" id="fcSrc">via NWS</span>
       </div>
       <div class="fc-chip" id="fcRain" hidden></div>
-      <div class="fc-today" id="fcToday"></div>
+      <div class="fc-today" id="fcToday">Loading forecast&hellip;</div>
       <div class="fc-hours" id="fcHours" aria-label="Next hours"></div>
       <div class="fc-days-lbl" id="fcDaysLbl" hidden>Next 7 days</div>
       <div class="fc-days" id="fcDays" aria-label="7-day forecast"></div>
@@ -976,32 +1003,55 @@
   function alertTone(a){return a.category==="heat"?heatTone(a):(a.tone||"info");}
   function alertIcon(a){return {flood:"🌊",heat:"🌡️",wind:"💨",thunderstorm:"⛈️",fire:"🔥",cold:"❄️"}[a.category]||"⚠️";}
   async function loadAlerts(){
-    try{var r=await fetch(API+"/api/alerts"+mockQ("Alerts","multi"),{cache:"no-store"});var d=await r.json();renderAlerts((d&&d.alerts)||[]);}catch(e){}
+    try{var r=await fetch(API+"/api/alerts"+mockQ("Alerts","multi"),{cache:"no-store"});var d=await r.json();alertsLoaded=true;renderAlerts((d&&d.alerts)||[]);}
+    catch(e){if(!alertsLoaded)alertLineCalm("–","NWS alerts unavailable");}
   }
+  // "until 4 PM", or "until Sat 4 PM" when it ends on another day.
+  function alertUntil(a){
+    var d=new Date(a.expires);if(!a.expires||isNaN(d))return "";
+    var t=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}).replace(":00","");
+    return "until "+(d.toDateString()===new Date().toDateString()?"":d.toLocaleDateString([],{weekday:"short"})+" ")+t;
+  }
+  var alertsLoaded=false;
+  function alertLineCalm(ico,text){
+    var line=$("alertLine");line.className="alert-line alert-none";line.disabled=true;line.setAttribute("aria-expanded","false");
+    $("alertIco").textContent=ico;$("alertTxt").textContent=text;$("alertMore").hidden=true;$("alertList").hidden=true;
+  }
+  $("alertLine").addEventListener("click",function(){
+    var box=$("alertList");box.hidden=!box.hidden;this.setAttribute("aria-expanded",String(!box.hidden));
+  });
   function renderAlerts(list){
-    var box=$("alerts");if(!box)return;box.innerHTML="";
+    var box=$("alertList");if(!box)return;box.innerHTML="";
     var gone=pruneAlertDismissed();
-    list.filter(function(a){return !gone[a.id];}).forEach(function(a){
+    var live=list.filter(function(a){return !gone[a.id];});
+    if(!live.length){alertLineCalm("✓",list.length?"No new NWS alerts":"No active NWS alerts");return;}
+    var top=live[0],u=alertUntil(top),line=$("alertLine");   // the API sorts most severe first
+    line.className="alert-line alert-"+alertTone(top)+(top.category==="heat"?" is-heat":"");line.disabled=false;
+    $("alertIco").textContent=alertIcon(top);
+    $("alertTxt").innerHTML=esc(top.event)+(u?' <span class="alert-until">· '+esc(u)+'</span>':'');
+    var more=$("alertMore");more.hidden=live.length<2;more.textContent="+"+(live.length-1)+" more";
+    live.forEach(function(a){
       var el=document.createElement("div");
       el.className="alert alert-"+alertTone(a)+(a.category==="heat"?" is-heat":"");
       el.innerHTML='<span class="alert-ico" aria-hidden="true">'+alertIcon(a)+'</span>'+
         '<div class="alert-body"><div class="alert-event">'+esc(a.event)+'</div>'+
         '<div class="alert-head">'+esc(a.headline||"")+'</div></div>'+
         '<button class="alert-x" type="button" aria-label="Dismiss">&times;</button>';
-      el.querySelector(".alert-x").addEventListener("click",function(){dismissAlert(a.id,a.expires);el.remove();});
+      el.querySelector(".alert-x").addEventListener("click",function(){dismissAlert(a.id,a.expires);renderAlerts(list);});
       box.appendChild(el);
     });
   }
 
   /* -- forecast -- */
   async function loadForecast(){
-    try{var r=await fetch(API+"/api/forecast"+mockQ("Forecast",""),{cache:"no-store"});var d=await r.json();renderForecast(d);cachePut("forecast",d);}catch(e){}
+    try{var r=await fetch(API+"/api/forecast"+mockQ("Forecast",""),{cache:"no-store"});var d=await r.json();renderForecast(d);cachePut("forecast",d);}
+    catch(e){var sec=$("forecast");if(sec&&sec.classList.contains("fc-wait"))sec.hidden=true;} // never loaded: drop the placeholder
   }
   function renderForecast(d){
     var sec=$("forecast");if(!sec||!d)return;
     var hours=d.hourly||[],daily=d.daily||[];
     if(!hours.length&&!daily.length){sec.hidden=true;return;}
-    sec.hidden=false;
+    sec.hidden=false;sec.classList.remove("fc-wait");
     var chip=$("fcRain"),rs=d.rainSoon||{};
     if(rs.likely){chip.hidden=false;chip.textContent="🌧 Rain likely "+(rs.at?("around "+clock(rs.at)):"soon")+(rs.maxProbNext12h?(" · "+rs.maxProbNext12h+"%"):"");}
     else{chip.hidden=true;}
@@ -1170,7 +1220,7 @@
 
   /* ---------- go ---------- */
   /* Hydrate from cache first so a reload / navigation paints last-known values with no "--"
-     flash, then the live loads below revalidate in place. (Alerts are never cached.) */
+     flash, then the live loads below revalidate in place. (Alerts are never cached; their line holds its height.) */
   (function hydrate(){
     var c;
     if(c=cacheGet("current"))renderCurrent(c);
