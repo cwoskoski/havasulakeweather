@@ -1,6 +1,6 @@
 # HLW-062: Homepage layout shift (CLS)
 
-- **Status:** in-progress
+- **Status:** done
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/128
 - **Branch:** `feat/HLW-062-homepage-cls`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/129
@@ -37,10 +37,17 @@ mobile 390px **0.30**, desktop first visit **0.26** — both "poor" (> 0.25; goo
 ## Acceptance criteria
 
 - [x] Local preview CLS: mobile 0.30 → **0.022**, desktop 0.26 → **0.002**
-- [ ] Live homepage CLS < 0.1 on mobile and desktop after deploy
+- [x] Live homepage CLS < 0.1 on mobile and desktop after deploy
 - [x] Alert line correct for live (1 alert), `?mockAlerts=multi` (2, expandable), `?mockAlerts=clear`
 
 ## Notes
 
 - Site traffic is likely too low for Google field (CrUX) data, so this is a lab-measured fix.
 - Remaining ~0.02 on mobile is the rain card's message text changing length; left as is.
+
+## Shipped
+
+- Merged as PR #129 (`4b6abc1`); deploy run 42409779222 green. Live SW `havasu-wx-v55` / `r14`.
+- Live CLS (Playwright, fresh context, Lake Wind Advisory active): mobile 390px **0.027**
+  (was 0.30), desktop 1280px **0.022** (was 0.26).
+- First real HLW-061 run: only `/` got a new lastmod (2026-11-07) and IndexNow was sent just that URL (HTTP 200).
