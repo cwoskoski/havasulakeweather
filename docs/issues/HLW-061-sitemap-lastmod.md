@@ -1,6 +1,6 @@
 # HLW-061: Stamp sitemap `lastmod` from git on deploy; IndexNow only changed pages
 
-- **Status:** in-progress
+- **Status:** done
 - **GitHub issue:** https://github.com/cwoskoski/havasulakeweather/issues/125
 - **Branch:** `feat/HLW-061-sitemap-lastmod`
 - **PR:** https://github.com/cwoskoski/havasulakeweather/pull/126
@@ -29,8 +29,8 @@ changed URLs be submitted. `changefreq`/`priority` are ignored by Google.
 
 ## Acceptance criteria
 
-- [ ] After merge, the live sitemap's dates match each page's last change on `main`
-- [ ] The deploy log shows IndexNow submitting only changed URLs (or skipping)
+- [x] After merge, the live sitemap's dates match each page's last change on `main`
+- [x] The deploy log shows IndexNow submitting only changed URLs (or skipping)
 - [x] CI green
 
 ## Notes
@@ -44,3 +44,10 @@ changed URLs be submitted. `changefreq`/`priority` are ignored by Google.
   every URL (the old behaviour).
 - The committed `web/sitemap.xml` is stamped too, so the repo copy matches what deploys.
 - Documented in CLAUDE.md (CI/CD): don't hand-edit `lastmod`.
+
+## Shipped
+
+- Merged as PR #126 (`f2ecf7f`); deploy run 42296965726 green.
+- Deploy log: the stamp step printed 2026-11-06 for all 7 URLs; IndexNow step logged
+  "No page lastmod changed; skipping IndexNow." (live sitemap was already stamped identically).
+- Live `sitemap.xml` has git-derived `lastmod`, no changefreq/priority; live SW `havasu-wx-v54`.
